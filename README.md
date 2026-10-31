@@ -9,7 +9,8 @@ A NISAR Earth-change explorer with separate **Wetlands**, **Volcanoes** and **Fo
 - Start `npm run dev -- --port 3015` and open `http://localhost:3015/wetland/global`.
 - Fake-data experience: `/wetland`. Real saved studies: `/wetland?source=raster`.
 - Volcano directory: `/volcano/global`; published Hayli Gubbi/Erta Ale case: `/volcano/hayli-gubbi`.
-- Forest explorer: `/forest/global`; real Rondônia NISAR study: `/forest/rondonia`. The study reads seven PROVISIONAL GCOV observations, checks HLS coverage/change evidence, and publishes one small unverified radar-change candidate. Run `python pipeline/forest_pipeline.py verify-run --run RUN_ID` to reproduce its saved classifications offline. [Forest method](docs/forest-method.md) · [operator workflow](docs/forest-operator-guide.md).
+- Forest explorer: `/forest/global`; real Rondônia NISAR study: `/forest/rondonia`.
+- Agriculture / SME2 workspace: `/agriculture`. It has a truthful no-publication state until genuine SME2 PROVISIONAL granules are processed locally; see [Agriculture method](docs/agriculture-method.md). The study reads seven PROVISIONAL GCOV observations, checks HLS coverage/change evidence, and publishes one small unverified radar-change candidate. Run `python pipeline/forest_pipeline.py verify-run --run RUN_ID` to reproduce its saved classifications offline. [Forest method](docs/forest-method.md) · [operator workflow](docs/forest-operator-guide.md).
 - The volcano case contains three real NISAR HH BETA GUNW intervals, independent ascending/descending Sentinel-1 phase views, timeline, coordinate/pixel inspector and evidence export. Interpret these as relative apparent LOS candidates; atmospheric corrections and measurement accuracy are not established.
 - New study searches and processing run on the local computer. Earthdata login is entered in the terminal, never in the web form.
 

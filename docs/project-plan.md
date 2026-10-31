@@ -27,3 +27,8 @@ See [evidence-report.md](evidence-report.md) for the full data, offsets, and lim
 ## Deliberate limits
 
 This release does not claim worldwide flood or forest-loss detection, validated hazard maps, operational alerts, flood prediction, earthquake processing, or eruption forecasting. It presents worldwide observation coverage and a small set of local studies. A blank map area means no result is available.
+
+
+## Agriculture / soil-moisture feasibility
+
+The /agriculture workspace and isolated SME2 PROVISIONAL operator pipeline are implemented on the development branch. No real Agriculture result is published. The browser shows a verified no-publication state until genuine granules are processed and published. The product is not fully calibrated; the module is a soil-moisture measurement explorer, not crop-stress/drought/irrigation/yield detection. Live Earthdata processing and full project regression remain release gates. See [Agriculture method](agriculture-method.md) and [Agriculture release status](agriculture-release.md).

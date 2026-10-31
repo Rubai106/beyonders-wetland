@@ -25,3 +25,13 @@
 - Global imagery and acquisition footprints show observations/context, not global change classifications.
 - Forest and Volcano pages and published studies are available; their outputs remain exploratory or publication-context evidence and are not global detection claims.
 - Synthetic raster data exist only as temporary unit-test fixtures. They are not exposed by the web app or the production CLI.
+
+
+## Step 7 — Agriculture / SME2 integration
+
+- Added Agriculture to the phenomenon registry and shared investigation navigation without replacing the current Wetland, Forest or Volcano workspaces.
+- Added /agriculture with interactive Leaflet map, basemap toggle, moisture/change layers, dated timeline, keyboard-operable percentile chart, Explore/Operator/Evidence drawers, CSV export and integrity-checked preview loading.
+- Added WGS84/date/run-ID validation and terminal command generation. Earthdata credentials remain in the terminal; the browser does not execute processing.
+- Added the isolated pipeline/agriculture_sme2.py search/download/analyze/publish workflow and unit fixtures. Quality screening handles uint8 bit fields safely under NumPy 2.x, and AOI coverage uses all pixels inside the AOI as its denominator.
+- Added study schema and checksum validators with TypeScript tests.
+- No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and all local build/browser regression commands remain not run in this connected session.

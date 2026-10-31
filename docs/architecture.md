@@ -32,3 +32,8 @@ The public APIs use a bounded run ID and published catalog entry, not user-provi
 ## Mode configuration
 
 Local default: `BEYONDERS_MODE=local`, `NEXT_PUBLIC_BEYONDERS_MODE=local`. Public deploy: both set to `public`; Vercel's `VERCEL=1` also forces server-side public mode. Client controls use the public build flag. Never deploy with local mode accidentally enabled.
+
+
+## Agriculture / SME2 module
+
+Agriculture is a fourth independent workspace at /agriculture. It reads only the published display package under public/agriculture/current and verifies the study manifest and active preview against its byte-count/SHA-256 manifest before display. Its local operator CLI pipeline/agriculture_sme2.py performs CMR discovery, exact concept-ID Earthdata download, native-grid quality screening, soil-moisture time-series summaries and display-only publication. Original HDF5 granules and native GeoTIFFs stay in local operator storage. The 20% coverage floor and PROVISIONAL product-maturity limits are part of the evidence contract; no crop-stress or drought classification is claimed.

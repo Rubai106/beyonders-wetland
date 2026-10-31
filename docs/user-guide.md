@@ -88,3 +88,10 @@ using a 128 × 128 nearest-native-pixel grid. It displays backscatter and
 HH/HV-derived quantities; these do not uniquely label flooded vegetation, and
 the case has no matched C-band pixel comparison. See [radar physics tools](radar-physics-tools.md)
 for formulas, sample-grid provenance, and limitations.
+
+
+## Explore Agriculture soil moisture
+
+Open /agriculture to inspect an SME2 PROVISIONAL soil-moisture study when one has been published. The workspace includes an interactive map, observation timeline, median/P05/P95 chart, moisture/change layers, CSV export and evidence/provenance drawer. The Operator tab validates a WGS84 AOI, dates and a safe run ID, then generates commands for the local terminal. The browser does not download NASA data or run Earthdata-authenticated processing. If no real study is published, the workspace shows a basemap and an explicit no-result state rather than sample measurements.
+
+Interpret SME2 values as exploratory product estimates. They are not crop-health labels, drought diagnoses, irrigation recommendations or yield predictions.
