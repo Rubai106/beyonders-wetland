@@ -287,9 +287,10 @@ function GlobalTimeMachine({ dates, activeDate, stats, loading, onSelect }: {
   </>;
 }
 
-export default function GlobalDetectionsExplorer({ initialLocation, initialRunId }: {
+export default function GlobalDetectionsExplorer({ initialLocation, initialRunId, initialAnchorId }: {
   initialLocation?: { latitude: string; longitude: string; site: string };
   initialRunId?: string;
+  initialAnchorId?: string;
 }) {
   const queryLatitude = initialLocation?.latitude ?? "";
   const queryLongitude = initialLocation?.longitude ?? "";
@@ -786,7 +787,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
             : "";
 
   return (
-      <InvestigationWorkspace hazard="wetland" className="wetland-global-workspace" caseName={headerCaseName} caseControl={caseControl} dataTier={dataTier} satelliteBasemap={satelliteBasemap} onToggleBasemap={() => setSatelliteBasemap((value) => !value)} onReturnToOverview={returnToOverview} title="Explore NISAR across the world" subtitle="Track observations through time, then inspect candidates only where a real study has been processed." questContent={questContent} mapToolbar={<div className="wx-map-controls" aria-label="Map view and HH/HV radar layers">
+      <InvestigationWorkspace hazard="wetland" initialAnchorId={initialAnchorId} className="wetland-global-workspace" caseName={headerCaseName} caseControl={caseControl} dataTier={dataTier} satelliteBasemap={satelliteBasemap} onToggleBasemap={() => setSatelliteBasemap((value) => !value)} onReturnToOverview={returnToOverview} title="Explore NISAR across the world" subtitle="Track observations through time, then inspect candidates only where a real study has been processed." questContent={questContent} mapToolbar={<div className="wx-map-controls" aria-label="Map view and HH/HV radar layers">
         <ModeSwitch value={mapMode} onChange={handleMapModeChange} />
         <GlobalRadarLayerControls dateLabel={radarStageDateLabel} channel={radarChannel} stage={radarStage} disabled={radarControlsDisabled}
           showing={Boolean(localRadarLayer && radarImageStatus === "ready")} notice={radarControlNotice} onSelect={handleLocalRadarSelection} />
