@@ -14,6 +14,8 @@ import {
   type AgricultureObservation,
   type AgricultureStudy,
 } from "@/lib/agriculture-study";
+import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
+import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
 import "./agriculture.css";
 
 const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
@@ -218,6 +220,8 @@ export default function AgricultureWorkbench() {
     loadState === "ready" ? "Checksum verified" :
     loadState === "not-published" ? "No local publication" : "Publication unavailable";
 
+  const evidenceChain = buildAgricultureEvidenceChain(study);
+
   const drawerTabs: InvestigationDrawerTab[] = [
     {
       id: "explore", number: "01", label: "Explore", hint: "Inspect dates, map layers and summary statistics",
@@ -334,6 +338,16 @@ export default function AgricultureWorkbench() {
             <a href="https://earthaccess.readthedocs.io/en/latest/api/" target="_blank" rel="noreferrer">earthaccess API documentation ↗</a>
           </div>
           <p className="agri-small-note">Unsigned SHA-256 checksums protect against accidental changes relative to the published manifest. They are not digital signatures or proof of NASA authenticity.</p>
+        </div>
+      ),
+    },
+    {
+      id: "check", number: "04", label: "Check it",
+      hint: "Follow the soil-moisture measurement, reference status and uncertainty",
+      content: (
+        <div className="agri-drawer-panel">
+          <p className="agri-intro">Follow the complete chain from the native SME2 observations through the quality screen to independent reference availability. A missing reference is shown as missing, not as a negative result.</p>
+          <EvidenceChainPanel chain={evidenceChain} />
         </div>
       ),
     },
