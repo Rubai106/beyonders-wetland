@@ -420,6 +420,10 @@ export default function Home() {
                 <ul className="g3-phen-features" aria-label={`${p.name} features`}>
                   {p.featureHighlights.map((feature) => <li key={feature}>{feature}</li>)}
                 </ul>
+                <p className="g3-phen-evidence">
+                  <strong>Current evidence state</strong>
+                  {p.evidenceSummary}
+                </p>
                 <div className="g3-phen-actions">
                   <Link className="g3-btn g3-btn--primary g3-btn--sm" href={p.caseHref}>{p.caseLabel} →</Link>
                   {p.href && <Link className="g3-phen-browse" href={p.href}>Browse global map</Link>}
