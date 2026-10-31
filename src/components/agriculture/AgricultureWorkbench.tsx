@@ -300,7 +300,7 @@ export default function AgricultureWorkbench() {
                 <li>Soil moisture must be finite and within 0.02–0.60 m³/m³.</li>
                 <li>Uncertainty must be finite and non-negative.</li>
                 <li>retrievalQualityFlag bits 0–3 must all be set; anomaly bits 4–7 must be clear.</li>
-                <li>surfaceQualityFlag must equal zero. Fractional flags and NoData remain unassessed.</li>
+                <li>surfaceQualityFlag must equal zero. This excludes water, urban, precipitation, snow/ice, frozen-ground, terrain and dense-vegetation flags; it can reduce coverage over crop areas. Fractional flags and NoData remain unassessed.</li>
                 <li>All observations must share the same release and native grid; no resampling is performed.</li>
               </ul>
             </details>
