@@ -10,7 +10,7 @@ function GlobalDetectionsPageContent() {
     latitude: params.get("latitude") ?? "",
     longitude: params.get("longitude") ?? "",
     site: params.get("site") ?? "",
-  }} initialRunId={params.get("run") ?? ""} />;
+  }} initialRunId={params.get("run") ?? ""} initialAnchorId={params.get("story") === "chokwe" ? "mozambique-case-title" : undefined} />
 }
 
 export default function GlobalDetectionsPage() {
