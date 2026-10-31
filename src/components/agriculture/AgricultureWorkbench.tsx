@@ -34,6 +34,9 @@ function formatPercent(value: number) {
 function formatMoisture(value: number) {
   return value.toFixed(3) + " m³/m³";
 }
+function formatDifference(value: number) {
+  return (value > 0 ? "+" : "") + value.toFixed(3) + " m³/m³";
+}
 function dateLabel(value: string) {
   return new Date(value + "T00:00:00Z").toLocaleDateString("en", {
     day: "2-digit", month: "short", year: "numeric", timeZone: "UTC",
@@ -208,7 +211,8 @@ export default function AgricultureWorkbench() {
   const aoi: AgricultureAOI | null = study?.aoi ?? null;
   const target = study?.observations[study.observations.length - 1] ?? null;
   const currentCoverage = study ? (layer === "change" ? study.change_summary.valid_fraction : selectedObservation?.valid_fraction ?? 0) : 0;
-  const noStudy = loadState === "not-published" || loadState === "loading" || loadState === "error";
+  const displayedSummary = study ? (layer === "change" ? study.change_summary : selectedObservation) : null;
+  const noStudy = loadState === "not-published" || loadState === "loading";
   const statusText = loadState === "loading" ? "Checking published study" :
     loadState === "ready" ? "Checksum verified" :
     loadState === "not-published" ? "No local publication" : "Publication unavailable";
@@ -221,9 +225,9 @@ export default function AgricultureWorkbench() {
           <p className="agri-intro">Explore the measured SME2 soil-moisture series. The map and statistics below are loaded only from a checksum-verified published study.</p>
           {study ? <>
             <div className="agri-stat-grid">
-              <div><span>Median soil moisture</span><strong>{formatMoisture(selectedObservation?.median ?? 0)}</strong><small>{selectedObservation ? dateLabel(selectedObservation.date) : ""}</small></div>
+              <div><span>{layer === "change" ? "Median moisture difference" : "Median soil moisture"}</span><strong>{layer === "change" ? formatDifference(study.change_summary.median) : formatMoisture(selectedObservation?.median ?? 0)}</strong><small>{layer === "change" ? "Latest minus baseline median" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small></div>
               <div><span>Valid coverage</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "change" ? "Change-layer coverage" : "Selected-date coverage"}</small></div>
-              <div><span>Median uncertainty</span><strong>{(selectedObservation?.uncertainty_median ?? 0).toFixed(3)}</strong><small>Product-reported</small></div>
+              <div><span>Median uncertainty</span><strong>{(displayedSummary?.uncertainty_median ?? 0).toFixed(3)}</strong><small>Product-reported</small></div>
             </div>
             <div className="agri-reading">
               <span className="agri-eyebrow">CURRENT LAYER</span>
@@ -311,6 +315,16 @@ export default function AgricultureWorkbench() {
                 <div><dt>Baseline dates</dt><dd>{study.baseline_dates.map(dateLabel).join(", ")}</dd></div>
               </dl>
             </details>
+            <details className="agri-details">
+              <summary>Granule identity and source hashes</summary>
+              <ul className="agri-granule-list">
+                {study.observations.map((item) => <li key={item.date}>
+                  <strong>{dateLabel(item.date)}</strong>
+                  <span>{item.granule_name ?? "Granule filename not recorded"}</span>
+                  <code>{item.source_sha256 ?? "Source digest not recorded"}</code>
+                </li>)}
+              </ul>
+            </details>
           </> : <div className="agri-no-study"><strong>No study provenance loaded</strong><p>Source metadata and statistics will appear only after a real publication passes schema and checksum verification.</p></div>}
           <div className="agri-source-list">
             <strong>Official references</strong>
@@ -341,7 +355,7 @@ export default function AgricultureWorkbench() {
         <strong className="agri-rail-maturity">NISAR L3 · PROVISIONAL</strong>
         <p>Exploratory soil-moisture evidence. Not crop classification.</p>
       </div>}
-      map={<AgricultureMap aoi={aoi} displayBounds={study?.preview_bounds ?? null} previewUrl={previewUrl} satelliteBasemap={satelliteBasemap} noStudy={noStudy} />}
+      map={<AgricultureMap aoi={aoi} displayBounds={study?.preview_bounds ?? null} previewUrl={previewUrl} satelliteBasemap={satelliteBasemap} noStudy={noStudy} layer={layer} />}
       mapToolbar={<div className="agri-map-toolbar" role="group" aria-label="Agriculture map layers">
         <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => setLayer("moisture")}>Soil moisture</button>
         <button type="button" aria-pressed={layer === "change"} disabled={!study} onClick={() => setLayer("change")}>Change</button>

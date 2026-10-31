@@ -52,6 +52,13 @@
 .agriculture-workspace .agri-map-legend__low { background: #124a91; }
 .agriculture-workspace .agri-map-legend__high { background: #4bd1c1; }
 .agriculture-workspace .agri-map-legend__transparent { border: 1px dashed #84969c; background: transparent; }
+.agriculture-workspace .agri-map-legend__decrease { background: #43c9bb; }
+.agriculture-workspace .agri-map-legend__increase { background: #ed765d; }
+.agriculture-workspace .agri-granule-list { display: grid; gap: 8px; padding: 0 12px 12px; list-style: none; }
+.agriculture-workspace .agri-granule-list li { display: grid; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid #263940; }
+.agriculture-workspace .agri-granule-list strong { color: #d5e3e5; font-size: .65rem; }
+.agriculture-workspace .agri-granule-list span { color: #98aab0; font-size: .62rem; overflow-wrap: anywhere; }
+.agriculture-workspace .agri-granule-list code { color: #79b9b9; font-size: .56rem; overflow-wrap: anywhere; }
 .agriculture-workspace .agri-map-toolbar {
   position: absolute; z-index: 1100; top: 14px; right: 14px; display: flex; align-items: center; gap: 4px;
   padding: 5px; border: 1px solid #30424a; border-radius: 5px; background: rgb(8 17 22 / 94%); color: #d9e2e6;

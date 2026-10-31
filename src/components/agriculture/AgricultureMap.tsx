@@ -25,12 +25,14 @@ export default function AgricultureMap({
   previewUrl,
   satelliteBasemap,
   noStudy,
+  layer,
 }: {
   aoi: AgricultureAOI | null;
   displayBounds: AgricultureAOI | null;
   previewUrl: string | null;
   satelliteBasemap: boolean;
   noStudy: boolean;
+  layer: "moisture" | "change";
 }) {
   const extent = displayBounds ?? aoi;
   const bounds: LatLngBoundsExpression | undefined = extent
@@ -78,8 +80,13 @@ export default function AgricultureMap({
         </div>
       )}
       {aoi && previewUrl && <div className="agri-map-legend" aria-label="Map legend">
-        <span><i className="agri-map-legend__low" />Lower moisture</span>
-        <span><i className="agri-map-legend__high" />Higher moisture</span>
+        {layer === "change" ? <>
+          <span><i className="agri-map-legend__decrease" />Decrease</span>
+          <span><i className="agri-map-legend__increase" />Increase</span>
+        </> : <>
+          <span><i className="agri-map-legend__low" />Lower moisture</span>
+          <span><i className="agri-map-legend__high" />Higher moisture</span>
+        </>}
         <span><i className="agri-map-legend__transparent" />Not assessed</span>
       </div>}
     </div>
