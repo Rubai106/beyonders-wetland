@@ -31,7 +31,7 @@ python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01
 python pipeline/agriculture_sme2.py publish --run-id agri-pilot-01
 ~~~
 
-The search command writes pipeline/output/agriculture/<run-id>/search.json. It groups CMR granules by the metadata signature available in CMR, deduplicates acquisition dates and requires at least four dates. If multiple series share the highest observation count, pass the selected series_id explicitly to download --series-id.
+The search command writes `pipeline/output/agriculture/<run-id>/search.json`. It groups CMR granules by their standardized product identity, deduplicates acquisition dates using the most recently updated CMR record, and requires at least four dates. The current discovery query reads at most 2,000 CMR results; if NASA reports more matches, it fails instead of silently using a truncated catalogue. Narrow the AOI or date range and search again. If multiple compatible series are returned, pass the selected `series_id` explicitly to `download --series-id`.
 
 The download command re-resolves each exact CMR concept ID through earthaccess, requires the matching HDF5 granule filename, checks the SME2 grid hierarchy and writes a local SHA-256 receipt.
 
