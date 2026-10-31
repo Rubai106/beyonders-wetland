@@ -78,9 +78,9 @@ export default function InvestigationWorkspace({
   onReturnToOverview?: () => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState(drawerTabs?.[0]?.id ?? "");
-  const pendingAnchor = useRef<string | null>(null);
-  const initialAnchorApplied = useRef(false);
+  const initialAnchorTab = findDrawerTabForAnchor(drawerTabs, initialAnchorId);
+  const [activeTab, setActiveTab] = useState(initialAnchorTab?.id ?? drawerTabs?.[0]?.id ?? "");
+  const pendingAnchor = useRef<string | null>(initialAnchorTab ? initialAnchorId ?? null : null);
   const anchorObserver = useRef<MutationObserver | null>(null);
   const anchorFrame = useRef<number | null>(null);
   const documentFlow = className.includes("volcano-case-workspace") || className.includes("detection-page-workspace");
@@ -135,16 +135,6 @@ export default function InvestigationWorkspace({
     return true;
   }
 
-  useEffect(() => {
-    if (initialAnchorApplied.current || !initialAnchorId) return;
-    const tab = findDrawerTabForAnchor(drawerTabs, initialAnchorId);
-    if (!tab) return;
-
-    initialAnchorApplied.current = true;
-    pendingAnchor.current = initialAnchorId;
-    setActiveTab(tab.id);
-    setDrawerOpen(true);
-  }, [initialAnchorId, drawerTabs]);
 
   useEffect(() => {
     const targetId = pendingAnchor.current;
