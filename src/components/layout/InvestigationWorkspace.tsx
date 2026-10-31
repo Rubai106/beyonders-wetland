@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { DataTier } from "@/lib/store";
+import { findDrawerTabForAnchor } from "@/lib/workspace-navigation";
 import { Icon } from "../wetland/icons";
 import { TierBadge } from "../wetland/ui";
 
@@ -43,6 +44,7 @@ export default function InvestigationWorkspace({
   mapToolbar,
   drawer,
   drawerTabs,
+  initialAnchorId,
   drawerTabsPlacement = "map",
   drawerPersistent,
   footer,
@@ -64,6 +66,7 @@ export default function InvestigationWorkspace({
   mapToolbar?: ReactNode;
   drawer: ReactNode;
   drawerTabs?: InvestigationDrawerTab[];
+  initialAnchorId?: string;
   drawerTabsPlacement?: "map" | "drawer";
   drawerPersistent?: ReactNode;
   footer: ReactNode;
@@ -77,6 +80,7 @@ export default function InvestigationWorkspace({
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [activeTab, setActiveTab] = useState(drawerTabs?.[0]?.id ?? "");
   const pendingAnchor = useRef<string | null>(null);
+  const initialAnchorApplied = useRef(false);
   const anchorObserver = useRef<MutationObserver | null>(null);
   const anchorFrame = useRef<number | null>(null);
   const documentFlow = className.includes("volcano-case-workspace") || className.includes("detection-page-workspace");
@@ -118,7 +122,7 @@ export default function InvestigationWorkspace({
   }, [stopAnchorWait]);
 
   function openAnchor(targetId: string) {
-    const tab = drawerTabs?.find((item) => item.anchorIds?.includes(targetId));
+    const tab = findDrawerTabForAnchor(drawerTabs, targetId);
     if (!tab) return false;
     clearPendingAnchor();
     pendingAnchor.current = targetId;
@@ -130,6 +134,17 @@ export default function InvestigationWorkspace({
     setDrawerOpen(true);
     return true;
   }
+
+  useEffect(() => {
+    if (initialAnchorApplied.current || !initialAnchorId) return;
+    const tab = findDrawerTabForAnchor(drawerTabs, initialAnchorId);
+    if (!tab) return;
+
+    initialAnchorApplied.current = true;
+    pendingAnchor.current = initialAnchorId;
+    setActiveTab(tab.id);
+    setDrawerOpen(true);
+  }, [initialAnchorId, drawerTabs]);
 
   useEffect(() => {
     const targetId = pendingAnchor.current;
