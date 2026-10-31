@@ -77,7 +77,7 @@ jobs:
       - name: Install Chromium for production browser test
         run: python -m playwright install --with-deps chromium
 
-      - name: Run featured Chókwè production-browser smoke test
+      - name: Run wetland and Agriculture production-browser smoke tests
         env:
           BEYONDERS_MODE: public
           NEXT_PUBLIC_BEYONDERS_MODE: public
