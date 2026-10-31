@@ -31,7 +31,7 @@ with sync_playwright() as p:
     check("landing: featured Chókwè shortcut", chokwe_link.count() == 1 and chokwe_link.get_attribute("href") == "/wetland/global?story=chokwe")
     chokwe_link.click(); pg.wait_for_url("**/wetland/global?story=chokwe", timeout=20000)
     pg.wait_for_selector("#mozambique-case-title", timeout=20000)
-    check("featured deep link opens the Learn tab", pg.locator(".wx-tab[aria-selected=true]").inner_text() == "Learn")
+    check("featured deep link opens the Learn tab", pg.locator(".wx-drawer__tabs [role=tab][aria-selected=true]").inner_text() == "Learn")
     chokwe_text = pg.inner_text(".mozambique-case")
     check("Chókwè event evidence remains qualified", "accuracy unverified" in chokwe_text.lower() and "candidates, not a flood map" in chokwe_text.lower() and "1.26%" in chokwe_text and "88.2%" in chokwe_text)
     pg.get_by_role("link", name="Open the Tanguar Haor case").click(); pg.wait_for_url("**/wetland", timeout=20000)
