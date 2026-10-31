@@ -167,9 +167,9 @@ export default function AgricultureWorkbench() {
   const previewUrl = previewState?.asset === activeAsset ? previewState.url : null;
   const previewError = previewState?.asset === activeAsset ? previewState.error : "";
 
-  const form = { west, south, east, north, start, end, runId };
-  const formValid = validForm(form);
-  const generatedCommands = useMemo(() => formValid ? commandSet(form) : "", [formValid, west, south, east, north, start, end, runId]);
+  const form = useMemo(() => ({ west, south, east, north, start, end, runId }), [west, south, east, north, start, end, runId]);
+  const formValid = useMemo(() => validForm(form), [form]);
+  const generatedCommands = useMemo(() => formValid ? commandSet(form) : "", [form, formValid]);
   const chartRange = useMemo(() => {
     if (!study) return { min: 0, max: 1 };
     const lows = study.observations.map((item) => item.p05);
@@ -287,7 +287,7 @@ export default function AgricultureWorkbench() {
       id: "evidence", number: "03", label: "Evidence", hint: "Review product maturity, quality flags, coverage and provenance",
       content: (
         <div className="agri-drawer-panel">
-          <p className="agri-intro">The workspace separates the product's observations, derived differences and contextual sources. SME2 PROVISIONAL is not a fully calibrated agricultural decision product.</p>
+          <p className="agri-intro">The workspace separates the product&apos;s observations, derived differences and contextual sources. SME2 PROVISIONAL is not a fully calibrated agricultural decision product.</p>
           {study ? <>
             <div className={"agri-verdict " + (study.evidence_status === "INCONCLUSIVE_COVERAGE" ? "is-inconclusive" : "")}>
               <span className="agri-eyebrow">EVIDENCE STATUS</span>
