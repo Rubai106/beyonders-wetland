@@ -135,42 +135,62 @@ def _direction(value: str | None, title: str) -> str:
 
 
 def granule_signature(title: str, metadata: dict[str, Any]) -> dict[str, str]:
-    release_match = RELEASE_RE.search(title.upper())
+    """Read the fixed SME2 granule-name fields and cross-check catalog metadata.
+
+    Current SME2 names place track, direction, frame, mode, polarization and
+    frequency in fixed tokens. Never group granules with UNSPECIFIED identity:
+    that can silently mix adjacent tracks or frames into one time series.
+    """
+    filename = Path(title).name
+    stem = filename[:-4] if filename.lower().endswith(".h5") else filename
+    tokens = stem.split("_")
+    if len(tokens) < 18 or tokens[:4] != ["NISAR", "L3", "PR", "SME2"]:
+        raise AgricultureError(f"Granule does not match the supported NISAR L3 SME2 naming convention: {title}")
+
+    track, direction, frame, bandwidth, polarization, frequency = tokens[5:11]
+    release = tokens[13].upper()
+    if not re.fullmatch(r"\d{3}", track) or direction not in {"A", "D"}:
+        raise AgricultureError(f"Granule has invalid track/direction filename fields: {title}")
+    if not re.fullmatch(r"\d{3}", frame) or not re.fullmatch(r"\d{4}", bandwidth):
+        raise AgricultureError(f"Granule has invalid frame/bandwidth filename fields: {title}")
+    if not re.fullmatch(r"[A-Z0-9]{2,8}", polarization) or frequency not in {"A", "B"}:
+        raise AgricultureError(f"Granule has invalid polarization/frequency filename fields: {title}")
+
+    release_match = RELEASE_RE.fullmatch(release)
     if not release_match:
-        raise AgricultureError(f"Granule filename does not contain a Pxxxxx release token: {title}")
+        raise AgricultureError(f"Granule filename does not contain a supported release token: {title}")
     release_number = int(release_match.group(1)[1:])
     if release_number < MIN_RELEASE:
         raise AgricultureError(f"Granule release {release_match.group(1)} predates supported SME2 release P05023.")
 
-    direction = _direction(_find_metadata_value(metadata, ("OrbitDirection", "PassDirection")), title)
-    track = _find_metadata_value(metadata, ("TrackNumber", "Track", "PathNumber"))
-    frame = _find_metadata_value(metadata, ("FrameNumber", "Frame"))
-    bandwidth = _find_metadata_value(metadata, ("Bandwidth", "RangeBandwidth"))
-    polarization = _find_metadata_value(metadata, ("Polarization", "Polarisation"))
-    frequency = _find_metadata_value(metadata, ("Frequency", "RadarFrequency"))
-    upper = title.upper()
-    if track is None:
-        m = re.search(r"(?:TRACK|TRK|T)(\d{1,4})", upper)
-        track = m.group(1) if m else "UNSPECIFIED"
-    if frame is None:
-        m = re.search(r"(?:FRAME|FRM|F)(\d{1,5})", upper)
-        frame = m.group(1) if m else "UNSPECIFIED"
-    if bandwidth is None:
-        m = re.search(r"(\d{1,3}\s*MHZ)", upper)
-        bandwidth = m.group(1).replace(" ", "") if m else "UNSPECIFIED"
-    if polarization is None:
-        polarization = "HH+HV" if ("HH" in upper and "HV" in upper) else "UNSPECIFIED"
-    if frequency is None:
-        m = re.search(r"FREQUENCY([AB])", upper)
-        frequency = m.group(1) if m else "UNSPECIFIED"
+    # CMR/HDF5 metadata is useful as a cross-check for orbit identity. Other
+    # mode/polarization tokens are taken from the product name because metadata
+    # services do not consistently expose the same encoding.
+    metadata_track = _find_metadata_value(metadata, ("TrackNumber", "Track", "PathNumber"))
+    metadata_frame = _find_metadata_value(metadata, ("FrameNumber", "Frame"))
+    metadata_direction = _find_metadata_value(metadata, ("OrbitDirection", "PassDirection"))
+
+    def numeric_identity(value: str | None) -> int | None:
+        if value is None:
+            return None
+        match = re.search(r"\d+", str(value))
+        return int(match.group(0)) if match else None
+
+    if metadata_track is not None and numeric_identity(metadata_track) != int(track):
+        raise AgricultureError(f"CMR/HDF5 track metadata conflicts with the granule name: {title}")
+    if metadata_frame is not None and numeric_identity(metadata_frame) != int(frame):
+        raise AgricultureError(f"CMR/HDF5 frame metadata conflicts with the granule name: {title}")
+    if metadata_direction is not None and _direction(metadata_direction, title) != direction:
+        raise AgricultureError(f"CMR/HDF5 orbit direction conflicts with the granule name: {title}")
+
     return {
-        "release": release_match.group(1).upper(),
-        "track": str(track),
+        "release": release_match.group(1),
+        "track": track,
         "direction": direction,
-        "frame": str(frame),
-        "bandwidth": str(bandwidth),
-        "polarization": str(polarization),
-        "frequency": str(frequency).upper(),
+        "frame": frame,
+        "bandwidth": bandwidth,
+        "polarization": polarization,
+        "frequency": frequency,
     }
 
 
@@ -325,15 +345,12 @@ def download(run_id: str, series_id: str | None = None) -> list[Path]:
 
 
 def _looks_like_sme2_hdf5(path: Path) -> bool:
+    """Check for the baseline SME2 layer set, not similarly named algorithm layers."""
     try:
         with h5py.File(path, "r") as handle:
-            base = handle.get("/science/LSAR/SME2/grids")
-            if base is None:
-                return False
-            found: set[str] = set()
-            base.visititems(lambda name, obj: found.add(Path(name).name) if isinstance(obj, h5py.Dataset) else None)
-            return {"soilMoisture", "soilMoistureUncertainty", *FLAG_NAMES}.issubset(found)
-    except (OSError, ValueError):
+            _baseline_layers(handle)
+            return True
+    except (OSError, ValueError, AgricultureError):
         return False
 
 
@@ -354,23 +371,36 @@ def validate_aoi_dates(aoi: dict[str, float], start: str, end: str) -> None:
         raise AgricultureError("Date range is reversed, in the future, or starts before the SME2 workflow gate (2026-06-17).")
 
 
-def _find_dataset(handle: h5py.File, name: str) -> h5py.Dataset:
-    candidates: list[h5py.Dataset] = []
-    root = handle.get("/science/LSAR/SME2/grids")
-    if root is None:
+def _baseline_layers(handle: h5py.File) -> dict[str, h5py.Dataset]:
+    """Resolve the baseline layers from SME2's root grid group.
+
+    Algorithm-candidate datasets reuse the same basenames. They are deliberately
+    excluded. surfaceQualityFlag is the known exception: it may be in the root
+    grid group or in ancillaryData, depending on the product release.
+    """
+    grids = handle.get("/science/LSAR/SME2/grids")
+    if not isinstance(grids, h5py.Group):
         raise AgricultureError("HDF5 is missing /science/LSAR/SME2/grids.")
-    def visit(path: str, obj: Any) -> None:
-        if isinstance(obj, h5py.Dataset) and Path(path).name == name:
-            candidates.append(obj)
-    root.visititems(visit)
-    if len(candidates) == 1:
-        return candidates[0]
-    if len(candidates) > 1:
-        preferred = [item for item in candidates if "frequencyA" in item.name]
-        if len(preferred) == 1:
-            return preferred[0]
-        raise AgricultureError(f"SME2 HDF5 contains ambiguous {name} datasets.")
-    raise AgricultureError(f"SME2 HDF5 is missing required dataset {name}.")
+
+    layers: dict[str, h5py.Dataset] = {}
+    for name in ("soilMoisture", "soilMoistureUncertainty", "retrievalQualityFlag"):
+        item = grids.get(name)
+        if not isinstance(item, h5py.Dataset):
+            raise AgricultureError(f"Baseline SME2 layer is missing at /science/LSAR/SME2/grids/{name}.")
+        layers[name] = item
+
+    surface = grids.get("surfaceQualityFlag")
+    if not isinstance(surface, h5py.Dataset):
+        ancillary = grids.get("ancillaryData")
+        surface = ancillary.get("surfaceQualityFlag") if isinstance(ancillary, h5py.Group) else None
+    if not isinstance(surface, h5py.Dataset):
+        raise AgricultureError("Baseline surfaceQualityFlag is missing from the root grid and ancillaryData groups.")
+    layers["surfaceQualityFlag"] = surface
+
+    shape = layers["soilMoisture"].shape
+    if len(shape) != 2 or any(item.shape != shape for item in layers.values()):
+        raise AgricultureError("Baseline SME2 measurement and quality layers do not share one 2-D grid.")
+    return layers
 
 
 def _text_value(value: Any) -> str:
@@ -382,67 +412,91 @@ def _text_value(value: Any) -> str:
 
 
 def _epsg_from_handle(handle: h5py.File, x: np.ndarray, y: np.ndarray) -> int:
-    values: list[Any] = []
-    for obj in (handle, handle.get("/science/LSAR/SME2"), handle.get("/science/LSAR/SME2/grids")):
-        if obj is not None:
-            for key, value in obj.attrs.items():
-                if key.lower() in {"epsg", "spatial_epsg", "srid", "projection", "crs"}:
-                    values.append(value)
-    handle.visititems(lambda name, obj: values.extend([obj[()]]) if isinstance(obj, h5py.Dataset) and Path(name).name.lower() in {"projection", "epsg"} and obj.size <= 8 else None)
-    for value in values:
-        text = _text_value(value)
-        numbers = re.findall(r"\b(\d{4,6})\b", text)
-        if numbers:
-            code = int(numbers[0])
-            if 1000 <= code <= 999999:
-                return code
-        try:
-            code = int(float(text))
-            if 1000 <= code <= 999999:
-                return code
-        except (TypeError, ValueError):
-            pass
-    if np.nanmin(x) >= -180 and np.nanmax(x) <= 180 and np.nanmin(y) >= -90 and np.nanmax(y) <= 90:
-        return 4326
-    raise AgricultureError("Could not establish the SME2 grid CRS from HDF5 projection metadata; refusing to guess.")
+    """Read the shared SME2 root-grid projection; do not guess from coordinate ranges."""
+    grids = handle.get("/science/LSAR/SME2/grids")
+    projection = grids.get("projection") if isinstance(grids, h5py.Group) else None
+    if not isinstance(projection, h5py.Dataset) or projection.size != 1:
+        raise AgricultureError("SME2 root grid has no scalar projection dataset.")
+    raw = projection[()]
+    try:
+        scalar = np.asarray(raw).reshape(-1)[0].item()
+        if isinstance(scalar, (int, np.integer, float, np.floating)) and np.isfinite(scalar):
+            code = int(scalar)
+        else:
+            text = _text_value(scalar)
+            crs = rasterio.crs.CRS.from_user_input(text)
+            code = crs.to_epsg()
+    except Exception as exc:
+        raise AgricultureError(f"Could not parse the SME2 root-grid projection: {exc}") from exc
+    if code != 6933:
+        raise AgricultureError(f"Expected the SME2 EASE-Grid 2.0 projection EPSG:6933, found EPSG:{code}.")
+    return code
+
+
+def _validate_moisture_units(dataset: h5py.Dataset, label: str) -> None:
+    raw = dataset.attrs.get("units")
+    if raw is None:
+        raise AgricultureError(f"{label} has no units attribute; refusing to assume m³/m³.")
+    units = _text_value(raw).lower().replace("³", "3").replace("^", "")
+    units = re.sub(r"\\s+", "", units)
+    if units not in {"m3/m3", "m3m-3"}:
+        raise AgricultureError(f"{label} units are not recognized as volumetric soil moisture: {_text_value(raw)!r}.")
 
 
 def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str, str]) -> dict[str, Any]:
     if not _looks_like_sme2_hdf5(path):
         raise AgricultureError(f"Not a compatible SME2 HDF5 file: {path.name}")
     with h5py.File(path, "r") as handle:
-        moisture_ds = _find_dataset(handle, "soilMoisture")
-        uncertainty_ds = _find_dataset(handle, "soilMoistureUncertainty")
-        retrieval_ds = _find_dataset(handle, "retrievalQualityFlag")
-        surface_ds = _find_dataset(handle, "surfaceQualityFlag")
+        grids = handle["/science/LSAR/SME2/grids"]
+        layers = _baseline_layers(handle)
+        moisture_ds = layers["soilMoisture"]
+        uncertainty_ds = layers["soilMoistureUncertainty"]
+        retrieval_ds = layers["retrievalQualityFlag"]
+        surface_ds = layers["surfaceQualityFlag"]
+        _validate_moisture_units(moisture_ds, "soilMoisture")
+        _validate_moisture_units(uncertainty_ds, "soilMoistureUncertainty")
         moisture = np.asarray(moisture_ds[...], dtype="float64")
         uncertainty = np.asarray(uncertainty_ds[...], dtype="float64")
         retrieval = np.asarray(retrieval_ds[...])
         surface = np.asarray(surface_ds[...])
         if moisture.ndim != 2 or any(item.shape != moisture.shape for item in (uncertainty, retrieval, surface)):
-            raise AgricultureError(f"Required SME2 layers have incompatible shapes in {path.name}.")
-        grids = handle["/science/LSAR/SME2/grids"]
-        x_ds = _find_dataset(handle, "xCoordinates")
-        y_ds = _find_dataset(handle, "yCoordinates")
+            raise AgricultureError(f"Required SME2 baseline layers have incompatible shapes in {path.name}.")
+
+        x_ds, y_ds = grids.get("xCoordinates"), grids.get("yCoordinates")
+        if not isinstance(x_ds, h5py.Dataset) or not isinstance(y_ds, h5py.Dataset):
+            raise AgricultureError("SME2 root grid is missing xCoordinates or yCoordinates.")
         x = np.asarray(x_ds[...], dtype="float64").reshape(-1)
         y = np.asarray(y_ds[...], dtype="float64").reshape(-1)
         if len(x) != moisture.shape[1] or len(y) != moisture.shape[0]:
-            raise AgricultureError("SME2 x/y coordinate vectors do not match the raster dimensions.")
+            raise AgricultureError("SME2 root x/y coordinate vectors do not match the baseline raster dimensions.")
         epsg = _epsg_from_handle(handle, x, y)
-        attrs = {}
-        for obj in (handle, grids, moisture_ds.parent):
-            for key, value in obj.attrs.items():
-                attrs[str(key)] = _text_value(value)
-        metadata_dataset_names = {
-            "track", "tracknumber", "pathnumber", "frame", "framenumber",
-            "bandwidth", "rangebandwidth", "polarization", "polarisation",
-            "orbitdirection", "passdirection", "frequency",
+
+        # Acquisition identity lives under identification; do not inspect
+        # algorithmCandidates or unrelated grids for metadata with matching names.
+        identity = handle.get("/science/LSAR/identification")
+        identity_attrs: dict[str, Any] = {}
+        if identity is not None:
+            for key, value in identity.attrs.items():
+                identity_attrs[str(key)] = _text_value(value)
+            def collect_identity_metadata(name: str, obj: Any) -> None:
+                if isinstance(obj, h5py.Dataset) and obj.size <= 8:
+                    identity_attrs[Path(name).name] = _text_value(obj[()])
+            identity.visititems(collect_identity_metadata)
+
+        metadata = {
+            "track": _find_metadata_value(identity_attrs, ("trackNumber", "track", "pathNumber")),
+            "frame": _find_metadata_value(identity_attrs, ("frameNumber", "frame")),
+            "direction": _find_metadata_value(identity_attrs, ("orbitDirection", "passDirection")),
         }
-        def collect_scalar_metadata(name: str, obj: Any) -> None:
-            key = Path(name).name.lower().replace("_", "")
-            if isinstance(obj, h5py.Dataset) and key in metadata_dataset_names and obj.size <= 8:
-                attrs[Path(name).name] = _text_value(obj[()])
-        handle.visititems(collect_scalar_metadata)
+        signature = granule_signature(path.name, {
+            "TrackNumber": metadata["track"] or "",
+            "FrameNumber": metadata["frame"] or "",
+            "OrbitDirection": metadata["direction"] or "",
+        })
+        for key, expected in expected_signature.items():
+            if signature.get(key) != expected:
+                raise AgricultureError(f"CMR and local SME2 {key} filename metadata disagree in {path.name}.")
+
         fill_values = []
         uncertainty_fill_values = []
         for key in ("_FillValue", "missing_value", "fillValue"):
@@ -450,14 +504,7 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
                 fill_values.append(float(np.asarray(moisture_ds.attrs[key]).reshape(-1)[0]))
             if key in uncertainty_ds.attrs:
                 uncertainty_fill_values.append(float(np.asarray(uncertainty_ds.attrs[key]).reshape(-1)[0]))
-        metadata = {
-            "track": _find_metadata_value(attrs, ("track", "tracknumber", "pathnumber")) or "UNSPECIFIED",
-            "direction": _direction(_find_metadata_value(attrs, ("orbitdirection", "passdirection")), path.name),
-            "frame": _find_metadata_value(attrs, ("frame", "framenumber")) or "UNSPECIFIED",
-            "bandwidth": _find_metadata_value(attrs, ("bandwidth", "rangebandwidth")) or "UNSPECIFIED",
-            "polarization": _find_metadata_value(attrs, ("polarization", "polarisation")) or "UNSPECIFIED",
-            "frequency": "A" if "frequencyA" in moisture_ds.name else "B" if "frequencyB" in moisture_ds.name else "UNSPECIFIED",
-        }
+
 
     if not np.isfinite(x).all() or not np.isfinite(y).all() or len(x) < 2 or len(y) < 2:
         raise AgricultureError(f"Invalid SME2 coordinate vectors in {path.name}.")
