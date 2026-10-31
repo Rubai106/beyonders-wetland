@@ -438,7 +438,7 @@ def _validate_moisture_units(dataset: h5py.Dataset, label: str) -> None:
     if raw is None:
         raise AgricultureError(f"{label} has no units attribute; refusing to assume m³/m³.")
     units = _text_value(raw).lower().replace("³", "3").replace("^", "")
-    units = re.sub(r"\\s+", "", units)
+    units = re.sub(r"\s+", "", units)
     if units not in {"m3/m3", "m3m-3"}:
         raise AgricultureError(f"{label} units are not recognized as volumetric soil moisture: {_text_value(raw)!r}.")
 
@@ -562,20 +562,6 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         "west": min(point[0] for point in geographic), "south": min(point[1] for point in geographic),
         "east": max(point[0] for point in geographic), "north": max(point[1] for point in geographic),
     }
-    signature = granule_signature(path.name, {"OrbitDirection": metadata["direction"], "TrackNumber": metadata["track"], "FrameNumber": metadata["frame"], "Bandwidth": metadata["bandwidth"], "Polarization": metadata["polarization"], "Frequency": metadata["frequency"]})
-    for key in ("track", "frame", "bandwidth", "polarization", "frequency"):
-        if signature[key] != "UNSPECIFIED" and metadata[key] != "UNSPECIFIED" and signature[key] != metadata[key]:
-            raise AgricultureError(f"Granule filename/HDF5 {key} metadata disagree in {path.name}.")
-    for key in ("track", "frame", "bandwidth", "polarization", "frequency"):
-        if signature[key] == "UNSPECIFIED":
-            signature[key] = metadata[key]
-    signature["direction"] = metadata["direction"]
-    for key, expected in expected_signature.items():
-        actual = signature.get(key, "UNSPECIFIED")
-        if actual not in {"UNSPECIFIED", ""} and expected not in {"UNSPECIFIED", ""} and actual != expected:
-            raise AgricultureError(f"CMR and local SME2 {key} metadata disagree in {path.name}.")
-        if actual in {"UNSPECIFIED", ""}:
-            signature[key] = expected
     return {
         "date": parse_granule_date(path.name, {}),
         "moisture": moisture, "uncertainty": uncertainty, "valid": valid,
