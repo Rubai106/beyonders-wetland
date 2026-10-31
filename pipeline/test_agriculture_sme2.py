@@ -12,7 +12,7 @@ import numpy as np
 
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, quality_mask, safe_run_id, validate_aoi_dates,
-    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,
+    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,\n    _baseline_layers, _epsg_from_handle, _validate_moisture_units,
 )
 
 
@@ -153,6 +153,21 @@ class AgricultureSME2Tests(unittest.TestCase):
             with h5py.File(path, "r") as handle:
                 layers = _baseline_layers(handle)
                 self.assertEqual(layers["surfaceQualityFlag"].name, "/science/LSAR/SME2/grids/ancillaryData/surfaceQualityFlag")
+
+    def test_moisture_units_are_normalized_and_verified(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "units.h5"
+            with h5py.File(path, "w") as handle:
+                good = handle.create_dataset("good", data=np.ones((1, 1)))
+                good.attrs["units"] = "meter^3 / meter^3"
+                _validate_moisture_units(good, "soilMoisture")
+                missing = handle.create_dataset("missing", data=np.ones((1, 1)))
+                with self.assertRaisesRegex(AgricultureError, "has no units attribute"):
+                    _validate_moisture_units(missing, "soilMoisture")
+                bad = handle.create_dataset("bad", data=np.ones((1, 1)))
+                bad.attrs["units"] = "dB"
+                with self.assertRaisesRegex(AgricultureError, "not recognized"):
+                    _validate_moisture_units(bad, "soilMoisture")
 
     def test_algorithm_candidate_only_file_is_not_accepted_as_baseline(self):
         with tempfile.TemporaryDirectory() as temp:
