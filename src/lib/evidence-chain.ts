@@ -361,7 +361,7 @@ export function buildAgricultureEvidenceChain(study: AgricultureStudy | null): E
     module: "agriculture",
     study_id: study.study_id,
     study_title: "SME2 soil-moisture feasibility",
-    site_name: study.study_id,
+    site_name: "Analyst-defined WGS84 AOI",
     modality: "SME2_SOIL_MOISTURE",
     product: study.product,
     product_maturity: study.product_maturity,
@@ -438,7 +438,7 @@ export function buildAgricultureEvidenceChain(study: AgricultureStudy | null): E
     provenance: {
       run_id: study.run_id,
       publication_version: null,
-      boundary_source: "Analyst-defined WGS84 AOI",
+      boundary_source: `WGS84 bounds [${study.aoi.west}, ${study.aoi.south}, ${study.aoi.east}, ${study.aoi.north}]`,
       source_urls: study.sources.map((source) => source.url),
       artifacts: study.observations.map((item) => item.preview).concat(study.change_preview),
     },
