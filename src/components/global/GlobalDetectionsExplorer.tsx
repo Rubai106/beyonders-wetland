@@ -324,6 +324,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
   const [showNisarMosaic, setShowNisarMosaic] = useState(false);
   const [showLocalRadar, setShowLocalRadar] = useState(false);
   const [mapComparisonOpen, setMapComparisonOpen] = useState(false);
+  const [comparisonSession, setComparisonSession] = useState(0);
   const [comparisonPosition, setComparisonPosition] = useState(50);
   const comparisonTriggerRef = useRef<HTMLButtonElement>(null);
   const [radarChannel, setRadarChannel] = useState<RadarChannel>("hh");
@@ -706,6 +707,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
     selectedDate: activeObservationDate || null,
     channel: radarChannel,
     refreshKey,
+    session: comparisonSession,
   });
   const comparisonMapLayer = mapComparisonOpen && opticalRadarComparison.layer
     ? { ...opticalRadarComparison.layer, position: comparisonPosition }
@@ -793,7 +795,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
           title={`${mapComparisonOpen ? "Hide" : "Compare"} optical and radar images over the map`}
           onClick={() => {
             if (mapComparisonOpen) closeMapComparison();
-            else { setComparisonPosition(50); setFocusStudyArea(true); setMapComparisonOpen(true); }
+            else { setComparisonSession((value) => value + 1); setComparisonPosition(50); setFocusStudyArea(true); setMapComparisonOpen(true); }
           }}>
           {Icon.compare}<span>Optical ↔ radar</span>
         </button>
