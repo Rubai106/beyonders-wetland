@@ -154,7 +154,7 @@ class AgricultureSME2Tests(unittest.TestCase):
                 self.assertEqual(layers["soilMoistureUncertainty"].name, "/science/LSAR/SME2/grids/soilMoistureUncertainty")
                 self.assertEqual(layers["retrievalQualityFlag"].name, "/science/LSAR/SME2/grids/retrievalQualityFlag")
                 self.assertEqual(layers["surfaceQualityFlag"].name, "/science/LSAR/SME2/grids/surfaceQualityFlag")
-                self.assertEqual(float(layers["soilMoisture"][0, 0]), 0.20)
+                self.assertAlmostEqual(float(layers["soilMoisture"][0, 0]), 0.20, places=6)
                 self.assertEqual(_epsg_from_handle(handle, np.arange(5), np.arange(4)), 6933)
 
     def test_surface_quality_flag_release_location_fallback(self):
