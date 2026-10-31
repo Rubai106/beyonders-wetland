@@ -87,25 +87,81 @@ class AgricultureSME2Tests(unittest.TestCase):
                 validate_aoi_dates(aoi, start, end)
 
     def test_cmr_filename_date_and_release_contract(self):
-        title = "NISAR_L3_PR_SME2_TRACK034_ASC_FRAME120_20260620T000000_P05023_A.h5"
-        self.assertEqual(parse_granule_date(title, {}), "2026-06-20")
-        signature = granule_signature(title, {"OrbitDirection": "Ascending", "TrackNumber": "034", "FrameNumber": "120"})
+        title = "NISAR_L3_PR_SME2_025_171_D_066_4005_DHDH_A_20260720T013930_20260720T014005_P05023_N_F_J_001.h5"
+        self.assertEqual(parse_granule_date(title, {}), "2026-07-20")
+        signature = granule_signature(title, {"OrbitDirection": "Descending", "TrackNumber": "171", "FrameNumber": "66"})
         self.assertEqual(signature["release"], "P05023")
-        self.assertEqual(signature["direction"], "A")
+        self.assertEqual(signature["track"], "171")
+        self.assertEqual(signature["direction"], "D")
+        self.assertEqual(signature["frame"], "066")
+        self.assertEqual(signature["bandwidth"], "4005")
+        self.assertEqual(signature["polarization"], "DHDH")
+        self.assertEqual(signature["frequency"], "A")
+
+    def test_metadata_conflict_with_granule_name_is_rejected(self):
+        title = "NISAR_L3_PR_SME2_025_171_D_066_4005_DHDH_A_20260720T013930_20260720T014005_P05023_N_F_J_001.h5"
+        with self.assertRaisesRegex(AgricultureError, "track metadata conflicts"):
+            granule_signature(title, {"TrackNumber": "172"})
 
     def test_old_release_is_rejected(self):
-        title = "NISAR_L3_PR_SME2_TRACK034_ASC_FRAME120_20260620T000000_P05022_A.h5"
+        title = "NISAR_L3_PR_SME2_025_171_D_066_4005_DHDH_A_20260720T013930_20260720T014005_P05022_N_F_J_001.h5"
         with self.assertRaises(AgricultureError):
-            granule_signature(title, {"OrbitDirection": "Ascending"})
+            granule_signature(title, {})
 
-    def test_hdf5_hierarchy_fixture_is_test_only(self):
+    def _make_baseline_hdf5(self, path: Path, surface_in_ancillary: bool = False):
+        with h5py.File(path, "w") as handle:
+            grids = handle.create_group("/science/LSAR/SME2/grids")
+            grids.create_dataset("xCoordinates", data=np.arange(5, dtype="float64") * 200)
+            grids.create_dataset("yCoordinates", data=800 - np.arange(4, dtype="float64") * 200)
+            grids.create_dataset("projection", data=np.int32(6933))
+            moisture = grids.create_dataset("soilMoisture", data=np.full((4, 5), 0.20, dtype="float32"))
+            moisture.attrs["units"] = "m^3/m^3"
+            uncertainty = grids.create_dataset("soilMoistureUncertainty", data=np.full((4, 5), 0.03, dtype="float32"))
+            uncertainty.attrs["units"] = "m^3 m^-3"
+            grids.create_dataset("retrievalQualityFlag", data=np.full((4, 5), 15, dtype="int16"))
+            if surface_in_ancillary:
+                surface_group = grids.create_group("ancillaryData")
+                surface_group.create_dataset("surfaceQualityFlag", data=np.zeros((4, 5), dtype="int16"))
+            else:
+                grids.create_dataset("surfaceQualityFlag", data=np.zeros((4, 5), dtype="int16"))
+
+            # These duplicate basenames represent algorithm candidates and must
+            # never replace the baseline layers used by the application.
+            candidate = grids.create_group("algorithmCandidates").create_group("DSG")
+            candidate.create_dataset("soilMoisture", data=np.full((4, 5), 0.59, dtype="float32"))
+            candidate.create_dataset("soilMoistureUncertainty", data=np.full((4, 5), 0.18, dtype="float32"))
+            candidate.create_dataset("retrievalQualityFlag", data=np.zeros((4, 5), dtype="int16"))
+
+    def test_hdf5_hierarchy_uses_root_baseline_not_algorithm_candidates(self):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "fixture.h5"
-            with h5py.File(path, "w") as handle:
-                group = handle.create_group("/science/LSAR/SME2/grids/frequencyA")
-                for name in ("soilMoisture", "soilMoistureUncertainty", "retrievalQualityFlag", "surfaceQualityFlag"):
-                    group.create_dataset(name, data=np.ones((4, 5), dtype=np.uint8))
+            self._make_baseline_hdf5(path, surface_in_ancillary=False)
             self.assertTrue(_looks_like_sme2_hdf5(path))
+            with h5py.File(path, "r") as handle:
+                layers = _baseline_layers(handle)
+                self.assertEqual(layers["soilMoisture"].name, "/science/LSAR/SME2/grids/soilMoisture")
+                self.assertEqual(layers["soilMoistureUncertainty"].name, "/science/LSAR/SME2/grids/soilMoistureUncertainty")
+                self.assertEqual(layers["retrievalQualityFlag"].name, "/science/LSAR/SME2/grids/retrievalQualityFlag")
+                self.assertEqual(layers["surfaceQualityFlag"].name, "/science/LSAR/SME2/grids/surfaceQualityFlag")
+                self.assertEqual(float(layers["soilMoisture"][0, 0]), 0.20)
+                self.assertEqual(_epsg_from_handle(handle, np.arange(5), np.arange(4)), 6933)
+
+    def test_surface_quality_flag_release_location_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "fixture.h5"
+            self._make_baseline_hdf5(path, surface_in_ancillary=True)
+            with h5py.File(path, "r") as handle:
+                layers = _baseline_layers(handle)
+                self.assertEqual(layers["surfaceQualityFlag"].name, "/science/LSAR/SME2/grids/ancillaryData/surfaceQualityFlag")
+
+    def test_algorithm_candidate_only_file_is_not_accepted_as_baseline(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "candidate-only.h5"
+            with h5py.File(path, "w") as handle:
+                group = handle.create_group("/science/LSAR/SME2/grids/algorithmCandidates/DSG")
+                for name in ("soilMoisture", "soilMoistureUncertainty", "retrievalQualityFlag", "surfaceQualityFlag"):
+                    group.create_dataset(name, data=np.ones((4, 5), dtype="float32"))
+            self.assertFalse(_looks_like_sme2_hdf5(path))
 
 
 if __name__ == "__main__":
