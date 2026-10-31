@@ -35,22 +35,27 @@ The search command writes pipeline/output/agriculture/<run-id>/search.json. It g
 
 The download command re-resolves each exact CMR concept ID through earthaccess, requires the matching HDF5 granule filename, checks the SME2 grid hierarchy and writes a local SHA-256 receipt.
 
-The analyze command reads only the files listed in that receipt. It requires at least three baseline dates plus a later target, one consistent series signature, identical native raster dimensions/CRS/affine grid and a regular coordinate spacing. It does not resample incompatible grids. It writes native GeoTIFFs and display-only PNG previews under the local run output.
+The analyze command reads only the files listed in that receipt. It resolves the primary baseline layers from the root SME2 grid group; it does not search nested algorithm-candidate groups for matching dataset names. The product specification lists `soilMoisture` and `soilMoistureUncertainty` at `/science/LSAR/SME2/grids/`, while candidate algorithms may carry separate datasets with the same names. These are not interchangeable.
+
+SME2 uses the shared EASE-Grid 2.0 Global grid (EPSG:6933) at approximately 200 m posting. The reader requires the root `projection` dataset to resolve to EPSG:6933, verifies the root x/y axes against the measurement dimensions, and refuses incompatible grids rather than silently resampling. The surface-quality layer is resolved from the root grid or its documented ancillary-data location, as release tiers can differ. Granule filenames are parsed using the standardized track, direction, frame, bandwidth, polarization, frequency and release fields; the selected series must match those identities.
+
+ It requires at least three baseline dates plus a later target, one consistent series signature, identical native raster dimensions/CRS/affine grid and a regular coordinate spacing. It does not resample incompatible grids. It writes native GeoTIFFs and display-only PNG previews under the local run output.
 
 The publish command copies only study.json, the web checksum manifest and preview PNGs into public/agriculture/current. Native GeoTIFFs and original HDF5 granules remain in local operator storage.
 
 ## Quality protocol
 
-- soilMoisture must be finite and in [0.02, 0.60] m³/m³.
-- soilMoistureUncertainty must be finite and non-negative; declared fill values are excluded.
-- retrievalQualityFlag is interpreted as a bit field. Bits 0–3 must all be set, bits 4–7 must be clear, and values must be finite, integer-valued and within the uint8 range.
-- surfaceQualityFlag must be finite, integer-valued and equal to zero.
-- Missing/fill values and pixels outside the WGS84 AOI are excluded.
-- The target and change layers each use the AOI pixel count as their coverage denominator.
-- The minimum coverage floor is fixed at 20%. If target or change coverage is below that value, the study status is INCONCLUSIVE_COVERAGE.
+- `soilMoisture` must be finite and in [0.02, 0.60] m³/m³.
+- `soilMoistureUncertainty` must have a recognized volumetric soil-moisture unit, be finite and non-negative; declared fill values are excluded.
+- `retrievalQualityFlag` is interpreted as a bit field. Bits 0–3 must all be set (recommended, attempted, successful, and within the product's moisture range); bits 4–7 must be clear. Values must be finite, integer-valued and within the stored 16-bit dataset range.
+- `surfaceQualityFlag` is also a bit field. The current conservative screen accepts only value zero. This excludes pixels flagged for static water, urban area, precipitation, snow/ice, frozen ground, terrain or dense vegetation. In particular, the screen can reduce coverage in crop areas with dense vegetation; it is a quality-screening choice, not evidence that those excluded areas have no soil moisture.
+- Missing/fill values and pixel centers outside the WGS84 AOI are excluded.
+- Target and change coverage use the full AOI pixel count as the denominator, not only the valid subset.
+- The minimum coverage floor is fixed at 20%. If target or change coverage is below that value, the study status is `INCONCLUSIVE_COVERAGE`.
 - The baseline is the first three unique dates in the selected compatible series. The target is the latest unique date.
+- The change summary's `uncertainty_median` currently reports the target-date uncertainty values for valid change pixels; it is **not** a propagated uncertainty estimate for the target-minus-baseline difference.
 
-SME2 PROVISIONAL known-issues documentation warns that soil-moisture retrievals are not yet fully calibrated and flags may be null or not fully implemented in some releases. Null or unrecognized quality values are excluded, not converted into valid pixels.
+The NASA/JPL product specification defines the retrieval and surface flags as bit fields and identifies the root baseline moisture datasets separately from algorithm-candidate datasets. SME2 PROVISIONAL known-issues documentation warns that soil-moisture retrievals are not yet fully calibrated and flags may be null or incompletely implemented in some releases. Null, fill or unrecognized quality values are excluded, not converted into valid pixels.
 
 ## Verification
 
