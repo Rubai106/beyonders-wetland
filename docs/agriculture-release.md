@@ -21,6 +21,18 @@ The latest review tightened private-output handling and the first SME2 ingestion
 
 These are source/test changes only. They have **not been executed in this connected session**; no real SME2 file was downloaded or examined. The exact layout, metadata attributes, fill values and flag encodings must still be confirmed on a real PROVISIONAL granule before this pipeline is considered pilot-ready.
 
+## Current ingestion-review changes
+
+The current `Rubai-dev` review has committed the following guardrails:
+
+- Private Agriculture downloads and native outputs under `pipeline/output/agriculture/` are excluded from Git.
+- The analyzer selects the primary baseline soil-moisture layers from the SME2 root grid and rejects files that contain only similarly named algorithm-candidate layers.
+- The release-dependent `surfaceQualityFlag` path is resolved from the root grid or ancillary-data group.
+- The root projection must explicitly identify EASE-Grid 2.0 (EPSG:6933); soil-moisture units and standardized filename identity are checked before processing.
+- Regression fixtures cover candidate-name collisions, the supported surface-flag locations, filename/release mismatches, unit strings and projection metadata.
+
+The NASA/JPL specification describes the primary soil-moisture and uncertainty layers at the root SME2 grid, separately lists algorithm-candidate layers, identifies the EPSG:6933 grid, and defines retrieval/surface flags. The current zero-only surface screen is intentionally strict and can exclude dense-vegetation pixels. That can lower coverage in crop areas and must be displayed as a limitation rather than treated as evidence of no soil moisture.
+
 ## Scientific boundaries
 
 - Product: NISAR_L3_SME2_PROVISIONAL_V1, PROVISIONAL maturity.
