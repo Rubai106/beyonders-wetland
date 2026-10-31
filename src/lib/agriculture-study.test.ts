@@ -68,3 +68,13 @@ test("SHA-256 helper returns a lowercase hexadecimal digest", async () => {
   const digest = await sha256Hex(new TextEncoder().encode("abc").buffer);
   assert.equal(digest, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 });
+
+
+test("accepts negative and positive soil-moisture differences", () => {
+  const changed = structuredClone(study);
+  changed.change_summary = {
+    valid_fraction: 0.8, valid_pixels: 80, total_pixels: 100,
+    median: -0.03, p05: -0.12, p95: 0.08, uncertainty_median: 0.02,
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+});

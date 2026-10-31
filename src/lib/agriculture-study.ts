@@ -102,17 +102,19 @@ function validAOI(value: unknown): value is AgricultureAOI {
     west < east && south < north;
 }
 
-function validSummary(value: unknown): value is AgricultureSummary {
+function validSummary(value: unknown, moisture = true): value is AgricultureSummary {
   if (!isRecord(value)) return false;
+  const low = moisture ? 0.02 : -0.6;
+  const high = moisture ? 0.6 : 0.6;
   return finiteRange(value.valid_fraction, 0, 1) &&
     Number.isInteger(value.valid_pixels) && Number(value.valid_pixels) >= 0 &&
     Number.isInteger(value.total_pixels) && Number(value.total_pixels) > 0 &&
     Number(value.valid_pixels) <= Number(value.total_pixels) &&
-    finiteRange(value.median, 0.02, 0.6) &&
-    finiteRange(value.p05, 0.02, 0.6) &&
-    finiteRange(value.p95, 0.02, 0.6) &&
+    finiteRange(value.median, low, high) &&
+    finiteRange(value.p05, low, high) &&
+    finiteRange(value.p95, low, high) &&
     Number(value.p05) <= Number(value.median) && Number(value.median) <= Number(value.p95) &&
-    finiteRange(value.uncertainty_median, 0, 1) &&
+    finiteRange(value.uncertainty_median, 0, 0.6) &&
     Math.abs(Number(value.valid_fraction) - Number(value.valid_pixels) / Number(value.total_pixels)) < 0.000001;
 }
 
@@ -148,7 +150,7 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
       !value.observations.every(validObservation) ||
       !isoDay(value.target_date) || value.target_date !== (value.observations[value.observations.length - 1] as Record<string, unknown>).date ||
       Number(value.baseline_count) !== value.baseline_dates.length ||
-      !validSummary(value.change_summary) ||
+      !validSummary(value.change_summary, false) ||
       !safeRelativeAssetPath(value.change_preview, "previews/") ||
       !Array.isArray(value.sources) || !value.sources.every((item) => isRecord(item) &&
         typeof item.title === "string" && typeof item.url === "string" && item.url.startsWith("https://"))) return false;
