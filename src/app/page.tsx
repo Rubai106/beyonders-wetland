@@ -321,7 +321,8 @@ export default function Home() {
           <h1>Watch Earth<br /><span>breathe.</span></h1>
           <p className="g3-lede">NISAR is a NASA–ISRO radar satellite that watches Earth&rsquo;s surface breathe — through cloud, through darkness. Spin the planet. Open a case measured for real, or drop a pin to check NISAR observation coverage and start a real study.</p>
           <div className="g3-ctas">
-            <Link href="/wetland" className="g3-btn g3-btn--primary">Open the Tanguar Haor case</Link>
+            <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Inspect the Chókwè event case</Link>
+            <Link href="/wetland" className="g3-btn g3-btn--ghost">Open the Tanguar Haor case</Link>
             <button type="button" className={`g3-btn${pinMode ? " g3-btn--armed" : ""}`} onClick={() => { setPinMode((m) => !m); setPin(null); }}>
               {pinMode ? "Cancel pin mode" : "Drop a pin anywhere"}
             </button>
