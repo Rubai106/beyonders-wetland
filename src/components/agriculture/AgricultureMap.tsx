@@ -21,20 +21,23 @@ function FitStudyBounds({ bounds }: { bounds: LatLngBoundsExpression | undefined
 
 export default function AgricultureMap({
   aoi,
+  displayBounds,
   previewUrl,
   satelliteBasemap,
   noStudy,
 }: {
   aoi: AgricultureAOI | null;
+  displayBounds: AgricultureAOI | null;
   previewUrl: string | null;
   satelliteBasemap: boolean;
   noStudy: boolean;
 }) {
-  const bounds: LatLngBoundsExpression | undefined = aoi
-    ? [[aoi.south, aoi.west], [aoi.north, aoi.east]]
+  const extent = displayBounds ?? aoi;
+  const bounds: LatLngBoundsExpression | undefined = extent
+    ? [[extent.south, extent.west], [extent.north, extent.east]]
     : undefined;
-  const center: [number, number] = aoi
-    ? [(aoi.south + aoi.north) / 2, (aoi.west + aoi.east) / 2]
+  const center: [number, number] = extent
+    ? [(extent.south + extent.north) / 2, (extent.west + extent.east) / 2]
     : [12, 0];
 
   return (

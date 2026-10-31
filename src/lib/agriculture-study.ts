@@ -24,6 +24,9 @@ export interface AgricultureObservation extends AgricultureSummary {
   bandwidth: string;
   polarization: string;
   frequency: string;
+  source_sha256?: string;
+  source_bytes?: number;
+  granule_name?: string;
 }
 
 export interface AgricultureStudy {
@@ -40,6 +43,7 @@ export interface AgricultureStudy {
   polarization: string;
   frequency: string;
   aoi: AgricultureAOI;
+  preview_bounds: AgricultureAOI;
   date_range: { start: string; end: string };
   coverage_floor: 0.2;
   baseline_count: number;
@@ -127,6 +131,9 @@ function validObservation(value: unknown): value is AgricultureObservation {
     (value.direction === "A" || value.direction === "D") &&
     typeof value.frame === "string" && typeof value.bandwidth === "string" &&
     typeof value.polarization === "string" && typeof value.frequency === "string" &&
+    (value.source_sha256 === undefined || isSha256(value.source_sha256)) &&
+    (value.source_bytes === undefined || (Number.isInteger(value.source_bytes) && Number(value.source_bytes) > 0)) &&
+    (value.granule_name === undefined || (typeof value.granule_name === "string" && value.granule_name.length > 0)) &&
     validSummary(value);
 }
 
@@ -141,7 +148,7 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
       (value.direction !== "A" && value.direction !== "D") ||
       typeof value.frame !== "string" || typeof value.bandwidth !== "string" ||
       typeof value.polarization !== "string" || typeof value.frequency !== "string" ||
-      !validAOI(value.aoi) || !isRecord(value.date_range) ||
+      !validAOI(value.aoi) || !validAOI(value.preview_bounds) || !isRecord(value.date_range) ||
       !isoDay(value.date_range.start) || !isoDay(value.date_range.end) ||
       value.date_range.start > value.date_range.end || value.coverage_floor !== 0.2 ||
       !Number.isInteger(value.baseline_count) || Number(value.baseline_count) < 3 ||

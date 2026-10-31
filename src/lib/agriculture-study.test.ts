@@ -24,6 +24,7 @@ const study = {
   release: "P05023", track: "034", direction: "A", frame: "120",
   bandwidth: "20MHz", polarization: "HH+HV", frequency: "A",
   aoi: { west: 90, south: 24, east: 91, north: 25 },
+  preview_bounds: { west: 90.1, south: 24.1, east: 90.9, north: 24.9 },
   date_range: { start: "2026-06-17", end: "2026-07-01" }, coverage_floor: 0.2,
   baseline_count: 3, baseline_dates: ["2026-06-20", "2026-06-25", "2026-06-28"],
   target_date: "2026-07-01",

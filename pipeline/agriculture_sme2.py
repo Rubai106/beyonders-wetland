@@ -478,10 +478,31 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
         fill_ok &= uncertainty != fill
     valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
     valid &= in_aoi
-    if flip_x or flip_y:
-        # x/y arrays are normalized north-up for the affine transform and raster values.
-        pass
+    rows, cols = np.where(in_aoi)
+    if rows.size == 0 or cols.size == 0:
+        raise AgricultureError("The selected AOI does not intersect this SME2 native grid.")
+    row0, row1 = int(rows.min()), int(rows.max()) + 1
+    col0, col1 = int(cols.min()), int(cols.max()) + 1
+    fill_excluded = int(np.sum(~fill_ok & in_aoi))
+    retrieval_counts = {str(int(value)): int(np.sum(retrieval[in_aoi] == value)) for value in np.unique(retrieval[in_aoi]) if np.isfinite(value)}
+    surface_counts = {str(int(value)): int(np.sum(surface[in_aoi] == value)) for value in np.unique(surface[in_aoi]) if np.isfinite(value)}
+    moisture = moisture[row0:row1, col0:col1]
+    uncertainty = uncertainty[row0:row1, col0:col1]
+    retrieval = retrieval[row0:row1, col0:col1]
+    surface = surface[row0:row1, col0:col1]
+    valid = valid[row0:row1, col0:col1]
+    in_aoi = in_aoi[row0:row1, col0:col1]
+    x = x[col0:col1]
+    y = y[row0:row1]
     transform = from_origin(float(x.min() - dx / 2), float(y.max() + dy / 2), dx, dy)
+    to_wgs84 = Transformer.from_crs(epsg, 4326, always_xy=True)
+    edge_x = [float(x.min() - dx / 2), float(x.max() + dx / 2)]
+    edge_y = [float(y.min() - dy / 2), float(y.max() + dy / 2)]
+    geographic = [to_wgs84.transform(px, py) for px in edge_x for py in edge_y]
+    preview_bounds = {
+        "west": min(point[0] for point in geographic), "south": min(point[1] for point in geographic),
+        "east": max(point[0] for point in geographic), "north": max(point[1] for point in geographic),
+    }
     signature = granule_signature(path.name, {"OrbitDirection": metadata["direction"], "TrackNumber": metadata["track"], "FrameNumber": metadata["frame"], "Bandwidth": metadata["bandwidth"], "Polarization": metadata["polarization"], "Frequency": metadata["frequency"]})
     for key in ("track", "frame", "bandwidth", "polarization", "frequency"):
         if signature[key] != "UNSPECIFIED" and metadata[key] != "UNSPECIFIED" and signature[key] != metadata[key]:
@@ -493,10 +514,9 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
     return {
         "date": parse_granule_date(path.name, {}),
         "moisture": moisture, "uncertainty": uncertainty, "valid": valid,
-        "aoi_mask": in_aoi, "epsg": epsg, "transform": transform,
-        "signature": signature, "file": path, "fill_excluded": int(np.sum(~fill_ok & in_aoi)),
-        "retrieval_flag_counts": {str(int(value)): int(np.sum(retrieval == value)) for value in np.unique(retrieval) if np.isfinite(value)},
-        "surface_flag_counts": {str(int(value)): int(np.sum(surface == value)) for value in np.unique(surface) if np.isfinite(value)},
+        "aoi_mask": in_aoi, "epsg": epsg, "transform": transform, "preview_bounds": preview_bounds,
+        "signature": signature, "file": path, "fill_excluded": fill_excluded,
+        "retrieval_flag_counts": retrieval_counts, "surface_flag_counts": surface_counts,
     }
 
 
@@ -581,7 +601,7 @@ def _write_geotiff(path: Path, values: np.ndarray, valid: np.ndarray, epsg: int,
 def _validate_grid(first: dict[str, Any], other: dict[str, Any]) -> None:
     if other["moisture"].shape != first["moisture"].shape or other["epsg"] != first["epsg"]:
         raise AgricultureError("SME2 observations use different native grids/CRSs; no resampling is permitted.")
-    if tuple(other["transform"]) != tuple(first["transform"]):
+    if other["preview_bounds"] != first["preview_bounds"] or tuple(other["transform"]) != tuple(first["transform"]):
         raise AgricultureError("SME2 observations have different native grid transforms; no resampling is permitted.")
     if other["signature"] != first["signature"]:
         raise AgricultureError("SME2 observations have mixed track/direction/frame/bandwidth/polarization/frequency/release signatures.")
@@ -655,7 +675,7 @@ def analyze(run_id: str) -> dict[str, Any]:
         "schema_version": 1, "study_id": run_id, "run_id": run_id,
         "product": PRODUCT, "product_maturity": "PROVISIONAL",
         **signature,
-        "aoi": search_manifest["aoi"], "date_range": search_manifest["date_range"],
+        "aoi": search_manifest["aoi"], "preview_bounds": target["preview_bounds"], "date_range": search_manifest["date_range"],
         "coverage_floor": COVERAGE_FLOOR, "baseline_count": 3,
         "baseline_dates": [item["date"] for item in baseline],
         "target_date": target["date"], "observations": observations,

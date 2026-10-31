@@ -177,11 +177,12 @@ export default function AgricultureWorkbench() {
 
   const exportCsv = useCallback(() => {
     if (!study) return;
-    const columns = ["date", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "valid_fraction", "valid_pixels", "total_pixels", "uncertainty_median", "release", "track", "direction", "frame", "bandwidth", "polarization", "frequency"];
+    const columns = ["date", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "valid_fraction", "valid_pixels", "total_pixels", "uncertainty_median", "release", "track", "direction", "frame", "bandwidth", "polarization", "frequency", "granule_name", "source_bytes", "source_sha256"];
     const rows = study.observations.map((item) => [
       item.date, item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
       item.total_pixels, item.uncertainty_median, item.release, item.track, item.direction,
       item.frame, item.bandwidth, item.polarization, item.frequency,
+      item.granule_name ?? "", item.source_bytes ?? "", item.source_sha256 ?? "",
     ].map(csvCell).join(","));
     const blob = new Blob([[columns.join(","), ...rows].join("\n"),], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -340,7 +341,7 @@ export default function AgricultureWorkbench() {
         <strong className="agri-rail-maturity">NISAR L3 · PROVISIONAL</strong>
         <p>Exploratory soil-moisture evidence. Not crop classification.</p>
       </div>}
-      map={<AgricultureMap aoi={aoi} previewUrl={previewUrl} satelliteBasemap={satelliteBasemap} noStudy={noStudy} />}
+      map={<AgricultureMap aoi={aoi} displayBounds={study?.preview_bounds ?? null} previewUrl={previewUrl} satelliteBasemap={satelliteBasemap} noStudy={noStudy} />}
       mapToolbar={<div className="agri-map-toolbar" role="group" aria-label="Agriculture map layers">
         <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => setLayer("moisture")}>Soil moisture</button>
         <button type="button" aria-pressed={layer === "change"} disabled={!study} onClick={() => setLayer("change")}>Change</button>
