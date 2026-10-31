@@ -439,6 +439,7 @@ def _validate_moisture_units(dataset: h5py.Dataset, label: str) -> None:
         raise AgricultureError(f"{label} has no units attribute; refusing to assume m³/m³.")
     units = _text_value(raw).lower().replace("³", "3").replace("^", "")
     units = re.sub(r"\s+", "", units)
+    units = units.replace("meters", "m").replace("meter", "m")
     if units not in {"m3/m3", "m3m-3"}:
         raise AgricultureError(f"{label} units are not recognized as volumetric soil moisture: {_text_value(raw)!r}.")
 
