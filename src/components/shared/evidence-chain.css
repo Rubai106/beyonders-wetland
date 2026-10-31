@@ -1,0 +1,199 @@
+.evidence-chain {
+  display: grid;
+  gap: 14px;
+  color: #e9eef4;
+  font-size: 12px;
+}
+.evidence-chain__header,
+.evidence-chain__section,
+.evidence-chain__reference {
+  border: 1px solid rgba(155, 177, 198, .19);
+  border-radius: 12px;
+  background: rgba(10, 19, 30, .76);
+  padding: 14px;
+}
+.evidence-chain__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.evidence-chain__header h3 {
+  margin: 6px 0;
+  color: #f4f7fa;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.evidence-chain__header p,
+.evidence-chain__section > p,
+.evidence-chain__reference p {
+  margin: 6px 0 0;
+  color: #aebdca;
+  line-height: 1.55;
+}
+.evidence-chain__eyebrow {
+  color: #83c9c1;
+  font: 600 9px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .12em;
+}
+.evidence-chain__state,
+.evidence-chain__reference-head span {
+  flex: 0 0 auto;
+  border: 1px solid rgba(170, 190, 208, .3);
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: #cbd7e2;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.evidence-chain__state--inconclusive,
+.evidence-chain__reference-head span[data-reference-state="INCONCLUSIVE"] {
+  border-color: rgba(218, 174, 104, .55);
+  color: #e9c88e;
+}
+.evidence-chain__state--not-published,
+.evidence-chain__reference-head span[data-reference-state="NOT_RECORDED"],
+.evidence-chain__reference-head span[data-reference-state="NOT_ASSESSED"] {
+  color: #aebdca;
+}
+.evidence-chain__section h4 {
+  margin: 0 0 9px;
+  color: #d9e3ec;
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+.evidence-chain__section ul,
+.evidence-chain__section ol {
+  margin: 9px 0 0;
+  padding-left: 18px;
+  color: #aebdca;
+  line-height: 1.55;
+}
+.evidence-chain__section li + li {
+  margin-top: 5px;
+}
+.evidence-chain__observations {
+  display: grid;
+  gap: 8px;
+}
+.evidence-chain__observations li {
+  padding-left: 3px;
+}
+.evidence-chain__observations strong,
+.evidence-chain__observations span,
+.evidence-chain__observations small,
+.evidence-chain__observations code {
+  display: block;
+}
+.evidence-chain__observations strong,
+.evidence-chain__reference-head strong {
+  color: #e9eef4;
+  font-size: 11px;
+}
+.evidence-chain__observations span {
+  margin-top: 3px;
+  color: #aebdca;
+}
+.evidence-chain__observations small {
+  margin-top: 3px;
+  color: #8fa3b5;
+  line-height: 1.45;
+}
+.evidence-chain__observations code,
+.evidence-chain__method-id {
+  display: inline-block;
+  margin-top: 4px;
+  color: #8fc8ca;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.evidence-chain__signals,
+.evidence-chain__reference-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.evidence-chain__signals > div,
+.evidence-chain__reference-metrics > div {
+  min-width: 0;
+  border: 1px solid rgba(155, 177, 198, .15);
+  border-radius: 8px;
+  padding: 9px;
+}
+.evidence-chain__signals dt,
+.evidence-chain__reference-metrics dt,
+.evidence-chain__provenance dt {
+  color: #8fa3b5;
+  font-size: 10px;
+}
+.evidence-chain__signals dd,
+.evidence-chain__reference-metrics dd,
+.evidence-chain__provenance dd {
+  margin: 4px 0 0;
+  color: #f0f4f7;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.evidence-chain__signals small {
+  display: block;
+  margin-top: 5px;
+  color: #aebdca;
+  line-height: 1.45;
+}
+.evidence-chain__reference {
+  margin-top: 8px;
+  padding: 11px;
+  background: rgba(18, 29, 41, .72);
+}
+.evidence-chain__reference-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.evidence-chain__reference-metrics {
+  margin-top: 10px;
+}
+.evidence-chain__meta {
+  color: #8fa3b5 !important;
+  font-size: 10px;
+}
+.evidence-chain__provenance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.evidence-chain__provenance > div {
+  min-width: 0;
+  border-radius: 8px;
+  padding: 8px;
+  background: rgba(155, 177, 198, .07);
+}
+.evidence-chain__sources a,
+.evidence-chain__reference a {
+  color: #87cfc8;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.evidence-chain__empty {
+  color: #9aabb9;
+  font-style: italic;
+}
+.evidence-chain__coverage-floor {
+  color: #e8c58e !important;
+  font-size: 10px;
+}
+@media (max-width: 620px) {
+  .evidence-chain__header,
+  .evidence-chain__reference-head {
+    flex-direction: column;
+  }
+  .evidence-chain__signals,
+  .evidence-chain__reference-metrics,
+  .evidence-chain__provenance {
+    grid-template-columns: 1fr;
+  }
+}
