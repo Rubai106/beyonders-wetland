@@ -79,7 +79,7 @@ export default function MozambiqueFloodCase({ onLocate, onOpenRun }: { onLocate:
     <section className="mozambique-case" aria-labelledby="mozambique-case-title">
       <div className="mozambique-case__heading">
         <div>
-          <p className="global-eyebrow">SECOND EVENT CASE · CHÓKWÈ, MOZAMBIQUE</p>
+          <p className="global-eyebrow">FEATURED EVENT INVESTIGATION · CHÓKWÈ, MOZAMBIQUE</p>
           <h2 id="mozambique-case-title">Chókwè: independent maps support the flood event</h2>
         </div>
         <span className="mozambique-case__verdict"><i aria-hidden="true" /> Follow-up support · accuracy unverified</span>
