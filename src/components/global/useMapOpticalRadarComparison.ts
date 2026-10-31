@@ -61,7 +61,7 @@ const dayOffset = (hlsDate: string, nisarDate: string) => {
     : 0;
 };
 
-export default function useMapOpticalRadarComparison({ open, runId, selectedDate, channel, refreshKey }: {
+export default function useMapOpticalRadarComparison({ open, runId, selectedDate, channel, refreshKey, session }: {
   open: boolean;
   runId: string | null;
   selectedDate: string | null;
