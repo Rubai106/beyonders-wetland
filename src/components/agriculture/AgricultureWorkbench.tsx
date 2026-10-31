@@ -134,14 +134,14 @@ export default function AgricultureWorkbench() {
   const activeAsset = study ? (layer === "change" ? study.change_preview : selectedObservation?.preview ?? "") : "";
 
   useEffect(() => {
-    const checksumManifest = checksums;
-    if (!study || !checksumManifest || !activeAsset) return;
+    if (!study || !checksums || !activeAsset) return;
+    const checksumFiles = checksums.files;
     const controller = new AbortController();
     let live = true;
     let objectUrl: string | null = null;
     async function loadPreview() {
       try {
-        const entry = checksumManifest.files[activeAsset];
+        const entry = checksumFiles[activeAsset];
         if (!entry) throw new Error("No checksum entry exists for " + activeAsset + ".");
         const response = await fetch("/agriculture/current/" + activeAsset, { signal: controller.signal, cache: "no-store" });
         if (!response.ok) throw new Error("Preview " + activeAsset + " returned HTTP " + response.status + ".");
