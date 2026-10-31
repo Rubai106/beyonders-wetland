@@ -25,6 +25,15 @@ def active_tab(page) -> str:
     return page.locator(".wx-tabs [role='tab'][aria-selected='true']").inner_text().strip()
 
 
+def select_tab(page, label: str, accessible_name: str) -> None:
+    page.get_by_role("tab", name=accessible_name).click()
+    page.wait_for_function(
+        """expected => document.querySelector(".wx-tabs [role=tab][aria-selected=true]")?.textContent?.trim() === expected""",
+        arg=label,
+        timeout=10_000,
+    )
+
+
 def main() -> int:
     errors: list[str] = []
     with sync_playwright() as playwright:
@@ -45,7 +54,11 @@ def main() -> int:
         tabs = page.locator(".wx-tabs [role='tab']")
         require(tabs.count() == 5, "Explore, Operator, Evidence, Check it and Learn tabs are all present")
 
-        page.get_by_role("tab", name="Check it: Follow the soil-moisture measurement, reference status and uncertainty").click()
+        select_tab(
+            page,
+            "Check it",
+            "Check it: Follow the soil-moisture measurement, reference status and uncertainty",
+        )
         require(active_tab(page) == "Check it", "Check it opens as a first-class investigation tab")
         page.locator(".evidence-chain__header h3").wait_for(state="visible", timeout=10_000)
         require(
@@ -64,13 +77,21 @@ def main() -> int:
             "precision, recall and F1 remain unavailable without a reference dataset",
         )
 
-        page.get_by_role("tab", name="Learn: Understand SME2 measurements, quality flags and interpretation limits").click()
+        select_tab(
+            page,
+            "Learn",
+            "Learn: Understand SME2 measurements, quality flags and interpretation limits",
+        )
         require(active_tab(page) == "Learn", "the Learn tab opens")
         page.get_by_text("Volumetric soil-moisture estimate · m³/m³", exact=True).wait_for()
         page.get_by_text("Independent field or matched crop/soil observations", exact=True).wait_for()
         require(True, "the Learn tab explains the measured variable and validation requirements")
 
-        page.get_by_role("tab", name="Operator: Configure an AOI and generate the local processing workflow").click()
+        select_tab(
+            page,
+            "Operator",
+            "Operator: Configure an AOI and generate the local processing workflow",
+        )
         require(active_tab(page) == "Operator", "the existing Operator workflow remains available")
         page.get_by_label("AOI west longitude").wait_for(state="visible")
         require(True, "the original AOI configuration controls remain available")
