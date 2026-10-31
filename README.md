@@ -24,6 +24,7 @@ Do not commit raw satellite files, virtual environments, credentials, private op
 
 - [Project plan and release gates](docs/project-plan.md)
 - [NASA Space Apps challenge coverage](docs/challenge-coverage.md)
+- [Competition demo runbook](docs/competition-demo-runbook.md) · timed presentation, navigation, evidence claims and contingency plan
 - [Architecture](docs/architecture.md)
 - [Scientific method and limitations](docs/scientific-method.md)
 - [Evidence inventory](docs/evidence-report.md) · [machine-readable checks](docs/evidence-inventory.json)
