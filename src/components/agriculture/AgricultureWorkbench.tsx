@@ -71,8 +71,7 @@ export default function AgricultureWorkbench() {
   const [loadError, setLoadError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [previewError, setPreviewError] = useState("");
+  const [previewState, setPreviewState] = useState<{ asset: string; url: string | null; error: string } | null>(null);
   const [satelliteBasemap, setSatelliteBasemap] = useState(false);
   const [west, setWest] = useState("");
   const [south, setSouth] = useState("");
@@ -132,12 +131,10 @@ export default function AgricultureWorkbench() {
   const activeAsset = study ? (layer === "change" ? study.change_preview : selectedObservation?.preview ?? "") : "";
 
   useEffect(() => {
-    if (!study || !checksums || !activeAsset) {
-      setPreviewUrl(null);
-      return;
-    }
+    if (!study || !checksums || !activeAsset) return;
     const controller = new AbortController();
     let live = true;
+    let objectUrl: string | null = null;
     async function loadPreview() {
       try {
         const entry = checksums.files[activeAsset];
@@ -149,20 +146,23 @@ export default function AgricultureWorkbench() {
           throw new Error("Preview integrity check failed for " + activeAsset + "; the image has been withheld.");
         }
         if (!live) return;
-        const url = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
-        setPreviewUrl(url);
-        setPreviewError("");
+        objectUrl = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
+        setPreviewState({ asset: activeAsset, url: objectUrl, error: "" });
       } catch (error) {
         if (!live || (error instanceof DOMException && error.name === "AbortError")) return;
-        setPreviewUrl(null);
-        setPreviewError(error instanceof Error ? error.message : "Preview unavailable.");
+        setPreviewState({ asset: activeAsset, url: null, error: error instanceof Error ? error.message : "Preview unavailable." });
       }
     }
     void loadPreview();
-    return () => { live = false; controller.abort(); };
+    return () => {
+      live = false;
+      controller.abort();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [study, checksums, activeAsset]);
 
-  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
+  const previewUrl = previewState?.asset === activeAsset ? previewState.url : null;
+  const previewError = previewState?.asset === activeAsset ? previewState.error : "";
 
   const form = { west, south, east, north, start, end, runId };
   const formValid = validForm(form);
