@@ -138,7 +138,10 @@ function validObservation(value: unknown): value is AgricultureObservation {
 }
 
 export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
-  if (!isRecord(value) || value.schema_version !== 1 ||
+  if (!isRecord(value)) return false;
+  const observations = Array.isArray(value.observations) ? value.observations : null;
+  const lastObservation = observations?.[observations.length - 1];
+  if (value.schema_version !== 1 ||
       typeof value.study_id !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(value.study_id) ||
       typeof value.run_id !== "string" || !/^[a-z0-9][a-z0-9-]{0,39}$/.test(value.run_id) ||
       value.product !== "NISAR_L3_SME2_PROVISIONAL_V1" || value.product_maturity !== "PROVISIONAL" ||
@@ -153,9 +156,9 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
       value.date_range.start > value.date_range.end || value.coverage_floor !== 0.2 ||
       !Number.isInteger(value.baseline_count) || Number(value.baseline_count) < 3 ||
       !Array.isArray(value.baseline_dates) || !value.baseline_dates.every(isoDay) ||
-      !Array.isArray(value.observations) || value.observations.length < Number(value.baseline_count) + 1 ||
-      !value.observations.every(validObservation) ||
-      !isoDay(value.target_date) || value.target_date !== (value.observations[value.observations.length - 1] as Record<string, unknown>).date ||
+      !observations || observations.length < Number(value.baseline_count) + 1 ||
+      !observations.every(validObservation) || !isRecord(lastObservation) || !isoDay(lastObservation.date) ||
+      !isoDay(value.target_date) || value.target_date !== lastObservation.date ||
       Number(value.baseline_count) !== value.baseline_dates.length ||
       !validSummary(value.change_summary, false) ||
       !safeRelativeAssetPath(value.change_preview, "previews/") ||
