@@ -13,6 +13,13 @@ import { listGlobeStudies } from "@/lib/globe-studies";
 import type { WetlandPulseData } from "@/lib/types";
 import "./landing.css";
 
+function isGlobeHazard(id: (typeof PHENOMENA)[number]["id"]): id is GlobeHazard {
+  return id === "wetland" || id === "forest" || id === "volcano";
+}
+
+// Agriculture has its own SME2 workspace, but no globe case-marker layer.
+const GLOBE_PHENOMENA = PHENOMENA.filter((phenomenon) => isGlobeHazard(phenomenon.id));
+
 const Globe3D = dynamic(() => import("@/components/landing/Globe3D"), {
   ssr: false,
   loading: () => <div className="globe-loading" aria-label="Loading 3D globe"><span className="radar-sweep" /></div>,
@@ -261,7 +268,7 @@ export default function Home() {
         <section className="g3-map-filter" aria-label="Choose the study type shown on the globe">
           <p className="g3-map-filter__eyebrow">Globe focus · published studies</p>
           <div className="g3-map-filter__choices" role="group" aria-label="Filter study locations by topic">
-            {PHENOMENA.map((phenomenon) => {
+            {GLOBE_PHENOMENA.map((phenomenon) => {
               const count = caseMarkers.filter((marker) => marker.hazard === phenomenon.id).length;
               return (
                 <button
