@@ -67,26 +67,15 @@ export default function useMapOpticalRadarComparison({ open, runId, selectedDate
   selectedDate: string | null;
   channel: "hh" | "hv";
   refreshKey: number;
+  session: number;
 }): Result {
-  const key = open && runId && selectedDate ? `${runId}|${selectedDate}|${channel}|${refreshKey}` : "";
+  const key = open && runId && selectedDate ? `${session}|${runId}|${selectedDate}|${channel}|${refreshKey}` : "";
   const [result, setResult] = useState<Result>({ key: "", status: "idle", message: "", layer: null });
 
   useEffect(() => {
-    if (!open) {
-      setResult({ key: "", status: "idle", message: "", layer: null });
-      return;
-    }
-    if (!runId) {
-      setResult({ key: "", status: "error", message: "Choose a saved, processed NISAR study to compare its optical and radar imagery.", layer: null });
-      return;
-    }
-    if (!selectedDate) {
-      setResult({ key: "", status: "error", message: "Select a NISAR observation date before opening the comparison.", layer: null });
-      return;
-    }
+    if (!open || !runId || !selectedDate) return;
 
     const controller = new AbortController();
-    setResult({ key, status: "loading", message: `Loading HLS and NISAR ${channel.toUpperCase()} imagery for ${selectedDate}…`, layer: null });
     const loadJson = async <T,>(url: string) => {
       const response = await fetch(url, { signal: controller.signal });
       const value = await response.json() as T & { error?: string };
@@ -133,5 +122,13 @@ export default function useMapOpticalRadarComparison({ open, runId, selectedDate
     return () => controller.abort();
   }, [channel, key, open, runId, selectedDate]);
 
-  return result.key === key ? result : open ? { key, status: runId ? "loading" : "error", message: runId ? "Loading optical and radar imagery…" : "Choose a saved, processed NISAR study to compare its optical and radar imagery.", layer: null } : { key: "", status: "idle", message: "", layer: null };
+  if (!open) return { key: "", status: "idle", message: "", layer: null };
+  if (!runId) return { key, status: "error", message: "Choose a saved, processed NISAR study to compare its optical and radar imagery.", layer: null };
+  if (!selectedDate) return { key, status: "error", message: "Select a NISAR observation date before opening the comparison.", layer: null };
+  return result.key === key ? result : {
+    key,
+    status: "loading",
+    message: `Loading HLS and NISAR ${channel.toUpperCase()} imagery for ${selectedDate}…`,
+    layer: null,
+  };
 }
