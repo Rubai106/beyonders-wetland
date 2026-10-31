@@ -12,7 +12,7 @@ import numpy as np
 
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, quality_mask, safe_run_id, validate_aoi_dates,
-    parse_granule_date, granule_signature, _looks_like_sme2_hdf5,
+    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,
 )
 
 
@@ -45,6 +45,19 @@ class AgricultureSME2Tests(unittest.TestCase):
         uncertainty = np.array([[.01, np.nan, .01, -1]])
         result = quality_mask(moisture, uncertainty, np.full((1, 4), 15), np.zeros((1, 4)))
         self.assertFalse(result.any())
+
+    def test_summary_coverage_uses_all_aoi_pixels_as_denominator(self):
+        values = np.array([[.2, .3], [.4, .5]])
+        valid = np.array([[True, False], [False, True]])
+        summary = _summary(values, valid, np.full((2, 2), .02), np.ones((2, 2), dtype=bool))
+        self.assertEqual(summary["valid_fraction"], .5)
+        self.assertEqual(summary["valid_pixels"], 2)
+        self.assertEqual(summary["total_pixels"], 4)
+
+    def test_retrieval_flag_above_uint8_range_is_rejected(self):
+        result = quality_mask(np.full((1, 1), .2), np.full((1, 1), .01),
+                              np.array([[271.0]]), np.zeros((1, 1)))
+        self.assertFalse(result[0, 0])
 
     def test_fill_mask_is_applied(self):
         mask = quality_mask(np.full((1, 2), .2), np.full((1, 2), .01),

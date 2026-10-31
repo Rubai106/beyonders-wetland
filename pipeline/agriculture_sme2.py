@@ -294,9 +294,7 @@ def download(run_id: str, series_id: str | None = None) -> list[Path]:
             exact = earthaccess.search_data(concept_id=item["concept_id"])
             if not exact:
                 raise AgricultureError(f"Could not re-resolve CMR concept ID {item['concept_id']}.")
-            names = {str(getattr(granule, "meta", {}).get(" granule-name", "")) for granule in exact}
-            # earthaccess DataGranule metadata shape varies by version; retain a strict
-            # local filename check after download rather than trusting a search wrapper.
+            # Re-resolve the exact concept ID, then require an exact local granule filename after download.
             downloaded = earthaccess.download(exact, str(local))
             paths = [Path(value) for value in (downloaded or [])]
             found = [path for path in paths if path.is_file() and path.suffix.lower() in {".h5", ".hdf5"}]
@@ -347,8 +345,13 @@ def validate_aoi_dates(aoi: dict[str, float], start: str, end: str) -> None:
     west, south, east, north = values
     if not all(math.isfinite(v) for v in values) or not (-180 <= west < east <= 180) or not (-90 <= south < north <= 90):
         raise AgricultureError("AOI must be a valid WGS84 bounding box.")
-    if start < "2026-06-17" or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", start) or not re.fullmatch(r"20\d{2}-\d{2}-\d{2}", end) or start > end:
-        raise AgricultureError("Date range is invalid, reversed, or starts before the SME2 workflow gate (2026-06-17).")
+    try:
+        start_date = datetime.strptime(start, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end, "%Y-%m-%d").date()
+    except (TypeError, ValueError) as exc:
+        raise AgricultureError("Date range must contain real YYYY-MM-DD dates.") from exc
+    if start_date.isoformat() < "2026-06-17" or start_date > end_date or end_date > datetime.now(timezone.utc).date():
+        raise AgricultureError("Date range is reversed, in the future, or starts before the SME2 workflow gate (2026-06-17).")
 
 
 def _find_dataset(handle: h5py.File, name: str) -> h5py.Dataset:
@@ -431,9 +434,12 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
             for key, value in obj.attrs.items():
                 attrs[str(key)] = _text_value(value)
         fill_values = []
+        uncertainty_fill_values = []
         for key in ("_FillValue", "missing_value", "fillValue"):
             if key in moisture_ds.attrs:
                 fill_values.append(float(np.asarray(moisture_ds.attrs[key]).reshape(-1)[0]))
+            if key in uncertainty_ds.attrs:
+                uncertainty_fill_values.append(float(np.asarray(uncertainty_ds.attrs[key]).reshape(-1)[0]))
         metadata = {
             "track": _find_metadata_value(attrs, ("track", "tracknumber", "pathnumber")) or "UNSPECIFIED",
             "direction": _direction(_find_metadata_value(attrs, ("orbitdirection", "passdirection")), path.name),
@@ -468,6 +474,8 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
     fill_ok = np.ones(moisture.shape, dtype=bool)
     for fill in fill_values:
         fill_ok &= moisture != fill
+    for fill in uncertainty_fill_values:
+        fill_ok &= uncertainty != fill
     valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
     valid &= in_aoi
     if flip_x or flip_y:
@@ -511,7 +519,7 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     valid &= np.isfinite(uncertainty) & (uncertainty >= 0)
     retrieval_integer = np.where(np.isfinite(retrieval_values), retrieval_values, -1).astype("int64")
     surface_integer = np.where(np.isfinite(surface_values), surface_values, -1).astype("int64")
-    valid &= np.isfinite(retrieval_values) & np.isclose(retrieval_values, np.round(retrieval_values))
+    valid &= np.isfinite(retrieval_values) & (retrieval_values >= 0) & (retrieval_values <= 255) & np.isclose(retrieval_values, np.round(retrieval_values))
     valid &= (retrieval_integer & 0x0F) == 0x0F
     valid &= (retrieval_integer & 0xF0) == 0
     valid &= np.isfinite(surface_values) & np.isclose(surface_values, np.round(surface_values))
@@ -521,10 +529,12 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     return valid
 
 
-def _summary(values: np.ndarray, mask: np.ndarray, uncertainty: np.ndarray | None = None) -> dict[str, Any]:
+def _summary(values: np.ndarray, mask: np.ndarray, uncertainty: np.ndarray | None = None,
+             denominator_mask: np.ndarray | None = None) -> dict[str, Any]:
     valid = np.asarray(mask, dtype=bool) & np.isfinite(values)
+    denominator = np.asarray(denominator_mask if denominator_mask is not None else mask, dtype=bool)
     count = int(np.sum(valid))
-    total = int(np.sum(np.asarray(mask, dtype=bool)))
+    total = int(np.sum(denominator))
     if count == 0 or total == 0:
         raise AgricultureError("No valid pixels remain inside the AOI after the SME2 quality screen.")
     selected = np.asarray(values, dtype="float64")[valid]
@@ -621,18 +631,20 @@ def analyze(run_id: str) -> dict[str, Any]:
         name = f"moisture-{scene['date']}.png"
         preview = output / "previews" / name
         native = output / "native" / f"moisture-{scene['date']}.tif"
-        summary = _summary(scene["moisture"], scene["valid"], scene["uncertainty"])
+        summary = _summary(scene["moisture"], scene["valid"], scene["uncertainty"], scene["aoi_mask"])
         _preview(scene["moisture"], scene["valid"], preview)
         _write_geotiff(native, scene["moisture"], scene["valid"], scene["epsg"], scene["transform"])
         observations.append({
             "date": scene["date"], "preview": f"previews/{name}", "native_layer": f"native/{native.name}",
             **summary, **scene["signature"],
+            "source_sha256": sha256_file(scene["file"]), "source_bytes": scene["file"].stat().st_size,
+            "granule_name": scene["file"].name,
             "fill_excluded_pixels": scene["fill_excluded"],
             "retrieval_flag_counts": scene["retrieval_flag_counts"],
             "surface_flag_counts": scene["surface_flag_counts"],
         })
-    target_summary = _summary(target["moisture"], target["valid"], target["uncertainty"])
-    change_summary = _summary(change, change_valid, target["uncertainty"])
+    target_summary = _summary(target["moisture"], target["valid"], target["uncertainty"], target["aoi_mask"])
+    change_summary = _summary(change, change_valid, target["uncertainty"], target["aoi_mask"])
     change_name = "change-latest-minus-baseline.png"
     _preview(change, change_valid, output / "previews" / change_name, change=True)
     change_native = output / "native" / "change-latest-minus-baseline.tif"
