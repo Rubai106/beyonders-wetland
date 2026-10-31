@@ -1,0 +1,192 @@
+/* Agriculture workspace: shared GeoNexSAR radar-room frame, with SME2-specific controls. */
+.agriculture-workspace .wx-quest { border-bottom-color: #293c43; }
+.agriculture-workspace .wx-quest h1 { letter-spacing: -.025em; }
+.agriculture-workspace .agri-status-pill {
+  display: inline-flex; align-items: center; gap: 7px; justify-self: end;
+  padding: 7px 10px; border: 1px solid #3b454b; border-radius: 4px;
+  background: #111a20; color: #b9c5cb; font: 600 .64rem/1.2 var(--font-mono, monospace);
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.agriculture-workspace .agri-status-pill i,
+.agriculture-workspace .agri-drawer-status i {
+  width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #d5a85c;
+}
+.agriculture-workspace .agri-status-pill.is-ready i,
+.agriculture-workspace .agri-drawer-status:not(.is-error) i { background: #71c5a4; }
+.agriculture-workspace .agri-status-pill.is-error i,
+.agriculture-workspace .agri-drawer-status.is-error i { background: #e28a80; }
+.agriculture-workspace .agri-rail {
+  display: grid; gap: 8px; padding: 13px; color: #d8e2e5;
+}
+.agriculture-workspace .agri-eyebrow {
+  color: #80a5ac; font: 650 .58rem/1.3 var(--font-mono, monospace);
+  letter-spacing: .11em; text-transform: uppercase;
+}
+.agriculture-workspace .agri-rail > strong { font-size: .88rem; overflow-wrap: anywhere; }
+.agriculture-workspace .agri-rail p { color: #91a1a8; font-size: .69rem; line-height: 1.55; }
+.agriculture-workspace .agri-rail-maturity { color: #e4c28a; }
+.agriculture-workspace .agri-rail-divider { height: 1px; margin: 3px 0; background: #27363d; }
+.agriculture-workspace .wx-map { background: #081116; }
+.agriculture-workspace .agri-map,
+.agriculture-workspace .agri-map-loading {
+  position: absolute; inset: 0; min-width: 0; min-height: 0; background: #091217;
+}
+.agriculture-workspace .agri-map-loading { display: grid; place-items: center; color: #9eafb4; font-size: .8rem; }
+.agriculture-workspace .agri-map .leaflet-container { width: 100%; height: 100%; background: #091217; }
+.agriculture-workspace .agri-map-empty {
+  position: absolute; z-index: 700; top: 18px; left: 18px; width: min(300px, calc(100% - 36px));
+  padding: 14px 16px; border: 1px solid #30434b; border-radius: 5px;
+  background: rgb(8 17 22 / 94%); color: #e2eaed; box-shadow: 0 12px 35px rgb(0 0 0 / 26%);
+  pointer-events: none; backdrop-filter: blur(9px);
+}
+.agriculture-workspace .agri-map-empty__eyebrow { display: block; margin-bottom: 8px; color: #8cb6bd; font: 650 .58rem var(--font-mono, monospace); letter-spacing: .1em; }
+.agriculture-workspace .agri-map-empty strong { display: block; margin-bottom: 6px; font-size: .85rem; }
+.agriculture-workspace .agri-map-empty p { color: #9babb1; font-size: .68rem; line-height: 1.5; }
+.agriculture-workspace .agri-map-legend {
+  position: absolute; z-index: 650; right: 14px; bottom: 15px; display: flex; flex-wrap: wrap; gap: 8px 13px;
+  padding: 8px 10px; border: 1px solid #33434a; border-radius: 4px; background: rgb(8 17 22 / 91%);
+  color: #d6e0e3; font-size: .62rem; pointer-events: none;
+}
+.agriculture-workspace .agri-map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.agriculture-workspace .agri-map-legend i { width: 10px; height: 10px; border-radius: 2px; }
+.agriculture-workspace .agri-map-legend__low { background: #124a91; }
+.agriculture-workspace .agri-map-legend__high { background: #4bd1c1; }
+.agriculture-workspace .agri-map-legend__transparent { border: 1px dashed #84969c; background: transparent; }
+.agriculture-workspace .agri-map-toolbar {
+  position: absolute; z-index: 1100; top: 14px; right: 14px; display: flex; align-items: center; gap: 4px;
+  padding: 5px; border: 1px solid #30424a; border-radius: 5px; background: rgb(8 17 22 / 94%); color: #d9e2e6;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 20%);
+}
+.agriculture-workspace .agri-map-toolbar button {
+  min-height: 31px; padding: 5px 9px; border: 1px solid transparent; border-radius: 3px;
+  background: transparent; color: #9fb0b6; cursor: pointer; font: 650 .62rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-map-toolbar button[aria-pressed="true"] { border-color: #3c7781; background: #15313a; color: #b7e8eb; }
+.agriculture-workspace .agri-map-toolbar button:disabled { opacity: .36; cursor: not-allowed; }
+.agriculture-workspace .agri-map-toolbar > span { padding: 0 7px; color: #9eafb4; font-size: .62rem; }
+.agriculture-workspace .agri-drawer-status {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #24333a;
+  background: #10191e; color: #9db0b7; font-size: .65rem; line-height: 1.4;
+}
+.agriculture-workspace .agri-drawer-panel { display: grid; gap: 14px; padding: 14px; color: #dce5e8; }
+.agriculture-workspace .agri-intro { color: #a6b5ba; font-size: .73rem; line-height: 1.6; }
+.agriculture-workspace .agri-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.agriculture-workspace .agri-stat-grid > div {
+  display: grid; gap: 6px; min-width: 0; padding: 10px; border: 1px solid #293b43; border-radius: 4px; background: #0d171c;
+}
+.agriculture-workspace .agri-stat-grid > div:first-child { grid-column: 1 / -1; }
+.agriculture-workspace .agri-stat-grid span { color: #9eafb5; font-size: .63rem; }
+.agriculture-workspace .agri-stat-grid strong { color: #e8f3f2; font: 650 1.05rem var(--font-mono, monospace); overflow-wrap: anywhere; }
+.agriculture-workspace .agri-stat-grid small { color: #7f939b; font-size: .59rem; }
+.agriculture-workspace .agri-reading,
+.agriculture-workspace .agri-verdict,
+.agriculture-workspace .agri-no-study {
+  display: grid; gap: 7px; padding: 12px; border: 1px solid #31434a; border-radius: 4px; background: #101b21;
+}
+.agriculture-workspace .agri-reading strong,
+.agriculture-workspace .agri-no-study strong { color: #e2edef; font-size: .8rem; }
+.agriculture-workspace .agri-reading p,
+.agriculture-workspace .agri-no-study p { color: #a1b1b7; font-size: .68rem; line-height: 1.55; }
+.agriculture-workspace .agri-verdict { border-color: #3b6256; background: #0d201d; }
+.agriculture-workspace .agri-verdict.is-inconclusive { border-color: #79623f; background: #231e15; }
+.agriculture-workspace .agri-verdict strong { color: #c2e6d8; font-size: .83rem; }
+.agriculture-workspace .agri-verdict.is-inconclusive strong { color: #eed2a1; }
+.agriculture-workspace .agri-verdict p { color: #aab9bb; font-size: .67rem; line-height: 1.5; }
+.agriculture-workspace .agri-alert { padding: 9px; border: 1px solid #804a48; background: #281716; color: #f0b6ae; font-size: .68rem; line-height: 1.5; }
+.agriculture-workspace .agri-secondary-button,
+.agriculture-workspace .agri-primary-button {
+  min-height: 38px; padding: 8px 11px; border: 1px solid #426d76; border-radius: 4px;
+  background: #122a31; color: #c3eef0; cursor: pointer; font: 650 .68rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-primary-button { border-color: #5c9c9c; background: #17424a; color: #e2ffff; }
+.agriculture-workspace .agri-primary-button:disabled { opacity: .38; cursor: not-allowed; }
+.agriculture-workspace .agri-secondary-button:hover,
+.agriculture-workspace .agri-primary-button:not(:disabled):hover { filter: brightness(1.14); }
+.agriculture-workspace .agri-form-section { display: grid; gap: 10px; padding: 12px; border: 1px solid #293a42; border-radius: 4px; background: #0e181d; }
+.agriculture-workspace .agri-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #82979e; font-size: .6rem; }
+.agriculture-workspace .agri-section-heading button { border: 0; background: none; color: #98cbd0; cursor: pointer; font: inherit; }
+.agriculture-workspace .agri-coordinate-grid,
+.agriculture-workspace .agri-date-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.agriculture-workspace .agri-drawer-panel label { display: grid; gap: 5px; min-width: 0; color: #adbdc2; font-size: .65rem; }
+.agriculture-workspace .agri-drawer-panel input {
+  width: 100%; min-width: 0; min-height: 36px; padding: 7px 8px;
+  border: 1px solid #354a52; border-radius: 3px; outline: none; background: #091116; color: #e2edef;
+  font: 650 .7rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-drawer-panel input:focus-visible,
+.agriculture-workspace .agri-drawer-panel button:focus-visible,
+.agriculture-workspace .agri-chart-point button:focus-visible {
+  outline: 2px solid #87d6df; outline-offset: 2px;
+}
+.agriculture-workspace .agri-validation { display: flex; align-items: center; gap: 8px; color: #d9b77e; font-size: .66rem; line-height: 1.45; }
+.agriculture-workspace .agri-validation i { width: 7px; height: 7px; border-radius: 50%; background: #d5a85c; }
+.agriculture-workspace .agri-validation.is-valid { color: #9bd8bd; }
+.agriculture-workspace .agri-validation.is-valid i { background: #73c8a2; }
+.agriculture-workspace .agri-commands { display: grid; gap: 8px; min-width: 0; padding: 10px; border: 1px solid #35545a; border-radius: 4px; background: #091217; }
+.agriculture-workspace .agri-commands pre { max-width: 100%; overflow: auto; padding: 9px; background: #050b0f; color: #c5e6de; font: .63rem/1.6 var(--font-mono, monospace); white-space: pre; }
+.agriculture-workspace .agri-copy-status { color: #9bd8bd; font-size: .65rem; }
+.agriculture-workspace .agri-small-note { color: #80939a; font-size: .63rem; line-height: 1.55; }
+.agriculture-workspace .agri-details { border: 1px solid #2a3c43; border-radius: 4px; background: #0d171c; }
+.agriculture-workspace .agri-details summary { padding: 10px; color: #d4e1e4; cursor: pointer; font-size: .7rem; }
+.agriculture-workspace .agri-details > ul { display: grid; gap: 7px; padding: 0 12px 12px 27px; color: #9eafb4; font-size: .66rem; line-height: 1.5; }
+.agriculture-workspace .agri-provenance { display: grid; gap: 0; padding: 0 11px 10px; }
+.agriculture-workspace .agri-provenance > div { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 8px; padding: 7px 0; border-bottom: 1px solid #24343a; font-size: .64rem; }
+.agriculture-workspace .agri-provenance dt { color: #81959c; }
+.agriculture-workspace .agri-provenance dd { color: #cbdadd; overflow-wrap: anywhere; }
+.agriculture-workspace .agri-source-list { display: grid; gap: 8px; padding: 11px; border: 1px solid #293a42; border-radius: 4px; background: #0d171c; }
+.agriculture-workspace .agri-source-list strong { color: #dce7e9; font-size: .7rem; }
+.agriculture-workspace .agri-source-list a { color: #8dcbd3; font-size: .67rem; text-decoration: none; }
+.agriculture-workspace .agri-source-list a:hover { text-decoration: underline; }
+.agriculture-workspace .agri-footer { display: grid; gap: 9px; width: 100%; min-width: 0; padding: 9px 15px 10px; }
+.agriculture-workspace .agri-footer-head { display: flex; justify-content: space-between; gap: 10px; color: #899da4; font-size: .62rem; }
+.agriculture-workspace .agri-timeline-strip { display: flex; gap: 6px; min-width: 0; overflow-x: auto; padding: 1px 1px 5px; }
+.agriculture-workspace .agri-timeline-strip button {
+  display: grid; flex: 1 0 112px; gap: 3px; min-width: 0; padding: 7px 9px;
+  border: 1px solid #2b3c43; border-radius: 3px; background: #0c151a; color: #b6c6cb; text-align: left; cursor: pointer;
+}
+.agriculture-workspace .agri-timeline-strip button.is-active { border-color: #6eb5bc; background: #132b31; box-shadow: inset 0 -2px #75cbd1; }
+.agriculture-workspace .agri-timeline-strip button span { color: #91a7ad; font-size: .58rem; }
+.agriculture-workspace .agri-timeline-strip button strong { color: #ecf6f3; font: 650 .72rem var(--font-mono, monospace); }
+.agriculture-workspace .agri-timeline-strip button small { color: #7f999f; font-size: .57rem; }
+.agriculture-workspace .agri-chart { display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-rows: 104px auto; gap: 4px 8px; padding: 4px 3px 2px; }
+.agriculture-workspace .agri-chart-axis { display: flex; flex-direction: column; justify-content: space-between; color: #7e9299; font: .56rem var(--font-mono, monospace); }
+.agriculture-workspace .agri-chart-plot { position: relative; min-width: 0; border-left: 1px solid #3a4b52; border-bottom: 1px solid #3a4b52; }
+.agriculture-workspace .agri-chart-grid { position: absolute; right: 0; left: 0; border-top: 1px dashed #263840; }
+.agriculture-workspace .agri-chart-grid--top { top: 0; }
+.agriculture-workspace .agri-chart-grid--middle { top: 50%; }
+.agriculture-workspace .agri-chart-grid--bottom { bottom: 0; }
+.agriculture-workspace .agri-chart-point { position: absolute; z-index: 2; transform: translate(-50%, -50%); }
+.agriculture-workspace .agri-chart-range { position: absolute; left: 50%; width: 2px; min-height: 3px; transform: translateX(-50%); background: #74b6b7; }
+.agriculture-workspace .agri-chart-point button { display: grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
+.agriculture-workspace .agri-chart-point button span { width: 8px; height: 8px; border: 2px solid #071217; border-radius: 50%; background: #a4dfe0; box-shadow: 0 0 0 1px #a4dfe0; }
+.agriculture-workspace .agri-chart-point.is-active button span { width: 12px; height: 12px; background: #f2c77d; box-shadow: 0 0 0 2px #f2c77d; }
+.agriculture-workspace .agri-chart-legend { grid-column: 2; display: flex; gap: 14px; color: #82959b; font-size: .57rem; }
+.agriculture-workspace .agri-chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.agriculture-workspace .agri-chart-legend i { width: 9px; height: 3px; background: #a4dfe0; }
+.agriculture-workspace .agri-chart-legend i.range { height: 10px; width: 2px; background: #74b6b7; }
+.agriculture-workspace .agri-footer-empty { padding: 10px 12px; border: 1px dashed #35474e; color: #8ea1a7; font-size: .67rem; line-height: 1.5; }
+.agriculture-workspace .wx-timeline { min-height: 0; }
+.agriculture-workspace .wx-drawer__body { overflow-x: hidden; }
+.agriculture-workspace .wx-nav a[aria-current="page"] { color: #d6f1f0; }
+.agriculture-workspace .agri-map .leaflet-control-attribution { font-size: 9px; }
+@media (max-width: 960px) {
+  .agriculture-workspace .agri-status-pill { justify-self: start; }
+  .agriculture-workspace .agri-footer { padding: 8px 10px; }
+  .agriculture-workspace .agri-footer-head { font-size: .57rem; }
+}
+@media (max-width: 600px) {
+  .agriculture-workspace .agri-map-toolbar { top: 9px; right: 8px; max-width: calc(100% - 16px); }
+  .agriculture-workspace .agri-map-toolbar button { min-height: 34px; padding: 5px 7px; font-size: .58rem; }
+  .agriculture-workspace .agri-map-empty { top: 9px; left: 8px; width: min(260px, calc(100% - 16px)); padding: 10px 11px; }
+  .agriculture-workspace .agri-stat-grid { grid-template-columns: 1fr 1fr; }
+  .agriculture-workspace .agri-coordinate-grid,
+  .agriculture-workspace .agri-date-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agriculture-workspace .agri-footer-head { flex-direction: column; gap: 3px; }
+  .agriculture-workspace .agri-timeline-strip button { flex-basis: 104px; }
+  .agriculture-workspace .agri-chart { grid-template-rows: 100px auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agriculture-workspace *,
+  .agriculture-workspace *::before,
+  .agriculture-workspace *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
