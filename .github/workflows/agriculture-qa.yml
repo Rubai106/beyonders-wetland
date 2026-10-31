@@ -56,8 +56,8 @@ jobs:
       - name: Run full offline Python regression suite
         run: python -m unittest discover -s pipeline -p 'test_*.py' -v
 
-      - name: Run Agriculture TypeScript schema tests
-        run: node --experimental-strip-types --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/agriculture-study.test.ts
+      - name: Run all TypeScript unit regression tests
+        run: npm run test:unit
 
       - name: Run ESLint
         run: npm run lint
