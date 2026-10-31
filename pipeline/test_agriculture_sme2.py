@@ -12,7 +12,8 @@ import numpy as np
 
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, quality_mask, safe_run_id, validate_aoi_dates,
-    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,\n    _baseline_layers, _epsg_from_handle, _validate_moisture_units,
+    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,
+    _baseline_layers, _epsg_from_handle, _validate_moisture_units,
 )
 
 
