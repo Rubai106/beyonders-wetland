@@ -3,21 +3,31 @@
 Synthetic arrays/HDF5 are test fixtures only. They are never written to public/agriculture.
 """
 import importlib.util
+import io
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import h5py
 import numpy as np
 
 from agriculture_sme2 import (
-    AgricultureError, COLLECTION, quality_mask, safe_run_id, validate_aoi_dates,
+    AgricultureError, COLLECTION, CMR_PAGE_SIZE, quality_mask, safe_run_id, validate_aoi_dates, _cmr_search,
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units,
 )
 
 
 class AgricultureSME2Tests(unittest.TestCase):
+    def test_cmr_truncation_fails_closed(self):
+        class Response(io.BytesIO):
+            headers = {"CMR-Hits": str(CMR_PAGE_SIZE + 1)}
+        response = Response(b'{"feed":{"entry":[]}}')
+        with patch("agriculture_sme2.urllib.request.urlopen", return_value=response):
+            with self.assertRaisesRegex(AgricultureError, "Narrow the AOI or date range"):
+                _cmr_search({"west": 90, "south": 24, "east": 91, "north": 25}, "2026-06-17", "2026-10-29")
+
     def test_uint8_retrieval_bitfield_is_numpy2_safe(self):
         moisture = np.full((2, 3), 0.25)
         uncertainty = np.full((2, 3), 0.03)
