@@ -50,8 +50,8 @@ jobs:
       - name: Install Node dependencies
         run: npm ci
 
-      - name: Compile Agriculture Python modules
-        run: python -m py_compile pipeline/agriculture_sme2.py pipeline/test_agriculture_sme2.py
+      - name: Compile Python modules and browser smoke tests
+        run: python -m py_compile pipeline/agriculture_sme2.py pipeline/test_agriculture_sme2.py tests/e2e/explore_smoke.py tests/e2e/wetland_smoke.py
 
       - name: Run full offline Python regression suite
         run: python -m unittest discover -s pipeline -p 'test_*.py' -v
