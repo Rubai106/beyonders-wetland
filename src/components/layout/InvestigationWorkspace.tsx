@@ -6,10 +6,11 @@ import type { DataTier } from "@/lib/store";
 import { Icon } from "../wetland/icons";
 import { TierBadge } from "../wetland/ui";
 
-type Hazard = "wetland" | "volcano" | "forest";
+type Hazard = "wetland" | "volcano" | "forest" | "agriculture";
 
 const sections: Array<{ id: Hazard; label: string; href: string }> = [
   { id: "wetland", label: "Wetlands", href: "/wetland/global" },
+  { id: "agriculture", label: "Agriculture", href: "/agriculture" },
   { id: "forest", label: "Forests", href: "/forest/global" },
   { id: "volcano", label: "Volcanoes", href: "/volcano/global" },
 ];
@@ -18,6 +19,7 @@ const sourceLabel: Record<Hazard, string> = {
   wetland: "NASA NISAR · L-band",
   forest: "NASA NISAR · L-band",
   volcano: "NASA NISAR · phase",
+  agriculture: "NASA NISAR · SME2 soil moisture",
 };
 
 export type InvestigationDrawerTab = {

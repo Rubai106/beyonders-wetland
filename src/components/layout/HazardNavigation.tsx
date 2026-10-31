@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 export default function HazardNavigation() {
   const pathname = usePathname();
   // The landing page and hazard workspaces provide their own navigation.
-  if (pathname === "/" || pathname.startsWith("/wetland") || pathname.startsWith("/forest") || pathname.startsWith("/volcano")) return null;
+  if (pathname === "/" || pathname.startsWith("/wetland") || pathname.startsWith("/forest") || pathname.startsWith("/volcano") || pathname.startsWith("/agriculture")) return null;
 
   const wetlandActive = pathname.startsWith("/wetland") || pathname === "/";
   const volcanoActive = pathname.startsWith("/volcano");
@@ -25,6 +25,7 @@ export default function HazardNavigation() {
         <Link href="/forest/global" aria-current={forestActive ? "page" : undefined}>
           Forests
         </Link>
+        <Link href="/agriculture">Agriculture</Link>
       </div>
       <span className="hazard-nav__mission">NISAR · mission control</span>
     </nav>

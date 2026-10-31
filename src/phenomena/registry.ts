@@ -1,6 +1,6 @@
 /* GeoNexSAR phenomena registry — separate, evidence-labelled Earth-change modules. */
 export type PhenomenonStatus = "AVAILABLE" | "PLANNED";
-export type PhenomenonId = "wetland" | "forest" | "volcano";
+export type PhenomenonId = "wetland" | "forest" | "volcano" | "agriculture";
 export interface PhenomenonBriefing {
   lede: string;
   radarSees: { title: string; text: string }[];
@@ -31,6 +31,30 @@ export const PHENOMENA: Phenomenon[] = [
       "Optical cross-checks with clear-coverage and uncertainty shown",
     ],
     contract: CONTRACT,
+  },
+  {
+    id: "agriculture", name: "Agriculture", tagline: "Soil moisture changes.", status: "AVAILABLE", href: "/agriculture",
+    caseHref: "/agriculture", caseLabel: "Open the SME2 soil-moisture workspace",
+    featureHighlights: [
+      "NISAR SME2 PROVISIONAL soil-moisture observations",
+      "Dated moisture layers, uncertainty ranges, and baseline comparison",
+      "Traceable granules, quality flags, coverage gates, and provenance",
+    ],
+    contract: CONTRACT,
+    briefing: {
+      lede: "The Agriculture workspace explores the NISAR Level-3 SME2 soilMoisture variable as an exploratory measurement series. It does not classify crops or diagnose agricultural stress.",
+      radarSees: [
+        { title: "Soil-moisture estimates", text: "SME2 provides a gridded estimate of near-surface soil moisture with uncertainty and retrieval-quality information. Product maturity and quality flags remain visible." },
+        { title: "Changes through time", text: "A later observation can be compared with the median of an explicitly selected baseline series, but moisture differences can have several causes." },
+        { title: "Coverage before interpretation", text: "Only pixels that pass the retrieval and surface-quality screen count as assessed. Low coverage remains inconclusive rather than being filled or hidden." },
+      ],
+      needs: [
+        "A compatible set of genuine SME2 PROVISIONAL granules and Earthdata authentication",
+        "Consistent native grid, product release, track, direction, frame and frequency",
+        "Field or independent agricultural references before making crop-related claims",
+        "Documented limits: this workflow does not detect crop stress, drought, irrigation need, crop type, field boundaries or yield impacts",
+      ],
+    },
   },
   {
     id: "forest", name: "Forests", tagline: "Vegetation changes.", status: "AVAILABLE", href: "/forest/global",
