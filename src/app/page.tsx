@@ -414,7 +414,7 @@ export default function Home() {
           {PHENOMENA.map((p, i) => (
             <Reveal key={p.id} delay={i * 90}>
               <Tilt className={`g3-phen-card${p.status === "AVAILABLE" ? " is-live" : ""}`}>
-                <p className="g3-eyebrow">{p.status === "AVAILABLE" ? "Live now" : "Signal incoming"}</p>
+                <p className="g3-eyebrow">{p.status === "AVAILABLE" ? "Workspace available" : "In development"}</p>
                 <h3>{p.name}</h3>
                 <p className="g3-tagline">{p.tagline}</p>
                 <ul className="g3-phen-features" aria-label={`${p.name} features`}>
