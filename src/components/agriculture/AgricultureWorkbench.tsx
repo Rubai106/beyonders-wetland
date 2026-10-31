@@ -16,6 +16,8 @@ import {
 } from "@/lib/agriculture-study";
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
 import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
+import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
+import TriageBriefButton from "@/components/shared/TriageBriefButton";
 import "./agriculture.css";
 
 const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
@@ -224,9 +226,9 @@ export default function AgricultureWorkbench() {
 
   const drawerTabs: InvestigationDrawerTab[] = [
     {
-      id: "explore", number: "01", label: "Explore", hint: "Inspect dates, map layers and summary statistics",
+      id: "explore", number: "01", label: "Explore", hint: "Inspect dates, map layers and summary statistics", anchorIds: ["agri-explore-intro"],
       content: (
-        <div className="agri-drawer-panel">
+        <div className="agri-drawer-panel" id="agri-explore-intro">
           <p className="agri-intro">Explore the measured SME2 soil-moisture series. The map and statistics below are loaded only from a checksum-verified published study.</p>
           {study ? <>
             <div className="agri-stat-grid">
@@ -289,9 +291,9 @@ export default function AgricultureWorkbench() {
       ),
     },
     {
-      id: "evidence", number: "03", label: "Evidence", hint: "Review product maturity, quality flags, coverage and provenance",
+      id: "evidence", number: "03", label: "Evidence", hint: "Review product maturity, quality flags, coverage and provenance", anchorIds: ["agri-evidence-intro"],
       content: (
-        <div className="agri-drawer-panel">
+        <div className="agri-drawer-panel" id="agri-evidence-intro">
           <p className="agri-intro">The workspace separates the product&apos;s observations, derived differences and contextual sources. SME2 PROVISIONAL is not a fully calibrated agricultural decision product.</p>
           {study ? <>
             <div className={"agri-verdict " + (study.evidence_status === "INCONCLUSIVE_COVERAGE" ? "is-inconclusive" : "")}>
@@ -344,10 +346,64 @@ export default function AgricultureWorkbench() {
     {
       id: "check", number: "04", label: "Check it",
       hint: "Follow the soil-moisture measurement, reference status and uncertainty",
+      anchorIds: ["agri-check-intro"],
       content: (
-        <div className="agri-drawer-panel">
+        <div className="agri-drawer-panel" id="agri-check-intro">
           <p className="agri-intro">Follow the complete chain from the native SME2 observations through the quality screen to independent reference availability. A missing reference is shown as missing, not as a negative result.</p>
           <EvidenceChainPanel chain={evidenceChain} />
+          <div className="agri-evidence-download">
+            <TriageBriefButton
+              filename="agriculture-sme2-evidence-chain.json"
+              title="Agriculture SME2 evidence brief"
+              brief={{
+                module: evidenceChain.module,
+                study_id: evidenceChain.study_id,
+                site_name: evidenceChain.site_name,
+                modality: evidenceChain.modality,
+                product: evidenceChain.product,
+                product_maturity: evidenceChain.product_maturity,
+                state: evidenceChain.state,
+                conclusion: evidenceChain.conclusion,
+                observations: evidenceChain.observations,
+                method: evidenceChain.method,
+                measurements: evidenceChain.measurements,
+                references: evidenceChain.references,
+                provenance: evidenceChain.provenance,
+                uncertainty_and_limits: evidenceChain.uncertainty_and_limits,
+              }}
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "learn", number: "05", label: "Learn",
+      hint: "Understand SME2 measurements, quality flags and interpretation limits",
+      anchorIds: ["agri-learn-intro"],
+      content: (
+        <div className="agri-drawer-panel" id="agri-learn-intro">
+          <p className="agri-intro">Learn how to read the SME2 soil-moisture product and what it can—and cannot—support. The product measures soil moisture, not crop health.</p>
+          <div className="agri-reading">
+            <span className="agri-eyebrow">WHAT IS MEASURED</span>
+            <strong>Volumetric soil-moisture estimate · m³/m³</strong>
+            <p>SME2 estimates the amount of water in the soil volume. This is a physical soil-moisture variable; it is not a direct measurement of plant stress, irrigation need, crop yield, or drought impact.</p>
+          </div>
+          <div className="agri-reading">
+            <span className="agri-eyebrow">HOW THE CHANGE LAYER WORKS</span>
+            <strong>Latest observation minus a multi-date baseline</strong>
+            <p>The published workflow uses the first three unique compatible dates as its baseline and compares the latest date against their pixel-wise median. Positive and negative values indicate change in the measured soil-moisture estimate. The current uncertainty display is the target-date product uncertainty, not propagated uncertainty for the difference.</p>
+          </div>
+          <div className="agri-reading">
+            <span className="agri-eyebrow">QUALITY IS NOT GROUND TRUTH</span>
+            <strong>Flags control what is assessed</strong>
+            <p>The conservative surface-quality screen accepts only zero-valued surface flags. It can exclude dense vegetation in crop areas. Excluded pixels are unassessed—not evidence of dry soil or healthy crops. A 20% coverage floor marks a study inconclusive when target or change coverage falls below it.</p>
+          </div>
+          <div className="agri-reading">
+            <span className="agri-eyebrow">WHAT VALIDATION WOULD NEED</span>
+            <strong>Independent field or matched crop/soil observations</strong>
+            <p>A stronger agricultural interpretation requires time-matched field soil-moisture readings or a suitable independent reference with known dates, spatial support, quality screening and labelled comparison samples. Without that, precision, recall and F1 must remain unavailable.</p>
+          </div>
+          <p className="agri-small-note">Do not interpret SME2 PROVISIONAL values as crop-stress alerts, drought classifications, yield forecasts, or operational irrigation advice.</p>
         </div>
       ),
     },
@@ -362,6 +418,14 @@ export default function AgricultureWorkbench() {
       subtitle="Explore dated NISAR SME2 PROVISIONAL estimates, quality flags and uncertainty without inferring crop health."
       questContent={<span className={"agri-status-pill " + (loadState === "ready" ? "is-ready" : loadState === "error" ? "is-error" : "")}><i aria-hidden="true" />{statusText}</span>}
       rail={<div className="agri-rail">
+        <HazardWalkthrough
+          guideTitle="AGRICULTURE CASE GUIDE"
+          steps={[
+            { title: "Inspect the SME2 measurements", target: "agri-explore-intro", explanation: "Select a dated observation, compare the soil-moisture layer with the latest-minus-baseline difference, and read its valid-pixel coverage." },
+            { title: "Check evidence and provenance", target: "agri-check-intro", explanation: "Follow the product metadata, quality-screen rules, uncertainty, independent-reference status and what remains unassessed." },
+            { title: "Understand the interpretation limits", target: "agri-learn-intro", explanation: "SME2 measures soil moisture. It is not a crop-health classifier; independent field observations are needed for stronger agricultural validation." },
+          ]}
+        />
         <span className="agri-eyebrow">MEASUREMENT WORKSPACE</span>
         <strong>{study ? study.study_id : "No study published"}</strong>
         <p>{study ? study.observations.length + " dated observations · " + study.release : "Configure an area and run the local SME2 workflow to publish a real result."}</p>
@@ -378,7 +442,7 @@ export default function AgricultureWorkbench() {
       </div>}
       drawerTabs={drawerTabs}
       drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" />{loadState === "error" ? loadError : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</div>}
-      drawer={<div className="agri-drawer-panel"><p>Choose Explore, Operator or Evidence.</p></div>}
+      drawer={<div className="agri-drawer-panel"><p>Choose Explore, Operator, Evidence, Check it or Learn.</p></div>}
       footer={<div className="agri-footer">
         <div className="agri-footer-head">
           <span className="agri-eyebrow">OBSERVATION TIMELINE</span>
