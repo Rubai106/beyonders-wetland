@@ -196,6 +196,8 @@
 .g3-phen-features { display: grid; gap: 12px; list-style: none; margin: 10px 0 24px; padding: 0; }
 .g3-phen-features li { position: relative; padding-left: 17px; color: var(--dim); font-size: 13px; line-height: 1.55; }
 .g3-phen-features li::before { content: ""; position: absolute; left: 0; top: .52em; width: 7px; height: 7px; border: 1px solid var(--cyan); border-radius: 50%; box-shadow: 0 0 8px rgba(91,217,220,.42); }
+.g3-phen-evidence { position: relative; margin: 0 0 18px; padding: 12px 13px; border: 1px solid rgba(255,255,255,.08); border-left: 2px solid rgba(125,211,252,.65); border-radius: 9px; color: var(--dim); font-size: 12px; line-height: 1.55; }
+.g3-phen-evidence strong { display: block; margin-bottom: 6px; color: var(--cyan); font: 9px var(--mono); letter-spacing: .13em; text-transform: uppercase; }
 .g3-phen-actions { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: auto; }
 .g3-phen-card a.g3-btn { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 10px 13px; color: #160c02; font-size: 11px; line-height: 1.35; text-align: center; }
 .g3-phen-card a.g3-btn:hover { color: #160c02; text-decoration: none; }
