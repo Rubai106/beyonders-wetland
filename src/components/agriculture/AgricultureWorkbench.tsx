@@ -227,13 +227,13 @@ export default function AgricultureWorkbench() {
             <div className="agri-stat-grid">
               <div><span>{layer === "change" ? "Median moisture difference" : "Median soil moisture"}</span><strong>{layer === "change" ? formatDifference(study.change_summary.median) : formatMoisture(selectedObservation?.median ?? 0)}</strong><small>{layer === "change" ? "Latest minus baseline median" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small></div>
               <div><span>Valid coverage</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "change" ? "Change-layer coverage" : "Selected-date coverage"}</small></div>
-              <div><span>Median uncertainty</span><strong>{(displayedSummary?.uncertainty_median ?? 0).toFixed(3)}</strong><small>Product-reported</small></div>
+              <div><span>{layer === "change" ? "Target-date uncertainty" : "Median uncertainty"}</span><strong>{(displayedSummary?.uncertainty_median ?? 0).toFixed(3)}</strong><small>{layer === "change" ? "Not propagated into change" : "Product-reported"}</small></div>
             </div>
             <div className="agri-reading">
               <span className="agri-eyebrow">CURRENT LAYER</span>
               <strong>{layer === "change" ? "Latest − baseline median" : "Soil moisture · selected date"}</strong>
               <p>{layer === "change"
-                ? "Difference between " + study.target_date + " and the pixel-wise median of " + study.baseline_count + " baseline dates. Positive and negative values are changes in the measured soil-moisture variable, not crop-health classifications."
+                ? "Difference between " + study.target_date + " and the pixel-wise median of " + study.baseline_count + " baseline dates. Positive and negative values are changes in the measured soil-moisture variable, not crop-health classifications. The displayed uncertainty remains the target-date product uncertainty; it is not propagated into this difference."
                 : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its valid-pixel coverage and uncertainty."}</p>
             </div>
             {previewError && <p className="agri-alert" role="alert">{previewError}</p>}
