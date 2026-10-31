@@ -18,7 +18,9 @@ function isGlobeHazard(id: (typeof PHENOMENA)[number]["id"]): id is GlobeHazard 
 }
 
 // Agriculture has its own SME2 workspace, but no globe case-marker layer.
-const GLOBE_PHENOMENA = PHENOMENA.filter((phenomenon) => isGlobeHazard(phenomenon.id));
+const GLOBE_PHENOMENA = PHENOMENA.filter(
+  (phenomenon): phenomenon is (typeof PHENOMENA)[number] & { id: GlobeHazard } => isGlobeHazard(phenomenon.id),
+);
 
 const Globe3D = dynamic(() => import("@/components/landing/Globe3D"), {
   ssr: false,
