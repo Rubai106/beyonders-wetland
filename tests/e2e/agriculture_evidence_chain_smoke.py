@@ -22,13 +22,13 @@ def require(condition: bool, message: str) -> None:
 
 
 def active_tab(page) -> str:
-    return page.locator(".wx-tabs [role='tab'][aria-selected='true']").inner_text().strip()
+    return page.locator(".wx-tabs [role='tab'][aria-selected='true'] span:last-child").inner_text().strip()
 
 
 def select_tab(page, label: str, accessible_name: str) -> None:
     page.get_by_role("tab", name=accessible_name).click()
     page.wait_for_function(
-        """expected => document.querySelector(".wx-tabs [role=tab][aria-selected=true]")?.textContent?.trim() === expected""",
+        """expected => document.querySelector(".wx-tabs [role=tab][aria-selected=true] span:last-child")?.textContent?.trim() === expected""",
         arg=label,
         timeout=10_000,
     )
@@ -101,14 +101,14 @@ def main() -> int:
         require(True, "the guided Agriculture walkthrough opens")
         page.get_by_role("button", name="Next section").click()
         page.wait_for_function(
-            "() => document.querySelector('.wx-tabs [role=tab][aria-selected=true]')?.textContent?.trim() === 'Check it'",
+            "() => document.querySelector('.wx-tabs [role=tab][aria-selected=true] span:last-child')?.textContent?.trim() === 'Check it'",
             timeout=10_000,
         )
         page.get_by_role("heading", name="Check evidence and provenance").wait_for()
         require(True, "the walkthrough navigates to the Check it evidence tab")
         page.get_by_role("button", name="Next section").click()
         page.wait_for_function(
-            "() => document.querySelector('.wx-tabs [role=tab][aria-selected=true]')?.textContent?.trim() === 'Learn'",
+            "() => document.querySelector('.wx-tabs [role=tab][aria-selected=true] span:last-child')?.textContent?.trim() === 'Learn'",
             timeout=10_000,
         )
         page.get_by_role("heading", name="Understand the interpretation limits").wait_for()
