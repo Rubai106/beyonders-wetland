@@ -35,6 +35,7 @@ PUBLIC_ROOT = ROOT / "public" / "agriculture"
 COLLECTION = "NISAR_L3_SME2_PROVISIONAL_V1"
 PRODUCT = "NISAR_L3_SME2_PROVISIONAL_V1"
 MIN_RELEASE = 5023
+CMR_PAGE_SIZE = 2000
 COVERAGE_FLOOR = 0.20
 MOISTURE_MIN = 0.02
 MOISTURE_MAX = 0.60
@@ -200,17 +201,32 @@ def _cmr_search(aoi: dict[str, float], start: str, end: str) -> list[dict[str, A
         "short_name": COLLECTION,
         "temporal": temporal,
         "bounding_box": ",".join(str(aoi[key]) for key in ("west", "south", "east", "north")),
-        "page_size": "2000",
+        "page_size": str(CMR_PAGE_SIZE),
         "sort_key": "-start_date",
     })
     url = "https://cmr.earthdata.nasa.gov/search/granules.json?" + params
     request = urllib.request.Request(url, headers={"User-Agent": "Beyonders-Agriculture/1.0"})
     try:
         with urllib.request.urlopen(request, timeout=45) as response:
+            hit_header = getattr(response, "headers", {}).get("CMR-Hits")
             payload = json.load(response)
     except Exception as exc:
         raise AgricultureError(f"NASA CMR search failed: {exc}") from exc
     entries = payload.get("feed", {}).get("entry", [])
+    try:
+        catalog_hits = int(hit_header) if hit_header is not None else None
+    except (TypeError, ValueError):
+        catalog_hits = None
+    if catalog_hits is not None and catalog_hits > len(entries):
+        raise AgricultureError(
+            f"NASA CMR matched {catalog_hits} granules but only {len(entries)} were retrieved "
+            f"(single-page limit {CMR_PAGE_SIZE}). Narrow the AOI or date range; no truncated series will be analyzed."
+        )
+    if catalog_hits is None and len(entries) >= CMR_PAGE_SIZE:
+        raise AgricultureError(
+            f"NASA CMR returned a full {CMR_PAGE_SIZE}-granule page without a usable hit count. "
+            "Narrow the AOI or date range so the result cannot be silently truncated."
+        )
     result: list[dict[str, Any]] = []
     for entry in entries:
         title = str(entry.get("title") or "")
@@ -246,7 +262,13 @@ def search(run_id: str, aoi: dict[str, float], start: str, end: str) -> dict[str
         items.sort(key=lambda item: item["date"])
         unique: dict[str, dict[str, Any]] = {}
         for item in items:
-            unique[item["date"]] = item
+            previous = unique.get(item["date"])
+            # Duplicate same-day versions can appear in CMR. Keep the most
+            # recently updated record; break ties deterministically by concept ID.
+            rank = (str(item.get("updated") or ""), str(item.get("concept_id") or ""))
+            previous_rank = (str(previous.get("updated") or ""), str(previous.get("concept_id") or "")) if previous else None
+            if previous is None or rank > previous_rank:
+                unique[item["date"]] = item
         if len(unique) < 4:
             continue
         signature = json.loads(key)
