@@ -65,6 +65,8 @@ test("Agriculture chain preserves SME2 units and does not invent independent val
   assert.equal(chain.modality, "SME2_SOIL_MOISTURE");
   assert.equal(chain.product_maturity, "PROVISIONAL");
   assert.equal(chain.state, "EXPLORATORY");
+  assert.equal(chain.site_name, "Analyst-defined WGS84 AOI");
+  assert.match(chain.provenance.boundary_source ?? "", /90, 24, 91, 25/);
   assert.equal(chain.measurements.find((item) => item.id === "change-soil-moisture-median")?.unit, "m³/m³");
   assert.equal(chain.references[0].status, "NOT_RECORDED");
   assert.equal(chain.references[0].f1, null);
