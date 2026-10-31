@@ -127,9 +127,9 @@ def _direction(value: str | None, title: str) -> str:
     if candidate in {"d", "desc", "descending", "descending pass"} or "descend" in candidate:
         return "D"
     upper = title.upper()
-    if "ASCENDING" in upper or re.search(r"(?:^|_)A(?:_|$)", upper):
+    if "ASCENDING" in upper or re.search(r"(?:^|_)(?:ASC|A)(?:_|$)", upper):
         return "A"
-    if "DESCENDING" in upper or re.search(r"(?:^|_)D(?:_|$)", upper):
+    if "DESCENDING" in upper or re.search(r"(?:^|_)(?:DESC|D)(?:_|$)", upper):
         return "D"
     raise AgricultureError(f"Could not establish orbit direction from CMR metadata/name: {title}")
 
@@ -474,7 +474,7 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
         # x/y arrays are normalized north-up for the affine transform and raster values.
         pass
     transform = from_origin(float(x.min() - dx / 2), float(y.max() + dy / 2), dx, dy)
-    signature = granule_signature(path.name, {})
+    signature = granule_signature(path.name, {"OrbitDirection": metadata["direction"], "TrackNumber": metadata["track"], "FrameNumber": metadata["frame"], "Bandwidth": metadata["bandwidth"], "Polarization": metadata["polarization"], "Frequency": metadata["frequency"]})
     for key in ("track", "frame", "bandwidth", "polarization", "frequency"):
         if signature[key] != "UNSPECIFIED" and metadata[key] != "UNSPECIFIED" and signature[key] != metadata[key]:
             raise AgricultureError(f"Granule filename/HDF5 {key} metadata disagree in {path.name}.")
@@ -604,6 +604,9 @@ def analyze(run_id: str) -> dict[str, Any]:
         scene["date"]
     baseline = scenes[:3]
     target = scenes[-1]
+    selected_series = next((item for item in search_manifest["compatible_series"] if item.get("series_id") == receipt.get("series_id")), None)
+    if selected_series is None:
+        raise AgricultureError("Download receipt series does not match the saved search manifest.")
     base_stack = np.stack([np.where(scene["valid"], scene["moisture"], np.nan) for scene in baseline])
     with np.errstate(all="ignore"):
         baseline_median = np.nanmedian(base_stack, axis=0)
@@ -648,7 +651,7 @@ def analyze(run_id: str) -> dict[str, Any]:
         "change_summary": change_summary, "target_summary": target_summary,
         "evidence_status": evidence_status, "sources": SOURCE_LIST,
         "provenance": {
-            "collection": COLLECTION, "cmr_concept_ids": [item["concept_id"] for item in search_manifest["compatible_series"][0]["granules"]],
+            "collection": COLLECTION, "cmr_concept_ids": [item["concept_id"] for item in selected_series["granules"]],
             "source_files": [{"name": path.name, "bytes": path.stat().st_size, "sha256": sha256_file(path)} for path in files],
             "crs": f"EPSG:{target['epsg']}", "native_grid_shape": list(target["moisture"].shape),
             "pixel_spacing": [abs(float(target["transform"].a)), abs(float(target["transform"].e))],
