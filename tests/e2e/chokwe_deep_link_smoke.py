@@ -94,6 +94,7 @@ def main() -> int:
         direct.add_init_script(
             "localStorage.setItem('geonexsar_tour_v1', '1')"
         )
+        direct.on("pageerror", lambda error: browser_errors.append(str(error)))
         direct.goto(BASE + EXPECTED_PATH + "?" + EXPECTED_QUERY,
                     wait_until="domcontentloaded", timeout=30_000)
         verify_case(direct)
