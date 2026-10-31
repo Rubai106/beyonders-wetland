@@ -10,6 +10,17 @@
 - Browser publication loading is fail-closed: missing index gives an honest empty state; malformed schema, missing checksum entries, byte mismatch or SHA-256 mismatch withholds the study or image.
 - Agriculture processing is isolated in pipeline/agriculture_sme2.py; it does not modify the Wetland, Forest or Volcano processing paths.
 
+## Review work completed on Rubai-dev
+
+The latest review tightened private-output handling and the first SME2 ingestion gates:
+
+- `pipeline/output/agriculture/` is now ignored by Git so downloaded granules, receipts, native rasters and local processing outputs remain operator-only.
+- The HDF5 reader resolves the primary baseline moisture layers from the root SME2 grid group. It rejects a candidate-only hierarchy instead of mistaking an algorithm-candidate layer for the baseline.
+- The reader supports the documented root/ancillary location variation for `surfaceQualityFlag`, requires the root projection to resolve to EPSG:6933, checks volumetric moisture units, and parses standardized granule identity fields before grouping acquisitions.
+- Regression fixtures cover duplicate candidate dataset names, both surface-flag locations, EPSG:6933, old releases, metadata conflicts, and units.
+
+These are source/test changes only. They have **not been executed in this connected session**; no real SME2 file was downloaded or examined. The exact layout, metadata attributes, fill values and flag encodings must still be confirmed on a real PROVISIONAL granule before this pipeline is considered pilot-ready.
+
 ## Scientific boundaries
 
 - Product: NISAR_L3_SME2_PROVISIONAL_V1, PROVISIONAL maturity.
