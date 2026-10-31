@@ -48,7 +48,7 @@ SOURCE_LIST = [
     {"title": "NISAR PROVISIONAL product known issues", "url": "https://nisar-docs.asf.alaska.edu/provisional-known-issues/"},
     {"title": "NISAR SME2 product specification", "url": "https://nisar.asf.earthdatacloud.nasa.gov/NISAR-SAMPLE-DATA/DOCS/NISAR_D-107677_RevC_NASA_SDS_Product_Specification_L3_SME2_Nov8_2024_w-sigs.pdf"},
     {"title": "earthaccess API documentation", "url": "https://earthaccess.readthedocs.io/en/latest/api/"},
-}
+]
 
 
 class AgricultureError(RuntimeError):
