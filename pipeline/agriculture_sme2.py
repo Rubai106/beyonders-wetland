@@ -407,7 +407,7 @@ def _epsg_from_handle(handle: h5py.File, x: np.ndarray, y: np.ndarray) -> int:
     raise AgricultureError("Could not establish the SME2 grid CRS from HDF5 projection metadata; refusing to guess.")
 
 
-def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
+def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str, str]) -> dict[str, Any]:
     if not _looks_like_sme2_hdf5(path):
         raise AgricultureError(f"Not a compatible SME2 HDF5 file: {path.name}")
     with h5py.File(path, "r") as handle:
@@ -433,6 +433,16 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
         for obj in (handle, grids, moisture_ds.parent):
             for key, value in obj.attrs.items():
                 attrs[str(key)] = _text_value(value)
+        metadata_dataset_names = {
+            "track", "tracknumber", "pathnumber", "frame", "framenumber",
+            "bandwidth", "rangebandwidth", "polarization", "polarisation",
+            "orbitdirection", "passdirection", "frequency",
+        }
+        def collect_scalar_metadata(name: str, obj: Any) -> None:
+            key = Path(name).name.lower().replace("_", "")
+            if isinstance(obj, h5py.Dataset) and key in metadata_dataset_names and obj.size <= 8:
+                attrs[Path(name).name] = _text_value(obj[()])
+        handle.visititems(collect_scalar_metadata)
         fill_values = []
         uncertainty_fill_values = []
         for key in ("_FillValue", "missing_value", "fillValue"):
@@ -445,7 +455,7 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
             "direction": _direction(_find_metadata_value(attrs, ("orbitdirection", "passdirection")), path.name),
             "frame": _find_metadata_value(attrs, ("frame", "framenumber")) or "UNSPECIFIED",
             "bandwidth": _find_metadata_value(attrs, ("bandwidth", "rangebandwidth")) or "UNSPECIFIED",
-            "polarization": _find_metadata_value(attrs, ("polarization", "polarisation")) or "HH+HV",
+            "polarization": _find_metadata_value(attrs, ("polarization", "polarisation")) or "UNSPECIFIED",
             "frequency": "A" if "frequencyA" in moisture_ds.name else "B" if "frequencyB" in moisture_ds.name else "UNSPECIFIED",
         }
 
@@ -470,7 +480,9 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
     min_x = min(value[0] for value in corners); max_x = max(value[0] for value in corners)
     min_y = min(value[1] for value in corners); max_y = max(value[1] for value in corners)
     xx, yy = np.meshgrid(x, y)
-    in_aoi = (xx >= min_x) & (xx <= max_x) & (yy >= min_y) & (yy <= max_y)
+    inverse = Transformer.from_crs(epsg, 4326, always_xy=True)
+    longitude, latitude = inverse.transform(xx, yy)
+    in_aoi = (longitude >= aoi["west"]) & (longitude <= aoi["east"]) & (latitude >= aoi["south"]) & (latitude <= aoi["north"])
     fill_ok = np.ones(moisture.shape, dtype=bool)
     for fill in fill_values:
         fill_ok &= moisture != fill
@@ -511,6 +523,12 @@ def _read_scene(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
         if signature[key] == "UNSPECIFIED":
             signature[key] = metadata[key]
     signature["direction"] = metadata["direction"]
+    for key, expected in expected_signature.items():
+        actual = signature.get(key, "UNSPECIFIED")
+        if actual not in {"UNSPECIFIED", ""} and expected not in {"UNSPECIFIED", ""} and actual != expected:
+            raise AgricultureError(f"CMR and local SME2 {key} metadata disagree in {path.name}.")
+        if actual in {"UNSPECIFIED", ""}:
+            signature[key] = expected
     return {
         "date": parse_granule_date(path.name, {}),
         "moisture": moisture, "uncertainty": uncertainty, "valid": valid,
@@ -623,20 +641,19 @@ def analyze(run_id: str) -> dict[str, Any]:
         files.append(path)
     if len(files) < 4:
         raise AgricultureError("At least four real SME2 granules are required (three baseline dates plus one target).")
-    scenes = [_read_scene(path, search_manifest["aoi"]) for path in files]
+    selected_series = next((item for item in search_manifest["compatible_series"] if item.get("series_id") == receipt.get("series_id")), None)
+    if selected_series is None:
+        raise AgricultureError("Download receipt series does not match the saved search manifest.")
+    expected_signature = selected_series["signature"]
+    scenes = [_read_scene(path, search_manifest["aoi"], expected_signature) for path in files]
     scenes.sort(key=lambda item: item["date"])
     if len({scene["date"] for scene in scenes}) != len(scenes):
         raise AgricultureError("Multiple selected granules resolve to the same acquisition date.")
     for scene in scenes[1:]:
         _validate_grid(scenes[0], scene)
     first = scenes[0]
-    for scene in scenes:
-        scene["date"]
     baseline = scenes[:3]
     target = scenes[-1]
-    selected_series = next((item for item in search_manifest["compatible_series"] if item.get("series_id") == receipt.get("series_id")), None)
-    if selected_series is None:
-        raise AgricultureError("Download receipt series does not match the saved search manifest.")
     base_stack = np.stack([np.where(scene["valid"], scene["moisture"], np.nan) for scene in baseline])
     with np.errstate(all="ignore"):
         baseline_median = np.nanmedian(base_stack, axis=0)
