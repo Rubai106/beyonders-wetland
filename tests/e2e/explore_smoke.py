@@ -27,8 +27,15 @@ with sync_playwright() as p:
     check("landing: forest/volcano cards link to briefings", pg.locator(".g3-phen-card a[href='/forest']").count() == 1 and pg.locator(".g3-phen-card a[href='/volcano']").count() == 1)
     check("landing: brand is GeoNexSAR", "geonexsar" in pg.inner_text(".g3-top").lower())
     check("landing: telemetry ticker shows real stats", "radar observations" in pg.inner_text(".g3-ticker").lower())
+    chokwe_link = pg.get_by_role("link", name="Inspect the Chókwè event case")
+    check("landing: featured Chókwè shortcut", chokwe_link.count() == 1 and chokwe_link.get_attribute("href") == "/wetland/global?story=chokwe")
+    chokwe_link.click(); pg.wait_for_url("**/wetland/global?story=chokwe", timeout=20000)
+    pg.wait_for_selector("#mozambique-case-title", timeout=20000)
+    check("featured deep link opens the Learn tab", pg.locator(".wx-tab[aria-selected=true]").inner_text() == "Learn")
+    chokwe_text = pg.inner_text(".mozambique-case")
+    check("Chókwè event evidence remains qualified", "accuracy unverified" in chokwe_text.lower() and "candidates, not a flood map" in chokwe_text.lower() and "1.26%" in chokwe_text and "88.2%" in chokwe_text)
     pg.get_by_role("link", name="Open the Tanguar Haor case").click(); pg.wait_for_url("**/wetland", timeout=20000)
-    check("landing -> case navigation", pg.url.rstrip("/").endswith("/wetland"))
+    check("landing -> Tanguar case navigation is preserved", pg.url.rstrip("/").endswith("/wetland"))
 
     # ── global mission control ──
     pg.goto(BASE + "/wetland/global"); pg.wait_for_selector(".atlas-featured", timeout=20000); pg.wait_for_timeout(2500); t = pg.inner_text("body")
