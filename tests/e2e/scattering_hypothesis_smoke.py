@@ -70,7 +70,19 @@ def main() -> int:
             ".wx-scattering__choice", has_text="Vegetation, roughness or intercepted water"
         )
         vegetation.click()
-        vegetation_detail = panel.locator(".wx-scattering__detail").inner_text()
+        page.wait_for_timeout(250)
+        detail_locator = panel.locator(".wx-scattering__detail")
+        print(
+            "DEBUG after vegetation selection:",
+            {
+                "panel_count": panel.count(),
+                "detail_count": detail_locator.count(),
+                "pressed_choices": panel.locator(".wx-scattering__choice[aria-pressed='true']").all_text_contents(),
+                "page_errors": browser_errors,
+            },
+            flush=True,
+        )
+        vegetation_detail = detail_locator.inner_text(timeout=5_000)
         require(
             "Cannot distinguish with this pair" in vegetation_detail
             and "do not separate these effects" in vegetation_detail,
