@@ -22,6 +22,14 @@ The following implementation and safety changes are committed on the development
 
 The NASA/JPL specification lists the root SME2 moisture/uncertainty layers separately from algorithm-candidate datasets and defines the retrieval and surface quality flags. The current `surfaceQualityFlag == 0` rule is intentionally conservative: it excludes static water, urban, precipitation, snow/ice, frozen ground, terrain and dense-vegetation flags. This can reduce valid coverage in vegetated crop areas; it must not be interpreted as evidence of no soil moisture.
 
+## Surface-flag observability audit
+
+New Agriculture study observations now carry a decoded per-date NISAR SME2 surfaceQualityFlag audit. It reports the eight documented surface-flag reasons, zero-valued surface flags, fill/invalid values and unsupported encodings over the AOI. Per-bit reason counts can overlap by design.
+
+The screen remains strict and unchanged: the published moisture-valid mask still requires surfaceQualityFlag == 0 along with all existing retrieval, moisture, uncertainty, fill and AOI checks. A clear surface flag alone is not a valid retrieval.
+
+This is an AOI-level observability diagnostic, not yet a crop-mask intersection. It must not be described as crop-area coverage until an independent crop mask is provided, versioned and aligned to the SME2 native grid.
+
 ## Spatial-support sensitivity audit
 
 The Explore panel now plots the per-date median from each date's valid footprint beside the median from the fixed all-date pixel cohort. Vertical connectors show the gap between those spatial samples at each acquisition. The summary reports the median absolute gap, first-to-last gap shift and largest absolute gap. These values are a descriptive diagnostic for spatial-support sensitivity, not a correction or physical change estimate. The fixed-cohort coverage status remains visible; below 20% is inconclusive and zero common pixels stays unavailable.
