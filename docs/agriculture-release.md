@@ -30,6 +30,14 @@ The screen remains strict and unchanged: the published moisture-valid mask still
 
 This is an AOI-level observability diagnostic, not yet a crop-mask intersection. It must not be described as crop-area coverage until an independent crop mask is provided, versioned and aligned to the SME2 native grid.
 
+## Exact flag-overlap atlas (Step 1C)
+
+New analyses now preserve each distinct non-zero eight-bit surfaceQualityFlag pattern and its pixel count. These exact pattern rows are mutually exclusive and must sum to the observation's flagged-pixel total. The publication validator also reconstructs every marginal per-bit count from the pattern masks, so mismatched summary and signature counts are rejected.
+
+The Agriculture Explore panel presents the most frequent signatures in a clickable eight-bit matrix, with a detail view for the selected combination and an option to display all combinations. The CSV export retains the marginal counts and exact signatures separately. Older schema-v2 packages without the optional signature array remain readable and show the audit as not recorded.
+
+This adds a joint-pattern view to the existing overlapping reason counts; it does not infer a physical cause or crop identity. The strict surfaceQualityFlag == 0 rule and all other SME2 quality checks remain unchanged. It is a bitfield diagnostic, not a quality correction or field validation result.
+
 ## Spatial-support sensitivity audit
 
 The Explore panel now plots the per-date median from each date's valid footprint beside the median from the fixed all-date pixel cohort. Vertical connectors show the gap between those spatial samples at each acquisition. The summary reports the median absolute gap, first-to-last gap shift and largest absolute gap. These values are a descriptive diagnostic for spatial-support sensitivity, not a correction or physical change estimate. The fixed-cohort coverage status remains visible; below 20% is inconclusive and zero common pixels stays unavailable.
