@@ -29,8 +29,22 @@ export interface AgricultureObservation extends AgricultureSummary {
   granule_name?: string;
 }
 
+export interface AgricultureMatchedObservation extends AgricultureSummary {
+  date: string;
+  preview: string;
+}
+
+export interface AgricultureMatchedSupport {
+  method: "ALL_DATE_VALID_PIXEL_INTERSECTION";
+  status: "COMPARABLE" | "INCONCLUSIVE_COVERAGE" | "NO_COMMON_PIXELS";
+  valid_fraction: number;
+  valid_pixels: number;
+  total_pixels: number;
+  observations: AgricultureMatchedObservation[];
+}
+
 export interface AgricultureStudy {
-  schema_version: 1;
+  schema_version: 2;
   study_id: string;
   run_id: string;
   product: "NISAR_L3_SME2_PROVISIONAL_V1";
@@ -52,6 +66,7 @@ export interface AgricultureStudy {
   observations: AgricultureObservation[];
   change_preview: string;
   change_summary: AgricultureSummary;
+  matched_support: AgricultureMatchedSupport;
   evidence_status: AgricultureStatus;
   sources: { title: string; url: string }[];
 }
@@ -137,11 +152,19 @@ function validObservation(value: unknown): value is AgricultureObservation {
     validSummary(value);
 }
 
+function validMatchedObservation(value: unknown): value is AgricultureMatchedObservation {
+  if (!isRecord(value)) return false;
+  return isoDay(value.date) && safeRelativeAssetPath(value.preview, "previews/") && validSummary(value);
+}
+
 export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
   if (!isRecord(value)) return false;
   const observations = Array.isArray(value.observations) ? value.observations : null;
   const lastObservation = observations?.[observations.length - 1];
-  if (value.schema_version !== 1 ||
+  const matchedSupport = isRecord(value.matched_support) ? value.matched_support : null;
+  const matchedObservations = matchedSupport && Array.isArray(matchedSupport.observations)
+    ? matchedSupport.observations : null;
+  if (value.schema_version !== 2 ||
       typeof value.study_id !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(value.study_id) ||
       typeof value.run_id !== "string" || !/^[a-z0-9][a-z0-9-]{0,39}$/.test(value.run_id) ||
       value.product !== "NISAR_L3_SME2_PROVISIONAL_V1" || value.product_maturity !== "PROVISIONAL" ||
@@ -162,11 +185,35 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
       Number(value.baseline_count) !== value.baseline_dates.length ||
       !validSummary(value.change_summary, false) ||
       !safeRelativeAssetPath(value.change_preview, "previews/") ||
+      !matchedSupport ||
+      matchedSupport.method !== "ALL_DATE_VALID_PIXEL_INTERSECTION" ||
+      !["COMPARABLE", "INCONCLUSIVE_COVERAGE", "NO_COMMON_PIXELS"].includes(String(matchedSupport.status)) ||
+      !finiteRange(matchedSupport.valid_fraction, 0, 1) ||
+      !Number.isInteger(matchedSupport.valid_pixels) || Number(matchedSupport.valid_pixels) < 0 ||
+      !Number.isInteger(matchedSupport.total_pixels) || Number(matchedSupport.total_pixels) <= 0 ||
+      Number(matchedSupport.valid_pixels) > Number(matchedSupport.total_pixels) ||
+      Math.abs(Number(matchedSupport.valid_fraction) - Number(matchedSupport.valid_pixels) / Number(matchedSupport.total_pixels)) >= 0.000001 ||
+      !matchedObservations ||
       !Array.isArray(value.sources) || !value.sources.every((item) => isRecord(item) &&
         typeof item.title === "string" && typeof item.url === "string" && item.url.startsWith("https://"))) return false;
 
   const study = value as unknown as AgricultureStudy;
   const dates = study.observations.map((item) => item.date);
+  const matched = study.matched_support;
+  const matchedStatus = matched.valid_pixels === 0 ? "NO_COMMON_PIXELS" :
+    matched.valid_fraction < study.coverage_floor ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
+  if (matched.status !== matchedStatus) return false;
+  if (matched.valid_pixels === 0) {
+    if (matched.observations.length !== 0) return false;
+  } else {
+    if (matched.observations.length !== study.observations.length) return false;
+    if (!matched.observations.every((item, index) =>
+      item.date === study.observations[index].date &&
+      item.valid_pixels === matched.valid_pixels &&
+      item.total_pixels === matched.total_pixels &&
+      Math.abs(item.valid_fraction - matched.valid_fraction) < 0.000001
+    )) return false;
+  }
   if (new Set(dates).size !== dates.length || dates.some((date, index) => index > 0 && dates[index - 1] >= date)) return false;
   if (JSON.stringify(dates.slice(0, study.baseline_count)) !== JSON.stringify(study.baseline_dates)) return false;
   if (study.observations.some((item) => item.release !== study.release ||
