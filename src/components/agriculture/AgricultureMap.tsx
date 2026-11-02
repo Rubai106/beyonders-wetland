@@ -32,7 +32,7 @@ export default function AgricultureMap({
   previewUrl: string | null;
   satelliteBasemap: boolean;
   noStudy: boolean;
-  layer: "moisture" | "change" | "matched";
+  layer: "moisture" | "change" | "matched" | "crop" | "crop-common";
 }) {
   const extent = displayBounds ?? aoi;
   const bounds: LatLngBoundsExpression | undefined = extent
@@ -86,6 +86,12 @@ export default function AgricultureMap({
         </> : layer === "matched" ? <>
           <span><i className="agri-map-legend__matched" />Same pixels · all dates</span>
           <span><i className="agri-map-legend__transparent" />Outside cohort</span>
+        </> : layer === "crop" ? <>
+          <span><i className="agri-map-legend__crop" />Mapped crop fraction · native SME2 cell</span>
+          <span><i className="agri-map-legend__transparent" />Outside mask / insufficient source coverage</span>
+        </> : layer === "crop-common" ? <>
+          <span><i className="agri-map-legend__crop-common" />Crop area valid on every date</span>
+          <span><i className="agri-map-legend__transparent" />Not in common crop cohort</span>
         </> : <>
           <span><i className="agri-map-legend__low" />Lower moisture</span>
           <span><i className="agri-map-legend__high" />Higher moisture</span>
