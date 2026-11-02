@@ -74,6 +74,76 @@ test("validates the per-date SME2 surface-flag observability audit", () => {
   assert.equal(isAgricultureStudy(inconsistent), false);
 });
 
+test("validates an independently sourced, area-weighted crop-support audit", () => {
+  const changed = structuredClone(study);
+  const dates = changed.observations.map((item) => item.date);
+  const totalCropArea = 45;
+  const commonArea = 30;
+  const cropSummary = (date: string, validArea: number, validCells: number) => ({
+    date,
+    valid_crop_area_equivalent_pixels: validArea,
+    total_crop_area_equivalent_pixels: totalCropArea,
+    valid_crop_area_fraction: validArea / totalCropArea,
+    valid_native_cells: validCells,
+    weighted_soil_moisture: {
+      median: 0.24, p05: 0.18, p95: 0.31, uncertainty_median: 0.03,
+    },
+  });
+  changed.crop_observability = {
+    method: "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1",
+    source: "Dynamic World V1 · crops probability",
+    source_date: "2026-06-19",
+    source_filename: "crop-probability.tif",
+    source_sha256: "b".repeat(64),
+    source_bytes: 4096,
+    source_crs: "EPSG:4326",
+    source_cell_area_m2: 100,
+    target_cell_area_m2: 40000,
+    probability_threshold: 0.5,
+    minimum_cell_coverage: 0.8,
+    aoi_native_cells: 100,
+    mask_covered_cells: 90,
+    mask_coverage_fraction: 0.9,
+    mean_source_data_coverage_fraction: 0.95,
+    crop_supported_cells: 60,
+    crop_area_equivalent_pixels: totalCropArea,
+    weighted_statistic: "AREA_WEIGHTED_EMPIRICAL_CDF_LEFT_CONTINUOUS_V1",
+    observations: dates.map((date) => ({
+      ...cropSummary(date, 40, 55), status: "COMPARABLE" as const,
+    })),
+    common_support: {
+      method: "ALL_DATE_VALID_CROP_AREA_INTERSECTION",
+      status: "COMPARABLE",
+      valid_crop_area_equivalent_pixels: commonArea,
+      total_crop_area_equivalent_pixels: totalCropArea,
+      valid_crop_area_fraction: commonArea / totalCropArea,
+      valid_native_cells: 42,
+      observations: dates.map((date) => cropSummary(date, commonArea, 42)),
+      preview: "previews/crop-common-support.png",
+    },
+    preview: "previews/crop-support.png",
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+
+  const wrongArea = structuredClone(changed);
+  wrongArea.crop_observability.observations[0].valid_crop_area_fraction = 0.99;
+  assert.equal(isAgricultureStudy(wrongArea), false);
+
+  const falseStatus = structuredClone(changed);
+  falseStatus.crop_observability.common_support.status = "COMPARABLE";
+  falseStatus.crop_observability.common_support.valid_crop_area_fraction = 0.1;
+  falseStatus.crop_observability.common_support.valid_crop_area_equivalent_pixels = 4.5;
+  falseStatus.crop_observability.common_support.observations.forEach((item) => {
+    item.valid_crop_area_equivalent_pixels = 4.5;
+    item.valid_crop_area_fraction = 0.1;
+  });
+  assert.equal(isAgricultureStudy(falseStatus), false);
+});
+
+test("keeps historical Agriculture studies valid when crop observability is absent", () => {
+  assert.equal(isAgricultureStudy(study), true);
+});
+
 test("builds a date-by-date support-composition gap over a fixed pixel cohort", () => {
   const changed = structuredClone(study);
   changed.observations.forEach((item, index) => {
