@@ -36,3 +36,11 @@
 - Added study schema and checksum validators with TypeScript tests.
 - Added a date-by-date spatial-support drift profile that compares each acquisition's own valid-footprint median with the fixed all-date cohort median. The visual gap and first-to-last gap shift expose when changing valid-pixel composition could alter the apparent time series; low coverage remains inconclusive and no pixels are filled.
 - No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and local Earthdata processing remain not run in this connected session.
+
+
+## Agriculture observability gate — first slice
+
+- Added a per-date decoded SME2 surface-quality flag audit for the eight documented surfaceQualityFlag bits.
+- Counts are AOI-bounded and explicitly non-exclusive; fill, invalid and unsupported encodings remain separate.
+- The strict surfaceQualityFlag == 0 screen is unchanged. This is not yet crop-mask coverage or a crop-health conclusion.
+- Next: independently sourced crop-mask alignment and crop-area common-support accounting.
