@@ -18,6 +18,12 @@ export type AgricultureSurfaceFlagId =
   | "static_water" | "urban_area" | "precipitation" | "snow_or_ice"
   | "permanent_snow_or_ice" | "frozen_ground" | "terrain" | "dense_vegetation";
 
+export interface AgricultureSurfaceFlagCombination {
+  /** Exact eight-bit surfaceQualityFlag value; each AOI pixel belongs to one combination. */
+  mask: number;
+  pixels: number;
+}
+
 export interface AgricultureSurfaceFlagDiagnostics {
   method: "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS";
   total_aoi_pixels: number;
@@ -28,6 +34,8 @@ export interface AgricultureSurfaceFlagDiagnostics {
   invalid_pixels: number;
   unsupported_encoding_pixels: number;
   flags: Record<AgricultureSurfaceFlagId, number>;
+  /** Optional for compatibility with earlier schema-v2 publications. */
+  flag_combinations?: AgricultureSurfaceFlagCombination[];
 }
 
 export interface AgricultureObservation extends AgricultureSummary {
@@ -243,8 +251,32 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
     "static_water", "urban_area", "precipitation", "snow_or_ice",
     "permanent_snow_or_ice", "frozen_ground", "terrain", "dense_vegetation",
   ];
-  return ids.every((id) => Number.isInteger(flags[id]) &&
-    Number(flags[id]) >= 0 && Number(flags[id]) <= encoded);
+  if (!ids.every((id) => Number.isInteger(flags[id]) &&
+      Number(flags[id]) >= 0 && Number(flags[id]) <= encoded)) return false;
+
+  // Newer publications include exact, mutually exclusive bit-pattern counts.
+  // Keep this optional so existing schema-v2 studies remain readable.
+  if (value.flag_combinations !== undefined) {
+    if (!Array.isArray(value.flag_combinations)) return false;
+    const seen = new Set<number>();
+    let totalCombinationPixels = 0;
+    let previousPixels = Number.POSITIVE_INFINITY;
+    let previousMask = -1;
+    for (const item of value.flag_combinations) {
+      if (!isRecord(item) || !Number.isInteger(item.mask) ||
+          !Number.isInteger(item.pixels)) return false;
+      const mask = Number(item.mask);
+      const pixels = Number(item.pixels);
+      if (mask < 1 || mask > 255 || pixels < 1 || pixels > flagged || seen.has(mask)) return false;
+      if (pixels > previousPixels || (pixels === previousPixels && mask <= previousMask)) return false;
+      seen.add(mask);
+      totalCombinationPixels += pixels;
+      previousPixels = pixels;
+      previousMask = mask;
+    }
+    if (totalCombinationPixels !== flagged) return false;
+  }
+  return true;
 }
 
 function validCropWeightedMoisture(value: unknown): value is AgricultureCropWeightedMoisture {
