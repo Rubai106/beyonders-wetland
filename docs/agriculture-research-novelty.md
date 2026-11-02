@@ -8,7 +8,7 @@
 
 The next Agriculture milestone should be an **Agricultural Observability Gate**, followed by a **Water-to-Canopy Response Audit**.
 
-The present Agriculture module is a careful NISAR SME2 PROVISIONAL soil-moisture explorer. It already has source identity checks, local Earthdata processing, strict quality screening, per-date summaries, a fixed all-date pixel cohort, a spatial-support drift profile, and checksum-verified publication. It does **not** yet have a real published Agriculture study, an independent crop mask, a crop-season model, HLS vegetation time series, GPM precipitation context, or field validation.
+The present Agriculture module is a careful NISAR SME2 PROVISIONAL soil-moisture explorer. It has source identity checks, local Earthdata processing, strict quality screening, per-date summaries, a fixed all-date pixel cohort, a spatial-support drift profile, and checksum-verified publication. The code now accepts an optional independently sourced fine-resolution crop-probability GeoTIFF, area-aggregates it to the native SME2 grid, and reports per-date and fixed-cohort crop support with provenance. No real Agriculture crop mask or Earthdata pilot has yet been processed/published; HLS vegetation time series, GPM precipitation context, and field validation remain future steps.
 
 The best differentiator is not another index, map, or AI-generated crop score. It is a reproducible evidence chain that answers:
 
@@ -117,16 +117,17 @@ The first implementation slice is the **SME2 surface-flag observability audit**:
 - Keep the existing strict surfaceQualityFlag == 0 gate and every other SME2 quality check unchanged.
 - Report dense-vegetation flags as a possible crop-observability limitation, not as evidence of crop identity.
 
-The next sub-step is the **independent crop-mask intersection**:
+The **Step 1B independent crop-area gate is implemented in code** on Rubai-dev:
 
-- Accept a current user/field boundary; optionally use Dynamic World crop probability as independent supporting context.
-- Record crop-mask source, date/window, confidence threshold and crop fraction in each native SME2 cell.
-- Calculate date-specific and fixed all-date eligible support only after aligning the independent crop mask to the SME2 native grid with documented area/support accounting.
-- Show per-date valid SME2 coverage inside crop-covered cells and common all-date crop-pixel support.
-- Keep overlapping quality flags non-exclusive; do not add reason percentages as if they partitioned the AOI.
-- Mark the study inconclusive where crop support or valid common support is insufficient. Do not relax masks to force a pass.
+- Accept an optional local single-band probability/binary GeoTIFF with declared CRS, values in [0, 1], a finer source-cell area than SME2, and full buffered coverage of the target native grid. Coarse, multi-band, unreferenced, invalid or incomplete masks fail closed.
+- Threshold source pixels at a declared confidence threshold, then separately area-average the classified crop indicator and valid-source indicator onto the native SME2 EPSG:6933 grid. Each output cell retains crop fraction of the complete native cell and source-data coverage; under-covered cells are not inferred as non-crop.
+- Record the source label/date, filename, checksum, bytes, CRS/cell-area estimate, threshold and coverage policy.
+- Compute per-date valid crop-area fraction and fractional-area-weighted SME2 median/range/uncertainty, then an exact all-date intersection of crop-weighted cells passing the unchanged SME2 quality screen on every acquisition.
+- Add interactive map layers, date-selectable crop-support bars, fixed-cohort status, provenance, checksum-verified previews and CSV export.
+- Keep the existing surfaceQualityFlag == 0 and all other SME2 quality rules unchanged. The raw crop GeoTIFF remains local; the public package contains only derived statistics/provenance and PNG previews.
+- Mark weak mask or common crop support inconclusive/unavailable instead of widening the mask, filling missing pixels or relaxing quality rules. Historical packages without this optional field remain readable.
 
-**Gate output:** a reproducible answer to “does this AOI/season contain enough independently identified, quality-eligible crop area for an SME2 study?” The present implementation is the QA-reason foundation, not yet the full crop-mask gate.
+**Gate output:** a reproducible answer to “how much independently mapped crop area is covered by the selected AOI, and what fraction remains SME2 quality-valid for each date and across the exact common cohort?” This is an observability/comparability gate, not a crop identity guarantee or a crop-health diagnosis. The implementation is code-complete for this slice, but no real mask or pilot result is claimed until an operator supplies an actual source raster and verifies it against the real SME2 granules.
 
 ### Step 2 — Water-to-Canopy Response Audit
 
@@ -206,4 +207,4 @@ A successful code build alone does not satisfy these criteria.
 
 ---
 
-**Decision recorded:** the first surface-flag observability slice is implemented on Rubai-dev. The next code change is independent crop-mask alignment and crop-area common-support accounting. Do not jump straight to a combined crop-stress score or AI recommendation.
+**Decision recorded:** the SME2 surface-flag audit and Step 1B area-weighted independent crop observability gate are implemented in code on Rubai-dev. The next evidence step is to run the pipeline on a real compatible SME2 series with a provenance-verified crop mask, inspect the resulting spatial support, and only then proceed to HLS canopy-response QA. Do not jump straight to a combined crop-stress score or AI recommendation.
