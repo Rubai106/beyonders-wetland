@@ -394,7 +394,8 @@ export default function AgricultureWorkbench() {
     ? showAllFlagCombinations ? flagCombinations : flagCombinations.slice(0, 8)
     : [];
   const selectedFlagLabels = selectedFlagCombination
-    ? SURFACE_FLAG_LABELS.filter((_flag, bit) => (selectedFlagCombination.mask & (1 << bit)) !== 0)
+    ? SURFACE_FLAG_LABELS.flatMap((flag, bit) =>
+      (selectedFlagCombination.mask & (1 << bit)) !== 0 ? [flag] : [])
     : [];
   const flagCombinationMax = flagCombinations?.[0]?.pixels ?? 1;
   const noStudy = loadState === "not-published" || loadState === "loading";
@@ -513,8 +514,7 @@ export default function AgricultureWorkbench() {
                         {visibleFlagCombinations.map((item) => {
                           const active = selectedFlagCombination?.mask === item.mask;
                           const labels = SURFACE_FLAG_LABELS
-                            .filter((_flag, bit) => (item.mask & (1 << bit)) !== 0)
-                            .map((flag) => flag.label);
+                            .flatMap((flag, bit) => (item.mask & (1 << bit)) !== 0 ? [flag.label] : []);
                           const hex = "0x" + item.mask.toString(16).toUpperCase().padStart(2, "0");
                           return (
                             <button key={item.mask} type="button" className={active ? "is-active" : ""}
