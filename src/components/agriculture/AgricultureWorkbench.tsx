@@ -30,7 +30,8 @@ const MAX_DATE = "2026-10-31";
 const RUN_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 type LoadState = "loading" | "not-published" | "ready" | "error";
-type MapLayer = "moisture" | "change";
+type MapLayer = "moisture" | "change" | "matched";
+type SeriesSupportMode = "date-valid" | "same-pixels";
 
 function formatPercent(value: number) {
   return (value * 100).toFixed(1) + "%";
@@ -78,6 +79,7 @@ export default function AgricultureWorkbench() {
   const [loadError, setLoadError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
+  const [seriesSupportMode, setSeriesSupportMode] = useState<SeriesSupportMode>("date-valid");
   const [previewState, setPreviewState] = useState<{ asset: string; url: string | null; error: string } | null>(null);
   const [satelliteBasemap, setSatelliteBasemap] = useState(false);
   const [west, setWest] = useState("");
@@ -135,7 +137,17 @@ export default function AgricultureWorkbench() {
   }, []);
 
   const selectedObservation: AgricultureObservation | null = study?.observations[selectedIndex] ?? null;
-  const activeAsset = study ? (layer === "change" ? study.change_preview : selectedObservation?.preview ?? "") : "";
+  const selectedMatchedObservation = study?.matched_support.observations[selectedIndex] ?? null;
+  const chartObservations = study
+    ? seriesSupportMode === "same-pixels" && study.matched_support.observations.length
+      ? study.matched_support.observations
+      : study.observations
+    : [];
+  const activeAsset = study
+    ? layer === "change" ? study.change_preview
+      : layer === "matched" ? selectedMatchedObservation?.preview ?? ""
+      : selectedObservation?.preview ?? ""
+    : "";
 
   useEffect(() => {
     if (!study || !checksums || !activeAsset) return;
@@ -176,22 +188,33 @@ export default function AgricultureWorkbench() {
   const formValid = useMemo(() => validForm(form), [form]);
   const generatedCommands = useMemo(() => formValid ? commandSet(form) : "", [form, formValid]);
   const chartRange = useMemo(() => {
-    if (!study) return { min: 0, max: 1 };
-    const lows = study.observations.map((item) => item.p05);
-    const highs = study.observations.map((item) => item.p95);
+    if (!chartObservations.length) return { min: 0, max: 1 };
+    const lows = chartObservations.map((item) => item.p05);
+    const highs = chartObservations.map((item) => item.p95);
     const min = Math.min(...lows), max = Math.max(...highs);
     return { min: min - (max - min || 0.02) * 0.12, max: max + (max - min || 0.02) * 0.12 };
-  }, [study]);
+  }, [chartObservations]);
 
   const exportCsv = useCallback(() => {
     if (!study) return;
-    const columns = ["date", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "valid_fraction", "valid_pixels", "total_pixels", "uncertainty_median", "release", "track", "direction", "frame", "bandwidth", "polarization", "frequency", "granule_name", "source_bytes", "source_sha256"];
-    const rows = study.observations.map((item) => [
-      item.date, item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
-      item.total_pixels, item.uncertainty_median, item.release, item.track, item.direction,
-      item.frame, item.bandwidth, item.polarization, item.frequency,
-      item.granule_name ?? "", item.source_bytes ?? "", item.source_sha256 ?? "",
-    ].map(csvCell).join(","));
+    const columns = [
+      "date", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "date_valid_fraction",
+      "date_valid_pixels", "total_pixels", "uncertainty_median", "same_pixel_median_m3_m3",
+      "same_pixel_valid_fraction", "same_pixel_count", "support_composition_gap_m3_m3",
+      "release", "track", "direction", "frame", "bandwidth", "polarization", "frequency",
+      "granule_name", "source_bytes", "source_sha256",
+    ];
+    const rows = study.observations.map((item, index) => {
+      const matched = study.matched_support.observations[index];
+      return [
+        item.date, item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
+        item.total_pixels, item.uncertainty_median, matched?.median ?? "",
+        matched?.valid_fraction ?? "", matched?.valid_pixels ?? "",
+        matched ? item.median - matched.median : "",
+        item.release, item.track, item.direction, item.frame, item.bandwidth, item.polarization, item.frequency,
+        item.granule_name ?? "", item.source_bytes ?? "", item.source_sha256 ?? "",
+      ].map(csvCell).join(",");
+    });
     const blob = new Blob([[columns.join(","), ...rows].join("\n"),], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -215,8 +238,19 @@ export default function AgricultureWorkbench() {
 
   const aoi: AgricultureAOI | null = study?.aoi ?? null;
   const target = study?.observations[study.observations.length - 1] ?? null;
-  const currentCoverage = study ? (layer === "change" ? study.change_summary.valid_fraction : selectedObservation?.valid_fraction ?? 0) : 0;
-  const displayedSummary = study ? (layer === "change" ? study.change_summary : selectedObservation) : null;
+  const currentCoverage = study
+    ? layer === "change" ? study.change_summary.valid_fraction
+      : layer === "matched" ? selectedMatchedObservation?.valid_fraction ?? 0
+      : selectedObservation?.valid_fraction ?? 0
+    : 0;
+  const displayedSummary = study
+    ? layer === "change" ? study.change_summary
+      : layer === "matched" ? selectedMatchedObservation
+      : selectedObservation
+    : null;
+  const supportCompositionGap = selectedObservation && selectedMatchedObservation
+    ? selectedObservation.median - selectedMatchedObservation.median
+    : null;
   const noStudy = loadState === "not-published" || loadState === "loading";
   const statusText = loadState === "loading" ? "Checking published study" :
     loadState === "ready" ? "Checksum verified" :
@@ -232,16 +266,33 @@ export default function AgricultureWorkbench() {
           <p className="agri-intro">Explore the measured SME2 soil-moisture series. The map and statistics below are loaded only from a checksum-verified published study.</p>
           {study ? <>
             <div className="agri-stat-grid">
-              <div><span>{layer === "change" ? "Median moisture difference" : "Median soil moisture"}</span><strong>{layer === "change" ? formatDifference(study.change_summary.median) : formatMoisture(selectedObservation?.median ?? 0)}</strong><small>{layer === "change" ? "Latest minus baseline median" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small></div>
+              <div><span>{layer === "change" ? "Median moisture difference" : "Median soil moisture"}</span><strong>{layer === "change" ? formatDifference(study.change_summary.median) : formatMoisture(layer === "matched" ? selectedMatchedObservation?.median ?? 0 : selectedObservation?.median ?? 0)}</strong><small>{layer === "change" ? "Latest minus baseline median" : layer === "matched" ? "Same pixels across every date" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small></div>
               <div><span>Valid coverage</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "change" ? "Change-layer coverage" : "Selected-date coverage"}</small></div>
               <div><span>{layer === "change" ? "Target-date uncertainty" : "Median uncertainty"}</span><strong>{(displayedSummary?.uncertainty_median ?? 0).toFixed(3)}</strong><small>{layer === "change" ? "Not propagated into change" : "Product-reported"}</small></div>
             </div>
+            <section className="agri-cohort-audit" aria-label="Same-pixel time-series comparability audit">
+              <div className="agri-cohort-audit__head">
+                <div><span className="agri-eyebrow">TIME-SERIES COMPARABILITY</span><strong>Same-pixel cohort</strong></div>
+                <span className={"agri-cohort-status is-" + study.matched_support.status.toLowerCase().replaceAll("_", "-")}>{study.matched_support.status.replaceAll("_", " ")}</span>
+              </div>
+              <div className="agri-cohort-audit__metric">
+                <strong>{formatPercent(study.matched_support.valid_fraction)}</strong>
+                <span>{study.matched_support.valid_pixels.toLocaleString()} of {study.matched_support.total_pixels.toLocaleString()} AOI pixels valid on every date</span>
+              </div>
+              <div className="agri-cohort-audit__track" aria-hidden="true"><i style={{ width: formatPercent(study.matched_support.valid_fraction) }} /></div>
+              {supportCompositionGap !== null
+                ? <p>Selected-date support-composition gap: <strong>{formatDifference(supportCompositionGap)}</strong></p>
+                : <p>No all-date common pixels are available, so a same-pixel median cannot be calculated.</p>}
+              <small>This gap compares two spatial samples on the same date. It is not a measured soil-moisture change, accuracy score, or causal explanation. The cohort is fixed across the series; low coverage remains inconclusive.</small>
+            </section>
             <div className="agri-reading">
               <span className="agri-eyebrow">CURRENT LAYER</span>
-              <strong>{layer === "change" ? "Latest − baseline median" : "Soil moisture · selected date"}</strong>
+              <strong>{layer === "change" ? "Latest − baseline median" : layer === "matched" ? "Soil moisture · fixed pixel cohort" : "Soil moisture · selected date"}</strong>
               <p>{layer === "change"
                 ? "Difference between " + study.target_date + " and the pixel-wise median of " + study.baseline_count + " baseline dates. Positive and negative values are changes in the measured soil-moisture variable, not crop-health classifications. The displayed uncertainty remains the target-date product uncertainty; it is not propagated into this difference."
-                : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its valid-pixel coverage and uncertainty."}</p>
+                : layer === "matched"
+                  ? "The selected date is summarized only over native pixels that passed the SME2 quality screen on every date in this study. Pixels are neither interpolated nor substituted."
+                  : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its date-specific valid-pixel coverage and uncertainty."}</p>
             </div>
             {previewError && <p className="agri-alert" role="alert">{previewError}</p>}
             <button type="button" className="agri-secondary-button" onClick={exportCsv}>Export dated statistics · CSV</button>
@@ -333,6 +384,11 @@ export default function AgricultureWorkbench() {
               </ul>
             </details>
           </> : <div className="agri-no-study"><strong>No study provenance loaded</strong><p>Source metadata and statistics will appear only after a real publication passes schema and checksum verification.</p></div>}
+          <details className="agri-details">
+            <summary>Same-pixel comparability method</summary>
+            <p className="agri-details-copy">The cohort is the intersection of every acquisition's existing SME2 quality-valid mask inside the AOI. Each date is re-summarized on that exact fixed set of native grid pixels. The audit does not resample, fill missing values, or imply that the smaller cohort represents the entire AOI.</p>
+            <p className="agri-details-copy">A cohort below the fixed 20% AOI floor is shown as inconclusive. A zero-pixel intersection is shown as unavailable; it is not widened to produce a chart.</p>
+          </details>
           <div className="agri-source-list">
             <strong>Official references</strong>
             <a href="https://nisar-docs.asf.alaska.edu/sme2/" target="_blank" rel="noreferrer">ASF NISAR SME2 guide ↗</a>
@@ -370,6 +426,7 @@ export default function AgricultureWorkbench() {
                 references: evidenceChain.references,
                 provenance: evidenceChain.provenance,
                 uncertainty_and_limits: evidenceChain.uncertainty_and_limits,
+                matched_support: study?.matched_support ?? null,
               }}
             />
           </div>
@@ -397,6 +454,11 @@ export default function AgricultureWorkbench() {
             <span className="agri-eyebrow">QUALITY IS NOT GROUND TRUTH</span>
             <strong>Flags control what is assessed</strong>
             <p>The conservative surface-quality screen accepts only zero-valued surface flags. It can exclude dense vegetation in crop areas. Excluded pixels are unassessed—not evidence of dry soil or healthy crops. A 20% coverage floor marks a study inconclusive when target or change coverage falls below it.</p>
+          </div>
+          <div className="agri-reading">
+            <span className="agri-eyebrow">WHY SAME-PIXEL COMPARISON MATTERS</span>
+            <strong>Separate moisture movement from changing spatial support</strong>
+            <p>Date-specific medians can represent different sets of valid pixels as quality flags and acquisition gaps change. The same-pixel trajectory fixes the cohort to the intersection of all dates, so both trajectories can be compared. A difference between their medians is a sample-composition gap, not another moisture-change measurement. The matched cohort can become small or empty; when that happens, the app reports inconclusive or unavailable rather than filling gaps.</p>
           </div>
           <div className="agri-reading">
             <span className="agri-eyebrow">WHAT VALIDATION WOULD NEED</span>
@@ -436,9 +498,10 @@ export default function AgricultureWorkbench() {
       </div>}
       map={<AgricultureMap aoi={aoi} displayBounds={study?.preview_bounds ?? null} previewUrl={previewUrl} satelliteBasemap={satelliteBasemap} noStudy={noStudy} layer={layer} />}
       mapToolbar={<div className="agri-map-toolbar" role="group" aria-label="Agriculture map layers">
-        <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => setLayer("moisture")}>Soil moisture</button>
+        <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => { setLayer("moisture"); setSeriesSupportMode("date-valid"); }}>Soil moisture</button>
         <button type="button" aria-pressed={layer === "change"} disabled={!study} onClick={() => setLayer("change")}>Change</button>
-        <span>{layer === "change" ? "Latest − baseline" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
+        <button type="button" aria-pressed={layer === "matched"} disabled={!study || study.matched_support.observations.length === 0} onClick={() => { setLayer("matched"); setSeriesSupportMode("same-pixels"); }}>Same pixels</button>
+        <span>{layer === "change" ? "Latest − baseline" : layer === "matched" ? "All dates · fixed cohort" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
       </div>}
       drawerTabs={drawerTabs}
       drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" />{loadState === "error" ? loadError : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</div>}
@@ -449,19 +512,32 @@ export default function AgricultureWorkbench() {
           <span>{study ? (selectedIndex + 1) + " / " + study.observations.length + " · " + study.target_date + " target" : "No dated SME2 observations published"}</span>
         </div>
         {study ? <>
-          <div className="agri-timeline-strip" role="group" aria-label="Select soil-moisture observation date">
-            {study.observations.map((item, index) => <button key={item.date} type="button" className={index === selectedIndex ? "is-active" : ""} aria-pressed={index === selectedIndex} onClick={() => { setSelectedIndex(index); setLayer("moisture"); }}>
-              <span>{dateLabel(item.date)}</span><strong>{formatMoisture(item.median)}</strong><small>{formatPercent(item.valid_fraction)} valid</small>
-            </button>)}
+          <div className="agri-support-switch" role="group" aria-label="Choose the pixel support used for the soil-moisture time series">
+            <button type="button" aria-pressed={seriesSupportMode === "date-valid"} onClick={() => { setSeriesSupportMode("date-valid"); if (layer === "matched") setLayer("moisture"); }}>
+              <strong>Date-valid footprint</strong><span>Each date uses its own quality-valid pixels</span>
+            </button>
+            <button type="button" aria-pressed={seriesSupportMode === "same-pixels"} disabled={study.matched_support.observations.length === 0} onClick={() => { setSeriesSupportMode("same-pixels"); setLayer("matched"); }}>
+              <strong>Same pixels across dates</strong><span>{formatPercent(study.matched_support.valid_fraction)} of AOI · {study.matched_support.status.replaceAll("_", " ")}</span>
+            </button>
           </div>
-          <div className="agri-chart" role="group" aria-label="Median soil moisture with fifth to ninety-fifth percentile range; select a point to inspect a date">
+          <div className="agri-timeline-strip" role="group" aria-label="Select soil-moisture observation date">
+            {study.observations.map((item, index) => {
+              const shown = chartObservations[index];
+              const matched = study.matched_support.observations[index];
+              return <button key={item.date} type="button" className={index === selectedIndex ? "is-active" : ""} aria-pressed={index === selectedIndex} onClick={() => { setSelectedIndex(index); if (layer === "change") setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}>
+                <span>{dateLabel(item.date)}</span><strong>{formatMoisture(shown?.median ?? item.median)}</strong><small>{formatPercent(shown?.valid_fraction ?? item.valid_fraction)} valid</small>
+                {matched && seriesSupportMode === "date-valid" && <em>Same pixels: {formatMoisture(matched.median)}</em>}
+              </button>;
+            })}
+          </div>
+          <div className="agri-chart" role="group" aria-label={"Median soil moisture with fifth to ninety-fifth percentile range using " + (seriesSupportMode === "same-pixels" ? "the same pixels across all dates" : "each date's quality-valid pixels") + "; select a point to inspect a date"}>
             <div className="agri-chart-axis"><span>m³/m³</span><span>{chartRange.max.toFixed(2)}</span><span>{chartRange.min.toFixed(2)}</span></div>
             <div className="agri-chart-plot">
               <div className="agri-chart-grid agri-chart-grid--top" />
               <div className="agri-chart-grid agri-chart-grid--middle" />
               <div className="agri-chart-grid agri-chart-grid--bottom" />
-              {study.observations.map((item, index) => {
-                const left = study.observations.length === 1 ? 50 : (index / (study.observations.length - 1)) * 100;
+              {chartObservations.map((item, index) => {
+                const left = chartObservations.length === 1 ? 50 : (index / (chartObservations.length - 1)) * 100;
                 const top = 100 - ((item.median - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
                 const low = 100 - ((item.p05 - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
                 const high = 100 - ((item.p95 - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
@@ -471,7 +547,7 @@ export default function AgricultureWorkbench() {
                 </div>;
               })}
             </div>
-            <div className="agri-chart-legend"><span><i className="median" />Median</span><span><i className="range" />P05–P95 range</span></div>
+            <div className="agri-chart-legend"><span><i className="median" />{seriesSupportMode === "same-pixels" ? "Same-pixel median" : "Date-valid median"}</span><span><i className="range" />P05–P95 range</span></div>
           </div>
         </> : <div className="agri-footer-empty">Dated observations will appear here after genuine SME2 granules are processed and a checksum-verified study is published.</div>}
       </div>}
