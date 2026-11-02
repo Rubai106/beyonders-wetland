@@ -57,6 +57,26 @@ The publish command copies only study.json, the web checksum manifest and previe
 
 The NASA/JPL product specification defines the retrieval and surface flags as bit fields and identifies the root baseline moisture datasets separately from algorithm-candidate datasets. SME2 PROVISIONAL known-issues documentation warns that soil-moisture retrievals are not yet fully calibrated and flags may be null or incompletely implemented in some releases. Null, fill or unrecognized quality values are excluded, not converted into valid pixels.
 
+## Temporal support-composition audit
+
+The v2 study package adds a strict **same-pixel cohort** alongside the existing date-specific summaries.
+
+For a series of compatible observations, the fixed cohort is the intersection of the AOI and every date's existing SME2 quality-valid mask:
+
+`cohort = AOI ∩ valid(date 1) ∩ valid(date 2) ∩ … ∩ valid(date n)`
+
+Each date is then re-summarized over that identical set of native grid cells. This keeps the spatial sample fixed across the plotted series; it does not change the SME2 retrieval, resample pixels, fill gaps, or weaken any quality flag. The original date-specific summaries and first-three-date baseline / latest-target difference remain available separately.
+
+The package records the matched pixel count, fraction of all AOI pixels, status and one matched moisture preview per date. Status meanings are:
+
+- `COMPARABLE`: the fixed cohort covers at least the existing 20% AOI floor.
+- `INCONCLUSIVE_COVERAGE`: some common pixels exist, but the cohort covers less than 20% of the AOI.
+- `NO_COMMON_PIXELS`: no pixel passed the quality screen on every selected date; no matched series or matched map is produced.
+
+The UI can display the ordinary date-specific trajectory or the same-pixel trajectory. It also reports the **support-composition gap** for a selected date: date-specific median minus same-pixel median. This describes how the two spatial samples differ on that date; it is not a temporal moisture change, an accuracy score, or a physical cause. The CSV export includes both summaries and the gap.
+
+The all-date intersection is intentionally strict. A low or empty cohort can be spatially unrepresentative, especially where SME2 flags or acquisition gaps move across dates. The app reports that limitation instead of expanding the cohort or interpolating missing values. A matched cohort is a comparability diagnostic, not proof that the remaining pixels represent every crop, soil type or part of the AOI.
+
 ## Verification
 
 From the repository root:
