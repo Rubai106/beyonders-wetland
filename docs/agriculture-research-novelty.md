@@ -1,6 +1,6 @@
 # Agriculture research and novelty design review
 
-**Review date:** 2 November 2026  
+**Review date:** 3 November 2026  
 **Repository branch:** Rubai-dev  
 **Decision:** Build a support-aware, event-centred crop-water response investigation. Do not build another generic crop-health dashboard.
 
@@ -8,7 +8,7 @@
 
 The next Agriculture milestone should be an **Agricultural Observability Gate**, followed by a **Water-to-Canopy Response Audit**.
 
-The present Agriculture module is a careful NISAR SME2 PROVISIONAL soil-moisture explorer. It has source identity checks, local Earthdata processing, strict quality screening, per-date summaries, a fixed all-date pixel cohort, a spatial-support drift profile, and checksum-verified publication. The code now accepts an optional independently sourced fine-resolution crop-probability GeoTIFF, area-aggregates it to the native SME2 grid, and reports per-date and fixed-cohort crop support with provenance. No real Agriculture crop mask or Earthdata pilot has yet been processed/published; HLS vegetation time series, GPM precipitation context, and field validation remain future steps.
+The present Agriculture module is a careful NISAR SME2 PROVISIONAL soil-moisture explorer. It has source identity checks, local Earthdata processing, strict quality screening, per-date summaries, a fixed all-date pixel cohort, a spatial-support drift profile, and checksum-verified publication. The code accepts an optional independently sourced fine-resolution crop-probability GeoTIFF, area-aggregates it to the native SME2 grid, and reports per-date and fixed-cohort crop support with provenance. The new Step 1C work adds exact, mutually exclusive surface-quality bitfield signatures alongside overlapping marginal flag counts, with cross-validation of their arithmetic and an interactive selection atlas. No real Agriculture crop mask or Earthdata pilot has yet been processed/published; HLS vegetation time series, GPM precipitation context, and field validation remain future steps.
 
 The best differentiator is not another index, map, or AI-generated crop score. It is a reproducible evidence chain that answers:
 
@@ -117,6 +117,15 @@ The first implementation slice is the **SME2 surface-flag observability audit**:
 - Keep the existing strict surfaceQualityFlag == 0 gate and every other SME2 quality check unchanged.
 - Report dense-vegetation flags as a possible crop-observability limitation, not as evidence of crop identity.
 
+**Step 1C — exact surface-flag overlap atlas** is implemented in code on Rubai-dev:
+- Preserve the exact non-zero eight-bit surfaceQualityFlag value and pixel count for each distinct AOI bit pattern.
+- Keep exact signatures mutually exclusive; their counts must reconcile to the flagged-pixel total, and bitwise reconstruction must reproduce all eight marginal flag counts.
+- Expose the signatures as a selectable eight-column matrix with frequency ranking, count/share, a named condition detail panel and a show-all control.
+- Export the AOI totals, marginal flags and exact signatures in separate CSV columns; historical schema-v2 publications without signatures remain readable as NOT RECORDED.
+- Keep fill, invalid and unsupported encodings separate. This is a bitfield audit only: no cause, crop identity or new quality score is inferred, and the existing surfaceQualityFlag == 0 acceptance rule is unchanged.
+
+This is a defensible implementation contribution in auditability and failure transparency. It is not a claim that bitfield analysis or an interactive overlap matrix is globally novel, and it does not substitute for a real SME2 pilot.
+
 The **Step 1B independent crop-area gate is implemented in code** on Rubai-dev:
 
 - Accept an optional local single-band probability/binary GeoTIFF with declared CRS, values in [0, 1], a finer source-cell area than SME2, and full buffered coverage of the target native grid. Coarse, multi-band, unreferenced, invalid or incomplete masks fail closed.
@@ -207,4 +216,4 @@ A successful code build alone does not satisfy these criteria.
 
 ---
 
-**Decision recorded:** the SME2 surface-flag audit and Step 1B area-weighted independent crop observability gate are implemented in code on Rubai-dev. The next evidence step is to run the pipeline on a real compatible SME2 series with a provenance-verified crop mask, inspect the resulting spatial support, and only then proceed to HLS canopy-response QA. Do not jump straight to a combined crop-stress score or AI recommendation.
+**Decision recorded:** Step 1A surface-flag observability, Step 1B area-weighted independent crop support, and Step 1C exact surface-flag overlap signatures are implemented in code on Rubai-dev. The next evidence step is still a real, compatible SME2 series with a provenance-verified crop mask, followed by operator review of actual HDF5 hierarchy, flags and spatial support. Only after that pilot passes should the project proceed to HLS canopy-response QA. The new overlap atlas does not make the Agriculture module a real-data pilot, and it does not justify a combined crop-stress score or AI irrigation recommendation.
