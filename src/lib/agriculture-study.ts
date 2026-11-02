@@ -342,17 +342,16 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
     if (commonObservations.length !== expectedDates.length || common.preview === null ||
         !commonObservations.every((item, index) =>
           validCropSupportObservation(item, expectedDates[index], Number(totalCropArea), cropCells, false) &&
-          Math.abs(Number((item as Record<string, unknown>).valid_crop_area_equivalent_pixels) - commonArea) < 0.00001)) return false;
+          Math.abs(item.valid_crop_area_equivalent_pixels - commonArea) < 0.00001)) return false;
   }
 
   for (let index = 0; index < observations.length; index += 1) {
-    const item = observations[index] as Record<string, unknown>;
-    const validArea = Number(item.valid_crop_area_equivalent_pixels);
-    const fraction = Number(item.valid_crop_area_fraction);
+    const item = observations[index];
+    if (!validCropSupportObservation(item, expectedDates[index], Number(totalCropArea), cropCells, true)) return false;
     const expectedStatus = Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
       Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
-      validArea <= 0 ? "NO_VALID_CROP_SUPPORT" :
-      fraction < 0.2 ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
+      item.valid_crop_area_equivalent_pixels <= 0 ? "NO_VALID_CROP_SUPPORT" :
+      item.valid_crop_area_fraction < 0.2 ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
     if (item.status !== expectedStatus) return false;
   }
   if (Number(totalCropArea) <= 0 && value.preview !== null) return false;
