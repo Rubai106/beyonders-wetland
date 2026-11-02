@@ -164,7 +164,10 @@ function validSummary(value: unknown, moisture = true): value is AgricultureSumm
 }
 
 function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): value is AgricultureSurfaceFlagDiagnostics {
-  if (!isRecord(value) || value.method !== "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS" || !isRecord(value.flags)) return false;
+  if (!isRecord(value) || value.method !== "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS") return false;
+  const flags = value.flags;
+  if (!isRecord(flags)) return false;
+
   const fields = [
     "total_aoi_pixels", "encoded_pixels", "unflagged_pixels", "flagged_pixels",
     "fill_pixels", "invalid_pixels", "unsupported_encoding_pixels",
@@ -177,12 +180,13 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
   if (total !== expectedTotal || total <= 0 || unflagged + flagged !== encoded ||
       encoded + Number(value.fill_pixels) + Number(value.invalid_pixels) +
         Number(value.unsupported_encoding_pixels) !== total) return false;
+
   const ids: AgricultureSurfaceFlagId[] = [
     "static_water", "urban_area", "precipitation", "snow_or_ice",
     "permanent_snow_or_ice", "frozen_ground", "terrain", "dense_vegetation",
   ];
-  return ids.every((id) => Number.isInteger(value.flags[id]) &&
-    Number(value.flags[id]) >= 0 && Number(value.flags[id]) <= encoded);
+  return ids.every((id) => Number.isInteger(flags[id]) &&
+    Number(flags[id]) >= 0 && Number(flags[id]) <= encoded);
 }
 
 function validObservation(value: unknown): value is AgricultureObservation {
