@@ -102,7 +102,7 @@ The 20% gates are conservative comparability policy thresholds, not validated un
 
 The raw crop-mask GeoTIFF, original HDF5 files and native raster arrays remain in local operator storage. Publication includes only the display-only PNG support previews, derived weighted summaries, mask provenance and integrity checksums. If no mask is supplied, the UI says **NOT ASSESSED**; the AOI is never assumed to be cropland.
 
-A Dynamic World crop-probability layer is cropland-likelihood context, not crop-species identification, a verified field boundary, or independent ground truth. A mask threshold does not prove crop identity. The weighted result remains a summary of SME2 surface-soil-moisture estimates over the mapped crop-area support, not root-zone moisture, crop health, yield or irrigation need.
+A Dynamic World crop-probability layer is cropland-likelihood context, not crop-species identification, a verified field boundary, or independent ground truth. A mask threshold does not prove crop identity. **SME2's native-cell estimate remains a cell-scale measurement that can mix crop and non-crop land.** Weighting a mixed cell by its mapped crop fraction improves area accounting but does not retrieve moisture from only the cropped sub-pixels. The result is a crop-area-weighted summary of native-cell SME2 surface-soil-moisture estimates, not crop-only moisture, root-zone moisture, crop health, yield or irrigation need.
 
 ## Spatial-support drift profile
 
