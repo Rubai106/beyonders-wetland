@@ -107,19 +107,26 @@ This can be a distinctive and defensible implementation. Public-source research 
 
 ## 4. The chosen next implementation
 
-### Step 1 — Agricultural Observability Gate (do this first)
+### Step 1 — Agricultural Observability Gate (first slice implemented)
 
-Before adding another analysis panel, build a crop-aware feasibility audit for every SME2 observation:
+The first implementation slice is the **SME2 surface-flag observability audit**:
+
+- Decode the eight documented surfaceQualityFlag bits for static water, urban area, precipitation, snow/ice, permanent snow/ice, frozen ground, terrain and dense vegetation.
+- Report per-date AOI counts for surface-flag-clear, one-or-more flagged, fill/invalid and unsupported encodings.
+- Show each flag as a separate count, explicitly allowing overlap; the counts are not a partition of the AOI.
+- Keep the existing strict surfaceQualityFlag == 0 gate and every other SME2 quality check unchanged.
+- Report dense-vegetation flags as a possible crop-observability limitation, not as evidence of crop identity.
+
+The next sub-step is the **independent crop-mask intersection**:
 
 - Accept a current user/field boundary; optionally use Dynamic World crop probability as independent supporting context.
-- Record the crop-mask source, date/window, threshold and fraction of each native SME2 cell classified as crop-covered.
-- Preserve the current strict SME2 retrieval/surface quality screen.
-- Decompose valid and excluded support by documented flag reason only after verifying the exact NISAR SME2 release specification. Do not borrow bit meanings from SMAP or another sensor.
-- Show per-date valid SME2 coverage inside crop-covered cells, common all-date crop-pixel support, and the spatial distribution of excluded/unobserved areas.
-- Keep overlapping quality flags non-exclusive in the reason counts; do not add their percentages as if they partitioned the AOI.
+- Record crop-mask source, date/window, confidence threshold and crop fraction in each native SME2 cell.
+- Calculate date-specific and fixed all-date eligible support only after aligning the independent crop mask to the SME2 native grid with documented area/support accounting.
+- Show per-date valid SME2 coverage inside crop-covered cells and common all-date crop-pixel support.
+- Keep overlapping quality flags non-exclusive; do not add reason percentages as if they partitioned the AOI.
 - Mark the study inconclusive where crop support or valid common support is insufficient. Do not relax masks to force a pass.
 
-**Gate output:** a reproducible answer to “does this AOI/season contain enough independently identified, quality-eligible crop area for an SME2 study?” If not, the app must say so before showing any crop-response conclusion.
+**Gate output:** a reproducible answer to “does this AOI/season contain enough independently identified, quality-eligible crop area for an SME2 study?” The present implementation is the QA-reason foundation, not yet the full crop-mask gate.
 
 ### Step 2 — Water-to-Canopy Response Audit
 
@@ -199,4 +206,4 @@ A successful code build alone does not satisfy these criteria.
 
 ---
 
-**Decision recorded:** make the next code change the Agricultural Observability Gate. Do not jump straight to a combined crop-stress score or AI recommendation.
+**Decision recorded:** the first surface-flag observability slice is implemented on Rubai-dev. The next code change is independent crop-mask alignment and crop-area common-support accounting. Do not jump straight to a combined crop-stress score or AI recommendation.
