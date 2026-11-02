@@ -640,6 +640,59 @@ def _summary(values: np.ndarray, mask: np.ndarray, uncertainty: np.ndarray | Non
     }
 
 
+def _matched_support(scenes: list[dict[str, Any]]) -> tuple[dict[str, Any], np.ndarray]:
+    """Summarize every date over one identical set of quality-valid native pixels.
+
+    The cohort is the intersection of all observation masks inside the AOI.
+    This is a strict comparability diagnostic, not a new retrieval or a spatial
+    interpolation. A small/empty cohort is reported, never silently widened.
+    """
+    if not scenes:
+        raise AgricultureError("Cannot calculate matched support without observations.")
+    first = scenes[0]
+    aoi_mask = np.asarray(first["aoi_mask"], dtype=bool)
+    if aoi_mask.ndim != 2 or not np.any(aoi_mask):
+        raise AgricultureError("Matched-support audit requires a non-empty two-dimensional AOI mask.")
+
+    masks = []
+    for scene in scenes:
+        scene_aoi = np.asarray(scene["aoi_mask"], dtype=bool)
+        valid = np.asarray(scene["valid"], dtype=bool)
+        moisture = np.asarray(scene["moisture"])
+        uncertainty = np.asarray(scene["uncertainty"])
+        if scene_aoi.shape != aoi_mask.shape or valid.shape != aoi_mask.shape or moisture.shape != aoi_mask.shape or uncertainty.shape != aoi_mask.shape:
+            raise AgricultureError("Matched-support observations do not share one native array shape.")
+        if not np.array_equal(scene_aoi, aoi_mask):
+            raise AgricultureError("Matched-support observations do not share the same AOI pixel footprint.")
+        masks.append(valid & aoi_mask)
+
+    common_mask = np.logical_and.reduce(masks) & aoi_mask
+    total_pixels = int(np.sum(aoi_mask))
+    valid_pixels = int(np.sum(common_mask))
+    valid_fraction = valid_pixels / total_pixels
+    if valid_pixels == 0:
+        status = "NO_COMMON_PIXELS"
+        observations: list[dict[str, Any]] = []
+    else:
+        status = "INCONCLUSIVE_COVERAGE" if valid_fraction < COVERAGE_FLOOR else "COMPARABLE"
+        observations = [
+            {
+                "date": scene["date"],
+                **_summary(scene["moisture"], common_mask, scene["uncertainty"], aoi_mask),
+            }
+            for scene in scenes
+        ]
+
+    return {
+        "method": "ALL_DATE_VALID_PIXEL_INTERSECTION",
+        "status": status,
+        "valid_fraction": valid_fraction,
+        "valid_pixels": valid_pixels,
+        "total_pixels": total_pixels,
+        "observations": observations,
+    }, common_mask
+
+
 def _preview(values: np.ndarray, valid: np.ndarray, path: Path, change: bool = False) -> None:
     data = np.asarray(values, dtype="float64")
     mask = np.asarray(valid, dtype=bool) & np.isfinite(data)
@@ -716,6 +769,7 @@ def analyze(run_id: str) -> dict[str, Any]:
     baseline_valid = np.all(np.stack([scene["valid"] for scene in baseline]), axis=0)
     change_valid = baseline_valid & target["valid"] & np.isfinite(baseline_median)
     change = target["moisture"] - baseline_median
+    matched_support, matched_mask = _matched_support(scenes)
     output = folder / "result"
     (output / "previews").mkdir(parents=True, exist_ok=True)
     (output / "native").mkdir(parents=True, exist_ok=True)
@@ -740,12 +794,17 @@ def analyze(run_id: str) -> dict[str, Any]:
     change_summary = _summary(change, change_valid, target["uncertainty"], target["aoi_mask"])
     change_name = "change-latest-minus-baseline.png"
     _preview(change, change_valid, output / "previews" / change_name, change=True)
+    if matched_support["valid_pixels"] > 0:
+        for matched_item, scene in zip(matched_support["observations"], scenes):
+            matched_name = f"matched-moisture-{scene['date']}.png"
+            matched_item["preview"] = f"previews/{matched_name}"
+            _preview(scene["moisture"], matched_mask, output / "previews" / matched_name)
     change_native = output / "native" / "change-latest-minus-baseline.tif"
     _write_geotiff(change_native, change, change_valid, target["epsg"], target["transform"])
     evidence_status = "INCONCLUSIVE_COVERAGE" if min(target_summary["valid_fraction"], change_summary["valid_fraction"]) < COVERAGE_FLOOR else "EXPLORATORY"
     signature = first["signature"]
     study = {
-        "schema_version": 1, "study_id": run_id, "run_id": run_id,
+        "schema_version": 2, "study_id": run_id, "run_id": run_id,
         "product": PRODUCT, "product_maturity": "PROVISIONAL",
         **signature,
         "aoi": search_manifest["aoi"], "preview_bounds": target["preview_bounds"], "date_range": search_manifest["date_range"],
@@ -754,6 +813,7 @@ def analyze(run_id: str) -> dict[str, Any]:
         "target_date": target["date"], "observations": observations,
         "change_preview": f"previews/{change_name}", "change_native_layer": f"native/{change_native.name}",
         "change_summary": change_summary, "target_summary": target_summary,
+        "matched_support": matched_support,
         "evidence_status": evidence_status, "sources": SOURCE_LIST,
         "provenance": {
             "collection": COLLECTION, "cmr_concept_ids": [item["concept_id"] for item in selected_series["granules"]],
@@ -766,6 +826,8 @@ def analyze(run_id: str) -> dict[str, Any]:
             "SME2 PROVISIONAL soil-moisture estimates are not fully calibrated; this is exploratory evidence.",
             "A soil-moisture difference is not a crop-stress, drought, irrigation, yield, crop-type, or field-boundary assessment.",
             "The 20% coverage floor is fixed. Below-floor target or change coverage is inconclusive.",
+            "The same-pixel cohort is the strict intersection of all observation quality masks; low cohort coverage is reported rather than widened or interpolated.",
+            "Matched-cohort medians describe only pixels valid on every date and may not represent excluded parts of the AOI.",
             "No independent field validation or accuracy estimate is included.",
             "The source SHA-256 values identify the locally downloaded bytes; they are not NASA digital signatures.",
             "Native rasters are local operator artifacts and are not included in the public preview package.",
@@ -778,6 +840,9 @@ def analyze(run_id: str) -> dict[str, Any]:
         "run_id": run_id, "evidence_status": evidence_status,
         "target_coverage": target_summary["valid_fraction"], "change_coverage": change_summary["valid_fraction"],
         "valid_pixels": change_summary["valid_pixels"], "total_pixels": change_summary["total_pixels"],
+        "matched_support_status": matched_support["status"],
+        "matched_support_fraction": matched_support["valid_fraction"],
+        "matched_support_pixels": matched_support["valid_pixels"],
         "native_layers": [str((output / item["native_layer"]).relative_to(folder)) for item in observations] + [str(change_native.relative_to(folder))],
     })
     return study
@@ -792,7 +857,12 @@ def publish(run_id: str, public_root: Path | None = None) -> Path:
         raise AgricultureError("Study identity/product maturity validation failed.")
     if study.get("evidence_status") not in {"EXPLORATORY", "INCONCLUSIVE_COVERAGE"}:
         raise AgricultureError("Unsupported evidence status.")
-    assets = [study_path, *(output / item["preview"] for item in study["observations"]), output / study["change_preview"]]
+    assets = [
+        study_path,
+        *(output / item["preview"] for item in study["observations"]),
+        output / study["change_preview"],
+        *(output / item["preview"] for item in study["matched_support"]["observations"]),
+    ]
     checksums = {"schema_version": 1, "files": {}}
     for path in assets:
         if not path.is_file() or path.stat().st_size <= 0:
