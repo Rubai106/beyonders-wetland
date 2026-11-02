@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { WetlandPatch } from "@/lib/types";
 import { downloadFile } from "@/lib/real-export";
 import { buildEvidenceRequest, type TemporalWindowDays } from "@/lib/evidence-request";
@@ -33,10 +33,7 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
   const [selectedId, setSelectedId] = useState<ScatteringHypothesisId>(() => defaultHypothesis(patch.classification));
   const [temporalWindowDays, setTemporalWindowDays] = useState<TemporalWindowDays>(0);
   const selected = assessment.hypotheses.find((item) => item.id === selectedId) ?? assessment.hypotheses[0];
-  const evidenceRequest = useMemo(
-    () => buildEvidenceRequest(patch, selected.id, temporalWindowDays),
-    [patch, selected.id, temporalWindowDays],
-  );
+  const evidenceRequest = buildEvidenceRequest(patch, selectedId, temporalWindowDays);
   const exportEvidenceRequest = () => {
     const json = JSON.stringify(evidenceRequest, null, 2);
     downloadFile(`evidence-request-${evidenceRequest.requestId.toLowerCase()}.json`, json, "application/json");
