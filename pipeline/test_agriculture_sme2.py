@@ -176,6 +176,18 @@ class AgricultureSME2Tests(unittest.TestCase):
             result["common_support"]["observations"][0]["weighted_soil_moisture"]["median"], 0.40,
         )
 
+    def test_insufficient_mask_coverage_is_not_misreported_as_no_crop(self):
+        scenes = [
+            self._crop_scene("2026-06-20", np.full((2, 2), 0.2), np.ones((2, 2), dtype=bool)),
+            self._crop_scene("2026-06-25", np.full((2, 2), 0.3), np.ones((2, 2), dtype=bool)),
+        ]
+        metadata = {"mask_coverage_fraction": 0.1, "source": "mostly missing mask"}
+        result, common = _crop_support_audit(scenes, np.zeros((2, 2)), metadata)
+        self.assertEqual(result["common_support"]["status"], "INSUFFICIENT_MASK_COVERAGE")
+        self.assertEqual(result["observations"][0]["status"], "INSUFFICIENT_MASK_COVERAGE")
+        self.assertEqual(result["common_support"]["observations"], [])
+        self.assertFalse(common.any())
+
     def test_crop_area_audit_reports_no_crop_support_without_fabricating_summaries(self):
         scenes = [
             self._crop_scene("2026-06-20", np.full((2, 2), 0.2), np.ones((2, 2), dtype=bool)),
