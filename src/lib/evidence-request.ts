@@ -15,13 +15,13 @@ export interface EvidenceArchiveCollection {
 
 export interface EvidenceArchiveSearch extends EvidenceArchiveCollection {
   queryUrl: string;
-  spatialFilter: "bounding_box" | "point";
+  spatialFilter: "polygon" | "bounding_box" | "point";
   temporalStartUtc: string;
   temporalEndUtc: string;
 }
 
 export interface EvidenceRequest {
-  schemaVersion: "beyonders.evidence-request/1.0";
+  schemaVersion: "beyonders.evidence-request/1.1";
   requestId: string;
   createdBy: "Beyonders";
   module: "wetland";
@@ -46,9 +46,11 @@ export interface EvidenceRequest {
     interpretation: string;
   } | null;
   spatialSearch: {
-    method: "candidate-bounding-box" | "candidate-centroid-only" | "unavailable";
+    method: "candidate-polygon" | "candidate-bounding-box" | "candidate-centroid-only" | "unavailable";
     label: string;
     boundingBox: [number, number, number, number] | null;
+    polygonParts: string[] | null;
+    holesIgnored: boolean;
     point: [number, number] | null;
     interpretation: string;
   };
@@ -276,32 +278,76 @@ function candidateBounds(geometry: WetlandGeometry | undefined): [number, number
   return bounds;
 }
 
+function candidatePolygonParts(geometry: WetlandGeometry | undefined): { parts: string[]; holesIgnored: boolean } | null {
+  if (!geometry) return null;
+  const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+  const parts: string[] = [];
+  let holesIgnored = false;
+  for (const polygon of polygons) {
+    const points: [number, number][] = [];
+    for (const point of polygon[0] ?? []) {
+      const [longitude, latitude] = point;
+      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)
+        || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) return null;
+      const previous = points[points.length - 1];
+      if (!previous || previous[0] !== longitude || previous[1] !== latitude) points.push([longitude, latitude]);
+    }
+    if (points.length > 1 && points[0][0] === points[points.length - 1][0]
+      && points[0][1] === points[points.length - 1][1]) points.pop();
+    if (points.length < 3) return null;
+    let area = 0;
+    for (let i = 0; i < points.length; i += 1) {
+      const a = points[i], b = points[(i + 1) % points.length];
+      area += a[0] * b[1] - b[0] * a[1];
+    }
+    if (Math.abs(area) < 1e-12) return null;
+    if (area < 0) points.reverse();
+    const closed = [...points, points[0]];
+    parts.push(closed.map(([lon, lat]) => `${lon.toFixed(6)},${lat.toFixed(6)}`).join(","));
+    if (polygon.length > 1) holesIgnored = true;
+  }
+  if (!parts.length || parts.join("").length > 3_000) return null;
+  return { parts, holesIgnored };
+}
+
 function candidateSpatialSearch(patch: WetlandPatch): EvidenceRequest["spatialSearch"] {
   const bounds = candidateBounds(patch.geometry);
-  if (bounds) {
-    return {
-      method: "candidate-bounding-box",
-      label: "Candidate bounding-box extent",
-      boundingBox: bounds,
-      point: null,
-      interpretation: "Derived from the candidate geometry's outer rings. This is an archive-discovery envelope: it can include pixels outside the candidate and gaps between multipart regions.",
-    };
-  }
+  const polygon = candidatePolygonParts(patch.geometry);
+  if (polygon) return {
+    method: "candidate-polygon",
+    label: polygon.parts.length === 1 ? "Candidate polygon" : `Candidate polygons (${polygon.parts.length} parts)`,
+    boundingBox: bounds,
+    polygonParts: polygon.parts,
+    holesIgnored: polygon.holesIgnored,
+    point: null,
+    interpretation: "CMR searches the candidate's outer polygon ring or multipart outer rings. Returned granule footprints are metadata matches only; this is not pixel-level valid coverage. Interior holes, if present, are not subtracted from the search geometry.",
+  };
+  if (bounds) return {
+    method: "candidate-bounding-box",
+    label: "Candidate bounding-box extent",
+    boundingBox: bounds,
+    polygonParts: null,
+    holesIgnored: false,
+    point: null,
+    interpretation: "The candidate polygon was unavailable or too complex for a compact CMR polygon query, so its bounding box is used. This discovery envelope can include pixels outside the candidate and gaps between multipart regions.",
+  };
   const [latitude, longitude] = patch.centroid;
   if (Number.isFinite(latitude) && Number.isFinite(longitude)
-    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
-    return {
-      method: "candidate-centroid-only",
-      label: "Candidate centroid only",
-      boundingBox: null,
-      point: [longitude, latitude],
-      interpretation: "Candidate geometry is unavailable or unsuitable for a bounding box. This point search finds granules covering the centroid; it does not represent the full candidate footprint.",
-    };
-  }
+    && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) return {
+    method: "candidate-centroid-only",
+    label: "Candidate centroid only",
+    boundingBox: null,
+    polygonParts: null,
+    holesIgnored: false,
+    point: [longitude, latitude],
+    interpretation: "Candidate geometry is unavailable or unsuitable for an archive query. This point search finds granules covering the centroid; it does not represent the full candidate footprint.",
+  };
   return {
     method: "unavailable",
     label: "Spatial filter unavailable",
     boundingBox: null,
+    polygonParts: null,
+    holesIgnored: false,
     point: null,
     interpretation: "No valid candidate geometry or centroid is available, so no spatial archive query can be created.",
   };
@@ -316,13 +362,17 @@ function cmrGranuleUrl(
   url.searchParams.set("short_name", collection.shortName);
   url.searchParams.set("version", collection.version);
   url.searchParams.append("temporal[]", temporal.startUtc + "," + temporal.endUtc);
-  if (spatial.method === "candidate-bounding-box" && spatial.boundingBox) {
+  if (spatial.method === "candidate-polygon" && spatial.polygonParts?.length) {
+    if (spatial.polygonParts.length === 1) url.searchParams.set("polygon", spatial.polygonParts[0]);
+    else {
+      url.searchParams.set("options[polygon][or]", "true");
+      for (const polygon of spatial.polygonParts) url.searchParams.append("polygon[]", polygon);
+    }
+  } else if (spatial.method === "candidate-bounding-box" && spatial.boundingBox) {
     url.searchParams.set("bounding_box", spatial.boundingBox.map((n) => n.toFixed(6)).join(","));
   } else if (spatial.method === "candidate-centroid-only" && spatial.point) {
     url.searchParams.set("point", spatial.point.map((n) => n.toFixed(6)).join(","));
-  } else {
-    return null;
-  }
+  } else return null;
   url.searchParams.set("page_size", "20");
   url.searchParams.append("sort_key[]", "-start_date");
   return url.toString();
@@ -363,11 +413,13 @@ export function buildEvidenceRequest(
   if (temporal && spatialSearch.method !== "unavailable") {
     for (const collection of profile.collections) {
       const queryUrl = cmrGranuleUrl(collection, temporal, spatialSearch);
-      if (queryUrl) archiveSearches.push({ ...collection, queryUrl, spatialFilter: spatialSearch.method === "candidate-bounding-box" ? "bounding_box" : "point",
+      if (queryUrl) archiveSearches.push({ ...collection, queryUrl, spatialFilter: spatialSearch.method === "candidate-polygon" ? "polygon" : spatialSearch.method === "candidate-bounding-box" ? "bounding_box" : "point",
         temporalStartUtc: temporal.startUtc, temporalEndUtc: temporal.endUtc });
     }
   }
-  if (spatialSearch.method === "candidate-bounding-box") {
+  if (spatialSearch.method === "candidate-polygon" && spatialSearch.holesIgnored) {
+    warnings.push("CMR polygon discovery uses outer rings only; interior holes are not subtracted from the query.");
+  } else if (spatialSearch.method === "candidate-bounding-box") {
     warnings.push("CMR uses the candidate bounding box for discovery, not exact pixel-level geometry intersection.");
   } else if (spatialSearch.method === "candidate-centroid-only") {
     warnings.push("Centroid-only discovery may omit granules that intersect other parts of the candidate.");
@@ -380,7 +432,7 @@ export function buildEvidenceRequest(
   ].join("-");
 
   return {
-    schemaVersion: "beyonders.evidence-request/1.0",
+    schemaVersion: "beyonders.evidence-request/1.1",
     requestId,
     createdBy: "Beyonders",
     module: "wetland",

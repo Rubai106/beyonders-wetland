@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { WetlandPatch } from "@/lib/types";
 import { downloadFile } from "@/lib/real-export";
-import { buildEvidenceRequest, type TemporalWindowDays } from "@/lib/evidence-request";
+import { buildEvidenceRequest, type EvidenceArchiveSearch, type TemporalWindowDays } from "@/lib/evidence-request";
+import { buildCmrUmmSearchUrl, parseCmrUmmResponse, type CmrGranule } from "@/lib/cmr-granules";
 import {
   buildScatteringHypothesisAssessment,
   type ScatteringHypothesis,
@@ -22,6 +23,25 @@ function statusTone(status: ScatteringHypothesis["status"]): string {
   return "unresolved";
 }
 
+interface CmrCollectionResult { search: EvidenceArchiveSearch; totalHits: number | null; granules: CmrGranule[]; error: string | null; }
+type CmrSearchStatus = "idle" | "loading" | "success" | "partial" | "error";
+function granuleShortlistKey(search: EvidenceArchiveSearch, granule: CmrGranule, index: number): string {
+  return `${search.shortName}:${granule.conceptId ?? granule.granuleUr ?? index}`;
+}
+function granuleDayOffset(candidateDate: string, granule: CmrGranule): number | null {
+  const acquisitionDate = (granule.timeStart ?? granule.timeEnd)?.slice(0, 10);
+  if (!acquisitionDate || !/^\\d{4}-\\d{2}-\\d{2}$/.test(candidateDate)) return null;
+  const candidateMs = Date.parse(candidateDate + "T00:00:00Z");
+  const acquisitionMs = Date.parse(acquisitionDate + "T00:00:00Z");
+  if (!Number.isFinite(candidateMs) || !Number.isFinite(acquisitionMs)) return null;
+  return Math.round((acquisitionMs - candidateMs) / 86_400_000);
+}
+function dayOffsetLabel(offset: number | null): string {
+  if (offset === null) return "Acquisition date not recorded";
+  if (offset === 0) return "Same UTC date as candidate";
+  return `${Math.abs(offset)} day${Math.abs(offset) === 1 ? "" : "s"} ${offset < 0 ? "before" : "after"} candidate date`;
+}
+
 function defaultHypothesis(classification: WetlandPatch["classification"]): ScatteringHypothesisId {
   if (classification === "VEGETATED_INUNDATION") return "flooded-vegetation";
   if (classification === "OPEN_WATER") return "open-water";
@@ -32,10 +52,67 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
   const assessment = buildScatteringHypothesisAssessment(patch);
   const [selectedId, setSelectedId] = useState<ScatteringHypothesisId>(() => defaultHypothesis(patch.classification));
   const [temporalWindowDays, setTemporalWindowDays] = useState<TemporalWindowDays>(0);
+  const [cmrStatus, setCmrStatus] = useState<CmrSearchStatus>("idle");
+  const [cmrResults, setCmrResults] = useState<CmrCollectionResult[]>([]);
+  const [cmrSearchedKey, setCmrSearchedKey] = useState("");
+  const [cmrSearchedAt, setCmrSearchedAt] = useState<string | null>(null);
+  const [shortlistedGranules, setShortlistedGranules] = useState<string[]>([]);
   const selected = assessment.hypotheses.find((item) => item.id === selectedId) ?? assessment.hypotheses[0];
   const evidenceRequest = buildEvidenceRequest(patch, selectedId, temporalWindowDays);
+  const searchKey = evidenceRequest.archiveSearches.map((item) => item.queryUrl).join("||");
+  const hasCurrentCmrResults = cmrSearchedKey !== "" && cmrSearchedKey === searchKey;
+  const visibleCmrResults = hasCurrentCmrResults ? cmrResults : [];
+  const visibleCmrStatus: CmrSearchStatus = hasCurrentCmrResults ? cmrStatus : "idle";
+
+  const searchCmrGranules = async () => {
+    const activeKey = searchKey;
+    setCmrStatus("loading");
+    setCmrSearchedKey(activeKey);
+    setCmrResults([]);
+    setCmrSearchedAt(null);
+    setShortlistedGranules([]);
+    const results = await Promise.all(evidenceRequest.archiveSearches.map(async (search): Promise<CmrCollectionResult> => {
+      const url = buildCmrUmmSearchUrl(search.queryUrl);
+      if (!url) return { search, totalHits: null, granules: [], error: "This archive query could not be converted to the CMR UMM response format." };
+      try {
+        const response = await fetch(url, { headers: { Accept: "application/vnd.nasa.cmr.umm_results+json;version=1.18.6" } });
+        if (!response.ok) throw new Error(`CMR returned HTTP ${response.status}`);
+        const parsed = parseCmrUmmResponse(await response.json());
+        return { search, totalHits: parsed.totalHits, granules: parsed.granules, error: null };
+      } catch (error) {
+        return { search, totalHits: null, granules: [], error: error instanceof Error ? error.message : "The CMR metadata search failed." };
+      }
+    }));
+    setCmrResults(results);
+    setCmrSearchedAt(new Date().toISOString());
+    const successful = results.filter((result) => result.error === null).length;
+    setCmrStatus(successful === 0 ? "error" : successful === results.length ? "success" : "partial");
+  };
+
   const exportEvidenceRequest = () => {
-    const json = JSON.stringify(evidenceRequest, null, 2);
+    const activeResults = hasCurrentCmrResults ? visibleCmrResults : [];
+    const shortlisted = activeResults.flatMap((group) => group.granules.map((granule, index) => ({
+      key: granuleShortlistKey(group.search, granule, index), granule, search: group.search,
+    }))).filter((item) => shortlistedGranules.includes(item.key));
+    const json = JSON.stringify({
+      ...evidenceRequest,
+      discovery: {
+        status: hasCurrentCmrResults ? cmrStatus : "NOT_SEARCHED",
+        searchedAtUtc: hasCurrentCmrResults ? cmrSearchedAt : null,
+        resultGroups: activeResults.map((group) => ({
+          shortName: group.search.shortName, version: group.search.version, queryUrl: group.search.queryUrl,
+          totalHits: group.totalHits, returnedRecords: group.granules.length, error: group.error, granules: group.granules,
+        })),
+        shortlistedGranules: shortlisted.map((item) => ({
+          shortName: item.search.shortName, version: item.search.version, role: item.search.role,
+          conceptId: item.granule.conceptId, granuleUr: item.granule.granuleUr,
+          timeStart: item.granule.timeStart, timeEnd: item.granule.timeEnd,
+          cloudCover: item.granule.cloudCover, metadataUrl: item.granule.metadataUrl,
+          dataUrl: item.granule.dataUrl, browseUrl: item.granule.browseUrl, spatialBounds: item.granule.spatialBounds,
+        })),
+        interpretation: "Shortlisting means an analyst selected a metadata record for further inspection. It does not mean the record supports or challenges the hypothesis, covers valid candidate pixels, or validates the candidate.",
+      },
+    }, null, 2);
     downloadFile(`evidence-request-${evidenceRequest.requestId.toLowerCase()}.json`, json, "application/json");
   };
 
@@ -171,6 +248,77 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
             <p className="wx-evidence-request__empty">A NASA archive query cannot be generated until the candidate date and spatial reference are valid.</p>
           )}
         </div>
+
+        <section className="wx-cmr-inspector" aria-label="NASA CMR granule match inspector">
+          <div className="wx-cmr-inspector__heading">
+            <div>
+              <span className="wx-micro">STEP 03 · INSPECT ACTUAL ARCHIVE RECORDS</span>
+              <h5>Candidate-specific granule inspector</h5>
+              <p>Search CMR now to retrieve matching granule metadata for the selected hypothesis and current date window.</p>
+            </div>
+            <button type="button" className="wx-btn wx-btn--primary" data-testid="cmr-search-button"
+              disabled={!evidenceRequest.archiveSearches.length || visibleCmrStatus === "loading"} onClick={searchCmrGranules}>
+              {visibleCmrStatus === "loading" ? "Searching CMR…" : "Search NASA CMR granules"}
+            </button>
+          </div>
+          <p className="wx-cmr-inspector__caveat">
+            A returned record is a metadata-footprint match to the query geometry, not proof of valid pixels inside this candidate, a water label, or validation. Data access may require an Earthdata login.
+          </p>
+          {visibleCmrStatus === "loading" ? (
+            <p className="wx-cmr-inspector__status" role="status">Searching the selected NASA collections…</p>
+          ) : visibleCmrStatus === "error" ? (
+            <p className="wx-cmr-inspector__status" role="status">CMR could not be reached for these searches. The external Search CMR links remain available above.</p>
+          ) : visibleCmrStatus === "partial" ? (
+            <p className="wx-cmr-inspector__status" role="status">Some collection searches completed; others returned errors. Review each collection below.</p>
+          ) : visibleCmrStatus === "success" ? (
+            <p className="wx-cmr-inspector__status" role="status">CMR search completed at {cmrSearchedAt}. Results are metadata records only.</p>
+          ) : (
+            <p className="wx-cmr-inspector__status">No live CMR search has been run for this hypothesis and date window.</p>
+          )}
+          {visibleCmrResults.map((group) => (
+            <section className="wx-cmr-inspector__group" data-testid="cmr-result-group" key={group.search.shortName}>
+              <header>
+                <div>
+                  <strong>{group.search.title}</strong>
+                  <span>{group.search.shortName} · v{group.search.version} · {group.search.nominalResolution}</span>
+                </div>
+                <span>{group.error ? "Search error" : `${group.totalHits ?? group.granules.length} metadata hits`}</span>
+              </header>
+              <p className="wx-cmr-inspector__role">{group.search.role}</p>
+              <p className="wx-cmr-inspector__limitation">{group.search.limitation}</p>
+              {group.error ? (
+                <p className="wx-cmr-inspector__error">{group.error}</p>
+              ) : group.granules.length ? group.granules.map((granule, index) => {
+                const key = granuleShortlistKey(group.search, granule, index);
+                const offset = granuleDayOffset(patch.date, granule);
+                return (
+                  <article className="wx-cmr-granule" data-testid="cmr-granule-card" key={key}>
+                    <div className="wx-cmr-granule__main">
+                      <strong>{granule.granuleUr ?? "Granule identifier not supplied"}</strong>
+                      <span>{granule.timeStart ? `Acquisition: ${granule.timeStart}${granule.timeEnd && granule.timeEnd !== granule.timeStart ? ` → ${granule.timeEnd}` : ""}` : "Acquisition time not recorded"}</span>
+                      <span>{dayOffsetLabel(offset)}</span>
+                      {granule.cloudCover !== null && <span>Granule cloud-cover metadata: {granule.cloudCover.toFixed(1)}% (not candidate-local)</span>}
+                      {granule.spatialBounds && <span className="wx-mono">Granule bbox: {granule.spatialBounds.map((value) => value.toFixed(3)).join(", ")}</span>}
+                      <div className="wx-cmr-granule__links">
+                        {granule.metadataUrl && <a href={granule.metadataUrl} target="_blank" rel="noreferrer">Metadata record ↗</a>}
+                        {granule.dataUrl && <a href={granule.dataUrl} target="_blank" rel="noreferrer">Data access ↗</a>}
+                        {granule.browseUrl && <a href={granule.browseUrl} target="_blank" rel="noreferrer">Browse image ↗</a>}
+                      </div>
+                    </div>
+                    <label className="wx-cmr-granule__shortlist">
+                      <input type="checkbox" data-testid="cmr-shortlist-checkbox"
+                        checked={shortlistedGranules.includes(key)}
+                        onChange={(checked) => setShortlistedGranules((current) => checked ? [...current, key] : current.filter((item) => item !== key))} />
+                      <span>Shortlist for review</span>
+                    </label>
+                  </article>
+                );
+              }) : (
+                <p className="wx-cmr-inspector__empty">CMR returned no granule metadata matches for this collection and the current time/space filters. This does not show that water or the underlying event was absent.</p>
+              )}
+            </section>
+          ))}
+        </section>
 
         <div className="wx-evidence-request__protocol">
           <span className="wx-micro">MINIMUM REVIEW PROTOCOL</span>
