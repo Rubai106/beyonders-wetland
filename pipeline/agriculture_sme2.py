@@ -799,7 +799,7 @@ def _align_crop_probability_mask(
     source_date: str | None = None,
     probability_threshold: float = 0.5,
     minimum_cell_coverage: float = 0.8,
-) -> tuple[np.ndarray, dict[str, Any]]:
+) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
     """Area-average an independent fine-resolution crop mask to the native SME2 grid.
 
     The source must be a single-band GeoTIFF with binary/probability values in
@@ -962,7 +962,7 @@ def _align_crop_probability_mask(
     except Exception as exc:
         raise AgricultureError(f"Could not align the independent crop-mask GeoTIFF: {exc}") from exc
 
-    return weights, metadata
+    return weights, coverage_fraction, metadata
 
 
 def _weighted_quantile(values: np.ndarray, weights: np.ndarray, quantile: float) -> float:
@@ -1085,6 +1085,30 @@ def _crop_support_audit(
     return result, common
 
 
+def _crop_coverage_preview(
+    coverage_fraction: np.ndarray,
+    aoi_mask: np.ndarray,
+    minimum_cell_coverage: float,
+    path: Path,
+) -> None:
+    """Render per-cell source-data coverage without conflating it with crop fraction."""
+    coverage = np.clip(np.asarray(coverage_fraction, dtype="float64"), 0.0, 1.0)
+    aoi = np.asarray(aoi_mask, dtype=bool)
+    if coverage.shape != aoi.shape or not np.isfinite(coverage).all() or not np.any(aoi):
+        raise AgricultureError(f"Invalid source-coverage array for preview: {path.name}")
+    rgb = np.zeros((*coverage.shape, 3), dtype=np.uint8)
+    high = coverage >= minimum_cell_coverage
+    partial = (coverage > 0) & ~high
+    # Fully covered cells are teal/green; partially covered cells are amber;
+    # zero-source-coverage cells are muted red. Outside the AOI stays transparent.
+    rgb[..., 0] = np.where(high, 46 + 30 * coverage, np.where(partial, 194, 104)).astype("uint8")
+    rgb[..., 1] = np.where(high, 126 + 92 * coverage, np.where(partial, 133, 65)).astype("uint8")
+    rgb[..., 2] = np.where(high, 105 + 45 * coverage, np.where(partial, 53, 69)).astype("uint8")
+    rgba = np.dstack([rgb, np.where(aoi, 225, 0).astype("uint8")])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(rgba, mode="RGBA").save(path, format="PNG", optimize=True)
+
+
 def _crop_support_preview(
     crop_weights: np.ndarray,
     visible_mask: np.ndarray,
@@ -1159,11 +1183,12 @@ def analyze(
     matched_support, matched_mask = _matched_support(scenes)
     crop_observability = None
     crop_weights = None
+    crop_source_coverage = None
     crop_common_mask = None
     if crop_mask_path is not None:
         if not crop_mask_source:
             raise AgricultureError("--crop-mask-source is required whenever --crop-mask is supplied.")
-        crop_weights, crop_mask_metadata = _align_crop_probability_mask(
+        crop_weights, crop_source_coverage, crop_mask_metadata = _align_crop_probability_mask(
             crop_mask_path, first, crop_mask_source, crop_mask_date,
             crop_probability_threshold, crop_mask_coverage_floor,
         )
@@ -1195,8 +1220,13 @@ def analyze(
     change_summary = _summary(change, change_valid, target["uncertainty"], target["aoi_mask"])
     change_name = "change-latest-minus-baseline.png"
     _preview(change, change_valid, output / "previews" / change_name, change=True)
-    if crop_observability is not None and crop_weights is not None and crop_common_mask is not None:
+    if crop_observability is not None and crop_weights is not None and crop_source_coverage is not None and crop_common_mask is not None:
         crop_observability["preview"] = None
+        crop_observability["source_coverage_preview"] = "previews/crop-source-coverage.png"
+        _crop_coverage_preview(
+            crop_source_coverage, first["aoi_mask"], crop_mask_coverage_floor,
+            output / crop_observability["source_coverage_preview"],
+        )
         crop_observability["common_support"]["preview"] = None
         if crop_observability["crop_area_equivalent_pixels"] > 0:
             crop_preview = "previews/crop-support.png"
@@ -1280,6 +1310,7 @@ def publish(run_id: str, public_root: Path | None = None) -> Path:
             output / relative
             for relative in (
                 study.get("crop_observability", {}).get("preview"),
+                study.get("crop_observability", {}).get("source_coverage_preview"),
                 study.get("crop_observability", {}).get("common_support", {}).get("preview"),
             )
             if relative
