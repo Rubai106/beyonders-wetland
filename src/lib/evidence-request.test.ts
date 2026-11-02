@@ -101,7 +101,7 @@ test("multipolygon bounds include all outer rings, while the request retains the
   const request = buildEvidenceRequest(patch({ geometry: multi }), "open-water");
   assert.deepEqual(request.spatialSearch.boundingBox, [32, -25, 33.1, -23.9]);
   assert.deepEqual(request.candidate.geometry, multi);
-  assert.match(request.warnings.join(" "), /gaps between multipart regions/i);
+  assert.match(request.spatialSearch.interpretation, /gaps between multipart regions/i);
 });
 
 test("invalid date prevents archive URLs rather than inventing a time range", () => {
