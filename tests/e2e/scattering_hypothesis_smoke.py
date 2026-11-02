@@ -31,11 +31,32 @@ def main() -> int:
         page.add_init_script("localStorage.setItem('geonexsar_tour_v1', '1')")
         page.on("pageerror", lambda error: browser_errors.append(str(error)))
 
+        cmr_requests: list[tuple[str, str]] = []
+
         def mock_cmr(route):
-            query = parse_qs(urlparse(route.request.url).query)
+            request_url = route.request.url
+            method = route.request.method.upper()
+            cmr_requests.append((method, request_url))
+            cors_headers = {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, OPTIONS",
+                "Access-Control-Allow-Headers": "Accept, Content-Type",
+                "Vary": "Origin",
+            }
+            if method == "OPTIONS":
+                route.fulfill(status=204, headers=cors_headers)
+                return
+
+            query = parse_qs(urlparse(request_url).query)
             short_name = query.get("short_name", ["UNKNOWN"])[0]
             temporal_filter = query.get("temporal[]", [""])[0]
             window_start = temporal_filter.split(",", 1)[0][:10]
+            if not window_start:
+                route.fulfill(
+                    status=400, content_type="application/json", headers=cors_headers,
+                    body=json.dumps({"error": "The test CMR request omitted temporal[]"}),
+                )
+                return
             candidate_date = (date.fromisoformat(window_start) + timedelta(days=3)).isoformat()
             granule_ur = f"{short_name}_{candidate_date.replace('-', '')}T102000_TEST"
             payload = {
@@ -57,9 +78,14 @@ def main() -> int:
                     },
                 }],
             }
-            route.fulfill(status=200, content_type="application/json", body=json.dumps(payload))
+            route.fulfill(
+                status=200, content_type="application/json", headers=cors_headers,
+                body=json.dumps(payload),
+            )
 
-        page.route("**/granules.umm_json_v1_18_6**", mock_cmr)
+        # Intercept every request to the CMR host so the fixture handles both
+        # CORS preflight and GET consistently across browser/network versions.
+        page.route("https://cmr.earthdata.nasa.gov/**", mock_cmr)
 
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
         page.wait_for_selector(".wx-obs", timeout=20_000)
@@ -187,7 +213,25 @@ def main() -> int:
         )
         search_button = request_panel.get_by_role("button", name="Search NASA CMR granules")
         search_button.evaluate("(button) => button.click()")
-        page.wait_for_selector("[data-testid='cmr-granule-card']", timeout=15_000)
+        page.wait_for_function(
+            """() => {
+              const status = document.querySelector(".wx-cmr-inspector__status")?.textContent ?? "";
+              return status.startsWith("CMR search completed")
+                || status.startsWith("Some collection searches completed")
+                || status.startsWith("CMR could not be reached");
+            }""",
+            timeout=20_000,
+        )
+        cmr_gets = [url for method, url in cmr_requests if method == "GET"]
+        require(
+            len(cmr_gets) == 2,
+            "both product-specific archive requests reach the deterministic CMR fixture",
+        )
+        require(
+            "CMR search completed" in request_panel.locator(".wx-cmr-inspector__status").inner_text(),
+            "both mocked CMR searches complete successfully",
+        )
+        page.wait_for_selector("[data-testid='cmr-granule-card']", timeout=10_000)
         require(
             request_panel.locator("[data-testid='cmr-result-group']").count() == 2,
             "live CMR inspector shows a separate result group for each selected collection",
@@ -214,7 +258,10 @@ def main() -> int:
             "inspector labels cloud-cover metadata as granule-level rather than candidate-local",
         )
         first_shortlist = request_panel.locator("[data-testid='cmr-shortlist-checkbox']").first
-        first_shortlist.check(timeout=10_000)
+        # The cards update as the controlled React shortlist state changes.
+        # Dispatch the native input click directly instead of relying on a
+        # geometry-stability click during the surrounding drawer animation.
+        first_shortlist.evaluate("(checkbox) => checkbox.click()")
         page.wait_for_function(
             """() => {
               const checkbox = document.querySelector("[data-testid='cmr-shortlist-checkbox']");
@@ -222,8 +269,13 @@ def main() -> int:
             }""",
             timeout=10_000,
         )
-        require(first_shortlist.is_checked(), "analyst can shortlist a granule for further review")
-        first_shortlist.uncheck(timeout=10_000)
+        require(
+            request_panel.locator("[data-testid='cmr-shortlist-checkbox']").first.is_checked(),
+            "analyst can shortlist a granule for further review",
+        )
+        request_panel.locator("[data-testid='cmr-shortlist-checkbox']").first.evaluate(
+            "(checkbox) => checkbox.click()"
+        )
         page.wait_for_function(
             """() => {
               const checkbox = document.querySelector("[data-testid='cmr-shortlist-checkbox']");
