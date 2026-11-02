@@ -80,7 +80,6 @@ def main() -> int:
             }""",
             timeout=10_000,
         )
-        print("CHALLENGE BUTTON AFTER:", challenge_button.evaluate("(button) => button.outerHTML"), flush=True)
         panel = page.locator(".wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
         ledger_heading = panel.locator("#wx-scattering-title")
