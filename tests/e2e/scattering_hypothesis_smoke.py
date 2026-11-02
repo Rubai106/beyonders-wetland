@@ -224,9 +224,23 @@ def main() -> int:
             "inspector labels cloud-cover metadata as granule-level rather than candidate-local",
         )
         first_shortlist = request_panel.locator("[data-testid='cmr-shortlist-checkbox']").first
-        first_shortlist.evaluate("(checkbox) => checkbox.click()")
+        first_shortlist.check(timeout=10_000)
+        page.wait_for_function(
+            """() => {
+              const checkbox = document.querySelector("[data-testid='cmr-shortlist-checkbox']");
+              return checkbox instanceof HTMLInputElement && checkbox.checked;
+            }""",
+            timeout=10_000,
+        )
         require(first_shortlist.is_checked(), "analyst can shortlist a granule for further review")
-        first_shortlist.evaluate("(checkbox) => checkbox.click()")
+        first_shortlist.uncheck(timeout=10_000)
+        page.wait_for_function(
+            """() => {
+              const checkbox = document.querySelector("[data-testid='cmr-shortlist-checkbox']");
+              return checkbox instanceof HTMLInputElement && !checkbox.checked;
+            }""",
+            timeout=10_000,
+        )
         require(not first_shortlist.is_checked(), "analyst can remove a granule from the shortlist")
 
         with page.expect_download() as empty_download_info:
