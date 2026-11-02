@@ -71,7 +71,6 @@ def main() -> int:
         page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button = page.locator(".wx-drawer").get_by_role("button", name="Challenge this detection")
         challenge_button.wait_for(state="visible", timeout=10_000)
-        print("CHALLENGE BUTTON BEFORE:", challenge_button.evaluate("(button) => button.outerHTML"), flush=True)
         challenge_button.click(force=True)
         page.wait_for_function(
             """() => {
@@ -101,7 +100,7 @@ def main() -> int:
             "panel distinguishes measured response from physical cause",
         )
 
-        soil = panel.locator(".wx-scattering__choice", has_text="Soil-moisture variation")
+        soil = panel.locator('.wx-scattering__choice[data-hypothesis-id="soil-moisture"]')
         soil.evaluate("(button) => button.click()")
         soil_detail_locator = panel.locator('.wx-scattering__detail[aria-label="Soil-moisture variation"]')
         soil_detail_locator.wait_for(state="visible", timeout=10_000)
@@ -117,9 +116,7 @@ def main() -> int:
             "soil-moisture alternative remains unresolved without independent evidence",
         )
 
-        vegetation = panel.locator(
-            ".wx-scattering__choice", has_text="Vegetation, roughness or intercepted water"
-        )
+        vegetation = panel.locator('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"]')
         vegetation.evaluate("(button) => button.click()")
         vegetation_detail_locator = panel.locator(
             '.wx-scattering__detail[aria-label="Vegetation, roughness or intercepted water"]'
@@ -144,7 +141,7 @@ def main() -> int:
         )
 
         # Step 2: build a real, selected-hypothesis CMR request and export its manifest.
-        open_water = panel.locator(".wx-scattering__choice", has_text="Open-water surface scattering")
+        open_water = panel.locator('.wx-scattering__choice[data-hypothesis-id="open-water"]')
         open_water.evaluate("(button) => button.click()")
         open_water_detail = panel.locator('.wx-scattering__detail[aria-label="Open-water surface scattering"]')
         open_water_detail.wait_for(state="visible", timeout=10_000)
