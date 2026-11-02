@@ -194,6 +194,7 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
       Number(matchedSupport.valid_pixels) > Number(matchedSupport.total_pixels) ||
       Math.abs(Number(matchedSupport.valid_fraction) - Number(matchedSupport.valid_pixels) / Number(matchedSupport.total_pixels)) >= 0.000001 ||
       !matchedObservations ||
+      !matchedObservations.every(validMatchedObservation) ||
       !Array.isArray(value.sources) || !value.sources.every((item) => isRecord(item) &&
         typeof item.title === "string" && typeof item.url === "string" && item.url.startsWith("https://"))) return false;
 
