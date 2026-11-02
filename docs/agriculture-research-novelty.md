@@ -120,10 +120,10 @@ The first implementation slice is the **SME2 surface-flag observability audit**:
 The **Step 1B independent crop-area gate is implemented in code** on Rubai-dev:
 
 - Accept an optional local single-band probability/binary GeoTIFF with declared CRS, values in [0, 1], a finer source-cell area than SME2, and full buffered coverage of the target native grid. Coarse, multi-band, unreferenced, invalid or incomplete masks fail closed.
-- Threshold source pixels at a declared confidence threshold, then separately area-average the classified crop indicator and valid-source indicator onto the native SME2 EPSG:6933 grid. Each output cell retains crop fraction of the complete native cell and source-data coverage; under-covered cells are not inferred as non-crop.
+- Threshold source pixels at a declared confidence threshold, then separately area-average the classified crop indicator and valid-source indicator onto the native SME2 EPSG:6933 grid. Each output cell retains crop fraction of the complete native cell and source-data coverage; under-covered cells are not inferred as non-crop. A dedicated Mask QA map layer visualizes per-cell source coverage independently of the crop and all-date cohort layers.
 - Record the source label/date, filename, checksum, bytes, CRS/cell-area estimate, threshold and coverage policy.
 - Compute per-date valid crop-area fraction and fractional-area-weighted SME2 median/range/uncertainty, then an exact all-date intersection of crop-weighted cells passing the unchanged SME2 quality screen on every acquisition.
-- Add interactive map layers, date-selectable crop-support bars, fixed-cohort status, provenance, checksum-verified previews and CSV export.
+- Add interactive crop-area, source-mask-quality and all-date crop-cohort map layers; date-selectable crop-support bars; fixed-cohort status; provenance; checksum-verified previews; and CSV export.
 - Keep the existing surfaceQualityFlag == 0 and all other SME2 quality rules unchanged. The raw crop GeoTIFF remains local; the public package contains only derived statistics/provenance and PNG previews.
 - Mark weak mask or common crop support inconclusive/unavailable instead of widening the mask, filling missing pixels or relaxing quality rules. Historical packages without this optional field remain readable.
 
