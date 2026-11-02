@@ -356,3 +356,27 @@
     align-items: flex-start;
   }
 }
+
+.agriculture-workspace .agri-empty-method {
+  display: grid;
+  gap: 6px;
+  margin-top: 5px;
+  padding: 11px;
+  border: 1px dashed #49645a;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgb(43 75 59 / 24%), rgb(17 29 31 / 55%));
+}
+.agriculture-workspace .agri-empty-method > strong {
+  color: #e2eddb;
+  font-size: .77rem;
+}
+.agriculture-workspace .agri-empty-method > p {
+  color: #9eafa4;
+  font-size: .64rem;
+  line-height: 1.5;
+}
+.agriculture-workspace .agri-no-study > small {
+  color: #7e9398;
+  font-size: .59rem;
+  line-height: 1.5;
+}
