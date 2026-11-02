@@ -95,48 +95,44 @@ def main() -> int:
         page.wait_for_selector(".wx-obs", timeout=20_000)
         page.wait_for_selector("path.wx-patch", timeout=20_000)
 
-        # Open Explore through its actual on-screen control, then select a
-        # real packaged Tanguar Haor candidate from the region register.
-        # This avoids depending on Leaflet SVG hit-testing timing in headless
-        # Chromium while preserving the real drawer selection workflow.
-        page.locator(".wx-drawer-reopen").wait_for(state="visible", timeout=10_000)
-        page.locator(".wx-drawer-reopen").click()
+        # Open a real candidate from the packaged Tanguar Haor showcase.
+        page.locator("path.wx-patch").nth(40).click(force=True)
         page.wait_for_selector(".wx-drawer", timeout=10_000)
-        region_choice = page.locator(".wx-drawer .wx-regions button").first
-        region_choice.wait_for(state="visible", timeout=10_000)
-        region_choice.scroll_into_view_if_needed()
-        region_choice.click()
-
-        # The challenge action only exists after a candidate is selected.
-        # Wait for that exact disclosure control, not a generic facts block
-        # elsewhere in the Explore drawer.
-        challenge_button = page.locator(".wx-drawer .wx-tool__action").get_by_role(
-            "button", name="Challenge this detection"
-        )
+        page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
+        challenge_button = page.locator(".wx-drawer").get_by_role("button", name="Challenge this detection")
+        if challenge_button.count() == 0:
+            # Leaflet polygons can be present in the SVG but not have a
+            # selected WetlandPatch yet (for example, when the map layer is
+            # still finishing its interaction setup). The existing region
+            # register provides a deterministic, real candidate-selection
+            # path inside the same drawer; use it rather than assuming the
+            # polygon click succeeded.
+            region_choice = page.locator(".wx-drawer .wx-regions button").first
+            region_choice.wait_for(state="visible", timeout=10_000)
+            region_choice.scroll_into_view_if_needed()
+            region_choice.click()
+            page.wait_for_selector(".wx-drawer .wx-facts", timeout=10_000)
+            page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button.wait_for(state="visible", timeout=10_000)
-        # ToolFrame places the action after the full evidence content. Move
-        # the drawer's own scroll container to its end before clicking so the
-        # nested panel does not race Playwright's auto-scroll routine.
-        page.locator(".wx-drawer__body").evaluate(
-            "(element) => { element.scrollTop = element.scrollHeight; }"
-        )
+        challenge_button.scroll_into_view_if_needed()
         challenge_button.click(timeout=10_000)
         # Wait for the parent disclosure to commit before inspecting its
         # conditionally rendered content. The challenge sits above the action
         # button, so opening it also changes the drawer's scroll geometry.
         page.wait_for_function(
-            """() => document.querySelector(".wx-tool__action button[aria-expanded='true']") !== null""",
+            """() => Array.from(document.querySelectorAll(".wx-tool__action button[aria-expanded]"))
+              .some((button) => button.getAttribute("aria-expanded") === "true")""",
             timeout=20_000,
         )
         panel = page.locator(".wx-drawer .wx-challenge .wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
-        ledger_heading = panel.locator(".wx-scattering__header h3")
+        ledger_heading = panel.locator("#wx-scattering-title")
         try:
-            ledger_heading.wait_for(state="visible", timeout=20_000)
+            ledger_heading.wait_for(state="attached", timeout=20_000)
         except Exception:
-            print("DEBUG action HTML:", page.locator(".wx-tool__action").evaluate("(element) => element.outerHTML") if page.locator(".wx-tool__action").count() else "missing")
-            print("DEBUG challenge HTML:", page.locator(".wx-drawer .wx-challenge").evaluate("(element) => element.outerHTML.slice(0, 8000)") if page.locator(".wx-drawer .wx-challenge").count() else "missing")
+            print("DEBUG challenge expanded:", page.evaluate("() => document.querySelector('.wx-tool__action button[aria-expanded]')?.getAttribute('aria-expanded') ?? 'missing'"))
             print("DEBUG scattering panel count:", panel.count())
+            print("DEBUG scattering panel HTML:", panel.first.evaluate("(element) => element.outerHTML.slice(0, 5000)") if panel.count() else "missing")
             raise
         ledger_heading.scroll_into_view_if_needed(timeout=10_000)
         ledger_heading.wait_for(state="visible", timeout=10_000)
