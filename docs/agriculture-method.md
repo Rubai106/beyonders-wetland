@@ -64,7 +64,7 @@ Supply a local, single-band GeoTIFF with a declared CRS and values in [0, 1]. Va
 Example (PowerShell; run after the regular search and download commands):
 
 ~~~powershell
-python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01 --crop-mask "D:\\data\\crop-probability.tif" --crop-mask-source "Dynamic World V1 · crops probability" --crop-mask-date 2026-07-18 --crop-probability-threshold 0.5 --crop-mask-coverage-floor 0.8
+python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01 --crop-mask "D:\data\crop-probability.tif" --crop-mask-source "Dynamic World V1 · crops probability" --crop-mask-date 2026-07-18 --crop-probability-threshold 0.5 --crop-mask-coverage-floor 0.8
 ~~~
 
 The Operator tab can generate the optional arguments. The path is read by the local Python process. The browser does not transmit the GeoTIFF. The source label and date must identify the actual collection/product and source observation window; do not write "Dynamic World" unless that is the exact data product used.
@@ -91,9 +91,9 @@ No missing SME2 pixels are filled, no flagged pixels are accepted, and the surfa
 
 - `COMPARABLE`: mask coverage meets the 20% AOI policy floor and valid crop support/common support covers at least 20% of mapped crop area.
 - `INCONCLUSIVE_COVERAGE`: some common crop support exists, but it covers less than 20% of mapped crop area.
-- `NO_CROP_SUPPORT`: no eligible crop area remains in the AOI.
-- `NO_COMMON_CROP_SUPPORT`: crop area exists, but no mapped crop cell passed SME2 quality on every date.
-- `NO_CROP_SUPPORT`: no eligible crop area remains in the AOI.
+- `INSUFFICIENT_MASK_COVERAGE`: less than 20% of AOI native cells meet the within-cell source-coverage floor. This takes precedence over a no-crop status because missing source data cannot establish that an area is non-crop.
+- `NO_CROP_SUPPORT`: no eligible crop area remains after adequate source-mask coverage has been established.
+- `NO_COMMON_CROP_SUPPORT`: mapped crop area exists, but no crop-supported native cell passed SME2 quality on every date.
 - Per-date `NO_VALID_CROP_SUPPORT`: no crop-weighted SME2 pixel is valid on that acquisition.
 
 The 20% gates are conservative comparability policy thresholds, not validated universal scientific standards. A higher mask-coverage requirement can be chosen for a study, but a threshold change must be explicitly versioned and reviewed; it must not silently lower the policy floor.
