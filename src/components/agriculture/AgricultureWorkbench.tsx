@@ -138,11 +138,12 @@ export default function AgricultureWorkbench() {
 
   const selectedObservation: AgricultureObservation | null = study?.observations[selectedIndex] ?? null;
   const selectedMatchedObservation = study?.matched_support.observations[selectedIndex] ?? null;
-  const chartObservations = study
-    ? seriesSupportMode === "same-pixels" && study.matched_support.observations.length
+  const chartObservations = useMemo(() => {
+    if (!study) return [];
+    return seriesSupportMode === "same-pixels" && study.matched_support.observations.length
       ? study.matched_support.observations
-      : study.observations
-    : [];
+      : study.observations;
+  }, [study, seriesSupportMode]);
   const activeAsset = study
     ? layer === "change" ? study.change_preview
       : layer === "matched" ? selectedMatchedObservation?.preview ?? ""
@@ -302,7 +303,7 @@ export default function AgricultureWorkbench() {
             <div className="agri-empty-method">
               <span className="agri-eyebrow">NEW ANALYSIS MODE · READY FOR REAL DATA</span>
               <strong>Same-pixel time-series audit</strong>
-              <p>Once a real compatible SME2 series is processed, compare each date's full valid footprint with one fixed cohort of pixels that passed the quality screen on every date.</p>
+              <p>Once a real compatible SME2 series is processed, compare each date&apos;s full valid footprint with one fixed cohort of pixels that passed the quality screen on every date.</p>
             </div>
             <small>No demo values or synthetic maps are shown while the real study is unpublished.</small>
           </div>}
@@ -400,7 +401,7 @@ export default function AgricultureWorkbench() {
           </> : <div className="agri-no-study"><strong>No study provenance loaded</strong><p>Source metadata and statistics will appear only after a real publication passes schema and checksum verification.</p></div>}
           <details className="agri-details">
             <summary>Same-pixel comparability method</summary>
-            <p className="agri-details-copy">The cohort is the intersection of every acquisition's existing SME2 quality-valid mask inside the AOI. Each date is re-summarized on that exact fixed set of native grid pixels. The audit does not resample, fill missing values, or imply that the smaller cohort represents the entire AOI.</p>
+            <p className="agri-details-copy">The cohort is the intersection of every acquisition&apos;s existing SME2 quality-valid mask inside the AOI. Each date is re-summarized on that exact fixed set of native grid pixels. The audit does not resample, fill missing values, or imply that the smaller cohort represents the entire AOI.</p>
             <p className="agri-details-copy">A cohort below the fixed 20% AOI floor is shown as inconclusive. A zero-pixel intersection is shown as unavailable; it is not widened to produce a chart.</p>
           </details>
           <div className="agri-source-list">
