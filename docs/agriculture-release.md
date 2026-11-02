@@ -55,20 +55,28 @@ The Explore panel now plots the per-date median from each date's valid footprint
 
 ## QA execution status
 
-The connected review session can inspect and change the GitHub repository but cannot run its local Python/Node environment or authenticate to the user's Earthdata account. The following checks are therefore **NOT RUN HERE** and must not be represented as passing:
+The latest complete **Agriculture and project QA** GitHub Actions run is [run #162](https://github.com/Rubai106/beyonders-wetland/actions/runs/41510560042), on commit `9b4f62e7c010dde15a5d47eb682463c03e295e71` on `Rubai-dev`. All automated steps passed:
 
-| Check | Status |
+| Automated check | Result |
 |---|---|
-| Agriculture Python unit suite | NOT RUN HERE |
-| Python syntax compilation | NOT RUN HERE |
-| Agriculture TypeScript schema tests | NOT RUN HERE |
-| Project ESLint | NOT RUN HERE |
-| Whole-project TypeScript check | NOT RUN HERE |
-| Next.js production build | NOT RUN HERE |
-| Agriculture desktop/mobile browser checks | NOT RUN HERE |
-| Existing Wetland/Explore browser regression suites | NOT RUN HERE |
-| Live NASA CMR and Earthdata granule download | NOT RUN — Earthdata credentials required |
-| Real PROVISIONAL SME2 HDF5 hierarchy/fill/flag verification | NOT RUN |
+| Python module and browser-test syntax compilation | PASS |
+| Full offline Python regression suite | PASS |
+| TypeScript unit/schema regression tests | PASS |
+| ESLint | PASS |
+| Next.js public-viewer production build | PASS |
+| Whole-project TypeScript check | PASS |
+| Chromium production-browser smoke tests: Chókwè, Scattering and Agriculture unpublished-state guard | PASS |
+
+These are code, fixture and browser-workflow checks. They do **not** establish that a genuine Agriculture SME2 pilot has been processed or validated.
+
+| Real-data/operator check | Status |
+|---|---|
+| Live NASA CMR discovery and Earthdata-authenticated granule download | NOT RUN — Earthdata credentials and operator-selected AOI required |
+| Real PROVISIONAL SME2 HDF5 hierarchy, units, projection, fill values and flag verification | NOT RUN — no authenticated operator granule review is claimed |
+| Independent crop-mask processing on a real SME2 series | NOT RUN — no real crop mask/pilot is published |
+| Interactive overlap-atlas review using a real published Agriculture study | NOT RUN — the production-browser check verifies that the atlas is withheld when no study is published |
+
+Do not represent synthetic regression fixtures or a passing production build as a real-data agricultural validation result.
 
 ## Next pilot plan
 
