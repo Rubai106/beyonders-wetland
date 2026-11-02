@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import date, timedelta
 from playwright.sync_api import sync_playwright
 from urllib.parse import parse_qs, urlparse
 
@@ -33,14 +34,17 @@ def main() -> int:
         def mock_cmr(route):
             query = parse_qs(urlparse(route.request.url).query)
             short_name = query.get("short_name", ["UNKNOWN"])[0]
-            granule_ur = f"{short_name}_20260829T102000_TEST"
+            temporal_filter = query.get("temporal[]", [""])[0]
+            window_start = temporal_filter.split(",", 1)[0][:10]
+            candidate_date = (date.fromisoformat(window_start) + timedelta(days=3)).isoformat()
+            granule_ur = f"{short_name}_{candidate_date.replace('-', '')}T102000_TEST"
             payload = {
                 "hits": 1,
                 "items": [{
                     "meta": {"concept-id": f"G1234567890-{short_name[:12]}"},
                     "umm": {
                         "GranuleUR": granule_ur,
-                        "TemporalExtent": {"SingleDateTime": "2026-08-29T10:20:00Z"},
+                        "TemporalExtent": {"SingleDateTime": f"{candidate_date}T10:20:00Z"},
                         "CloudCover": 12,
                         "SpatialExtent": {"HorizontalSpatialDomain": {"Geometry": {"BoundingRectangles": [{
                             "WestBoundingCoordinate": 89.0, "SouthBoundingCoordinate": 24.0,
@@ -176,7 +180,7 @@ def main() -> int:
         )
         first_granule = request_panel.locator("[data-testid='cmr-granule-card']").first
         require(
-            "OPERA_L3_DSWX-HLS_V1_20260829T102000_TEST" in first_granule.inner_text(),
+            "OPERA_L3_DSWX-HLS_V1_" in first_granule.inner_text() and "T102000_TEST" in first_granule.inner_text(),
             "inspector renders the returned collection granule identifier",
         )
         require(
