@@ -14,6 +14,7 @@ import {
   type AgricultureChecksumManifest,
   type AgricultureObservation,
   type AgricultureStudy,
+  type AgricultureSurfaceFlagId,
 } from "@/lib/agriculture-study";
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
 import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
@@ -33,6 +34,16 @@ const RUN_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 type LoadState = "loading" | "not-published" | "ready" | "error";
 type MapLayer = "moisture" | "change" | "matched";
 type SeriesSupportMode = "date-valid" | "same-pixels";
+const SURFACE_FLAG_LABELS: Array<{ id: AgricultureSurfaceFlagId; label: string; detail: string }> = [
+  { id: "static_water", label: "Static water body", detail: "Surface-water mask" },
+  { id: "urban_area", label: "Urban area", detail: "Built-up surface mask" },
+  { id: "precipitation", label: "Precipitation", detail: "Potentially unreliable during precipitation" },
+  { id: "snow_or_ice", label: "Snow or ice", detail: "Snow/ice condition" },
+  { id: "permanent_snow_or_ice", label: "Permanent snow or ice", detail: "Permanent snow/ice condition" },
+  { id: "frozen_ground", label: "Frozen ground", detail: "Frozen-ground condition" },
+  { id: "terrain", label: "Terrain", detail: "Terrain-related exclusion" },
+  { id: "dense_vegetation", label: "Dense vegetation", detail: "Potentially unreliable over dense canopy" },
+];
 
 function formatPercent(value: number) {
   return (value * 100).toFixed(1) + "%";
@@ -309,6 +320,7 @@ export default function AgricultureWorkbench() {
   const supportCompositionGap = selectedObservation && selectedMatchedObservation
     ? selectedObservation.median - selectedMatchedObservation.median
     : null;
+  const surfaceDiagnostics = selectedObservation?.surface_flag_diagnostics ?? null;
   const noStudy = loadState === "not-published" || loadState === "loading";
   const statusText = loadState === "loading" ? "Checking published study" :
     loadState === "ready" ? "Checksum verified" :
@@ -343,6 +355,63 @@ export default function AgricultureWorkbench() {
                 : <p>No all-date common pixels are available, so a same-pixel median cannot be calculated.</p>}
               <small>This gap compares two spatial samples on the same date. It is not a measured soil-moisture change, accuracy score, or causal explanation. The cohort is fixed across the series; low coverage remains inconclusive.</small>
             </section>
+            {surfaceDiagnostics ? (
+              <section className="agri-observability" aria-labelledby="agri-observability-title">
+                <div className="agri-observability__head">
+                  <div>
+                    <span className="agri-eyebrow">AGRICULTURAL OBSERVABILITY · STEP 1A</span>
+                    <strong id="agri-observability-title">Why are some SME2 pixels not assessed?</strong>
+                  </div>
+                  <span className="agri-observability__date">{selectedObservation ? dateLabel(selectedObservation.date) : ""}</span>
+                </div>
+                <div className="agri-observability__stats">
+                  <div>
+                    <span>Surface-flag clear</span>
+                    <strong>{formatPercent(surfaceDiagnostics.unflagged_pixels / surfaceDiagnostics.total_aoi_pixels)}</strong>
+                    <small>{surfaceDiagnostics.unflagged_pixels.toLocaleString()} of {surfaceDiagnostics.total_aoi_pixels.toLocaleString()} AOI pixels</small>
+                  </div>
+                  <div>
+                    <span>One or more surface flags</span>
+                    <strong>{surfaceDiagnostics.flagged_pixels.toLocaleString()}</strong>
+                    <small>Pixels with at least one documented surface flag</small>
+                  </div>
+                  <div>
+                    <span>Not decodable</span>
+                    <strong>{(surfaceDiagnostics.fill_pixels + surfaceDiagnostics.invalid_pixels + surfaceDiagnostics.unsupported_encoding_pixels).toLocaleString()}</strong>
+                    <small>Fill, invalid or unsupported flag encodings</small>
+                  </div>
+                </div>
+                <div className="agri-observability__rows">
+                  {SURFACE_FLAG_LABELS.map((flag) => {
+                    const count = surfaceDiagnostics.flags[flag.id];
+                    const fraction = count / surfaceDiagnostics.total_aoi_pixels;
+                    return (
+                      <div className={"agri-observability__row" + (flag.id === "dense_vegetation" && count > 0 ? " is-canopy" : "")} key={flag.id}>
+                        <div className="agri-observability__row-head">
+                          <strong>{flag.label}</strong>
+                          <span>{count.toLocaleString()} · {formatPercent(fraction)}</span>
+                        </div>
+                        <div className="agri-observability__track" aria-hidden="true">
+                          <i style={{ width: formatPercent(fraction) }} />
+                        </div>
+                        <small>{flag.detail}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="agri-observability__note">
+                  Counts are <strong>not mutually exclusive</strong>: a pixel can appear in more than one row. This audit does not relax the current surfaceQualityFlag == 0 rule. A surface-flag-clear pixel can still fail the retrieval, moisture, uncertainty or fill checks in the full SME2 quality screen.
+                </p>
+              </section>
+            ) : (
+              <section className="agri-observability agri-observability--empty" aria-label="Surface flag breakdown unavailable">
+                <div className="agri-observability__head">
+                  <div><span className="agri-eyebrow">AGRICULTURAL OBSERVABILITY · STEP 1A</span><strong>Surface-flag breakdown unavailable</strong></div>
+                  <span className="agri-observability__date">NOT RECORDED</span>
+                </div>
+                <p className="agri-observability__note">This publication predates the per-bit surface-flag audit. Re-run the local analysis to record the documented exclusion reasons; no reason is inferred from missing values.</p>
+              </section>
+            )}
             {supportDriftPlot && supportDriftStats ? (
               <section className="agri-support-drift" aria-labelledby="agri-support-drift-title">
                 <div className="agri-support-drift__head">
