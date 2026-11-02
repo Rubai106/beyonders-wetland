@@ -114,6 +114,7 @@ export interface AgricultureCropObservability {
   observations: AgricultureCropSupportObservation[];
   common_support: AgricultureCropCommonSupport;
   preview: string | null;
+  source_coverage_preview: string;
 }
 
 export interface AgricultureSupportDriftPoint {
@@ -326,7 +327,8 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
       Number(common.valid_native_cells) > cropCells ||
       !commonObservations ||
       (common.preview !== null && !safeRelativeAssetPath(common.preview, "previews/")) ||
-      (value.preview !== null && !safeRelativeAssetPath(value.preview, "previews/"))) return false;
+      (value.preview !== null && !safeRelativeAssetPath(value.preview, "previews/")) ||
+      !safeRelativeAssetPath(value.source_coverage_preview, "previews/")) return false;
 
   const commonArea = Number(common.valid_crop_area_equivalent_pixels);
   const expectedStatus = Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
