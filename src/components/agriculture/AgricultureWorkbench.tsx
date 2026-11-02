@@ -601,12 +601,20 @@ export default function AgricultureWorkbench() {
             ) : null}
             <div className="agri-reading">
               <span className="agri-eyebrow">CURRENT LAYER</span>
-              <strong>{layer === "change" ? "Latest − baseline median" : layer === "matched" ? "Soil moisture · fixed pixel cohort" : "Soil moisture · selected date"}</strong>
+              <strong>{layer === "change" ? "Latest − baseline median"
+                : layer === "matched" ? "Soil moisture · fixed pixel cohort"
+                : layer === "crop" ? "Independent crop mask · native-cell fraction"
+                : layer === "crop-common" ? "Crop area · fixed all-date cohort"
+                : "Soil moisture · selected date"}</strong>
               <p>{layer === "change"
                 ? "Difference between " + study.target_date + " and the pixel-wise median of " + study.baseline_count + " baseline dates. Positive and negative values are changes in the measured soil-moisture variable, not crop-health classifications. The displayed uncertainty remains the target-date product uncertainty; it is not propagated into this difference."
                 : layer === "matched"
                   ? "The selected date is summarized only over native pixels that passed the SME2 quality screen on every date in this study. Pixels are neither interpolated nor substituted."
-                  : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its date-specific valid-pixel coverage and uncertainty."}</p>
+                  : layer === "crop"
+                    ? "The overlay shows the area fraction of source pixels meeting the independent crop threshold inside each native SME2 cell. Cells with insufficient source coverage are transparent; no crop identity is inferred from the SME2 moisture measurements."
+                    : layer === "crop-common"
+                      ? "The overlay retains only mapped crop-area cells that passed the unchanged SME2 quality screen on every date. This is a strict comparability cohort, not a crop-health or representativeness guarantee."
+                      : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its date-specific valid-pixel coverage and uncertainty."}</p>
             </div>
             {previewError && <p className="agri-alert" role="alert">{previewError}</p>}
             <button type="button" className="agri-secondary-button" onClick={exportCsv}>Export dated statistics · CSV</button>
