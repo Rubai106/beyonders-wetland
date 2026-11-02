@@ -87,21 +87,23 @@ class AgricultureSME2Tests(unittest.TestCase):
         self.assertEqual([item["median"] for item in result["observations"]], [.20, .24, .28, .32])
         self.assertTrue(all(item["valid_pixels"] == 1 and item["total_pixels"] == 4 for item in result["observations"]))
 
-    def test_matched_support_reports_below_floor_without_expanding_cohort(self):
-        aoi = np.ones((2, 2), dtype=bool)
+    def test_matched_support_marks_non_empty_below_floor_cohort_inconclusive(self):
+        aoi = np.ones((10, 10), dtype=bool)
+        valid = np.zeros((10, 10), dtype=bool)
+        valid[0, 0] = True
         scenes = [
-            self._matched_scene("2026-06-20", [[.20, .21], [.22, .23]], [[1, 1], [0, 0]], aoi),
-            self._matched_scene("2026-06-25", [[.24, .25], [.26, .27]], [[1, 0], [1, 0]], aoi),
-            self._matched_scene("2026-06-30", [[.28, .29], [.30, .31]], [[1, 0], [0, 1]], aoi),
-            self._matched_scene("2026-07-05", [[.32, .33], [.34, .35]], [[1, 1], [1, 0]], aoi),
+            self._matched_scene("2026-06-20", np.full((10, 10), .20), valid, aoi),
+            self._matched_scene("2026-06-25", np.full((10, 10), .24), valid, aoi),
+            self._matched_scene("2026-06-30", np.full((10, 10), .28), valid, aoi),
+            self._matched_scene("2026-07-05", np.full((10, 10), .32), valid, aoi),
         ]
-        scenes[0]["valid"][0, 0] = False
         result, common = _matched_support(scenes)
-        self.assertEqual(result["status"], "NO_COMMON_PIXELS")
-        self.assertEqual(result["valid_pixels"], 0)
-        self.assertEqual(result["valid_fraction"], 0)
-        self.assertEqual(result["observations"], [])
-        self.assertFalse(common.any())
+        self.assertEqual(result["status"], "INCONCLUSIVE_COVERAGE")
+        self.assertEqual(result["valid_pixels"], 1)
+        self.assertEqual(result["valid_fraction"], .01)
+        self.assertEqual(len(result["observations"]), 4)
+        self.assertTrue(common[0, 0])
+        self.assertEqual([item["median"] for item in result["observations"]], [.20, .24, .28, .32])
 
     def test_matched_support_refuses_different_aoi_pixel_footprints(self):
         aoi = np.ones((2, 2), dtype=bool)
