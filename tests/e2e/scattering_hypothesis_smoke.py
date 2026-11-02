@@ -118,8 +118,13 @@ def main() -> int:
             page.wait_for_selector(".wx-drawer .wx-facts", timeout=10_000)
             page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button.wait_for(state="visible", timeout=10_000)
-        challenge_button.scroll_into_view_if_needed()
-        challenge_button.click(timeout=10_000)
+        challenge_button.wait_for(state="attached", timeout=10_000)
+        # The drawer is layered above the map and can be reflowing while the
+        # nested scroll container settles. Playwright's pointer hit-test can
+        # report the document root as the intercepting element even though
+        # the disclosure is visible. Dispatch the native button click, then
+        # assert the real aria-expanded state below.
+        challenge_button.evaluate("(button) => button.click()")
         # Wait for the parent disclosure to commit before inspecting its
         # conditionally rendered content. The challenge sits above the action
         # button, so opening it also changes the drawer's scroll geometry.
