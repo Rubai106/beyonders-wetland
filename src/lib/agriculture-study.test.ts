@@ -140,6 +140,53 @@ test("validates an independently sourced, area-weighted crop-support audit", () 
   assert.equal(isAgricultureStudy(falseStatus), false);
 });
 
+test("does not mistake an under-covered mask with zero mapped crop area for a no-crop finding", () => {
+  const changed = structuredClone(study);
+  const dates = changed.observations.map((item) => item.date);
+  const cropSummary = (date: string) => ({
+    date,
+    valid_crop_area_equivalent_pixels: 0,
+    total_crop_area_equivalent_pixels: 0,
+    valid_crop_area_fraction: 0,
+    valid_native_cells: 0,
+    weighted_soil_moisture: null,
+    status: "INSUFFICIENT_MASK_COVERAGE" as const,
+  });
+  changed.crop_observability = {
+    method: "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1",
+    source: "Independent crop-mask test fixture",
+    source_date: null,
+    source_filename: "mostly-missing.tif",
+    source_sha256: "c".repeat(64),
+    source_bytes: 1024,
+    source_crs: "EPSG:4326",
+    source_cell_area_m2: 100,
+    target_cell_area_m2: 40000,
+    probability_threshold: 0.5,
+    minimum_cell_coverage: 0.8,
+    aoi_native_cells: 100,
+    mask_covered_cells: 10,
+    mask_coverage_fraction: 0.1,
+    mean_source_data_coverage_fraction: 0.1,
+    crop_supported_cells: 0,
+    crop_area_equivalent_pixels: 0,
+    weighted_statistic: "AREA_WEIGHTED_EMPIRICAL_CDF_LEFT_CONTINUOUS_V1",
+    observations: dates.map(cropSummary),
+    common_support: {
+      method: "ALL_DATE_VALID_CROP_AREA_INTERSECTION",
+      status: "INSUFFICIENT_MASK_COVERAGE",
+      valid_crop_area_equivalent_pixels: 0,
+      total_crop_area_equivalent_pixels: 0,
+      valid_crop_area_fraction: 0,
+      valid_native_cells: 0,
+      observations: [],
+      preview: null,
+    },
+    preview: null,
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+});
+
 test("keeps historical Agriculture studies valid when crop observability is absent", () => {
   assert.equal(isAgricultureStudy(study), true);
 });
