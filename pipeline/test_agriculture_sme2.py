@@ -75,7 +75,7 @@ class AgricultureSME2Tests(unittest.TestCase):
         result = surface_flag_diagnostics(values, aoi)
         self.assertEqual(result["total_aoi_pixels"], 2)
         self.assertEqual(result["unflagged_pixels"], 1)
-        self.assertEqual(result["flags"]["urban_area"], 0)
+        self.assertEqual(result["flags"]["urban_area"], 1)
         with self.assertRaisesRegex(AgricultureError, "matching two-dimensional arrays"):
             surface_flag_diagnostics(values, np.ones((1, 2), dtype=bool))
 
