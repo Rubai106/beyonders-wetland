@@ -28,6 +28,7 @@ import rasterio
 from PIL import Image
 from pyproj import Transformer
 from rasterio.transform import from_origin
+from rasterio.warp import Resampling, reproject, transform_bounds
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_ROOT = ROOT / "pipeline" / "output" / "agriculture"
@@ -790,6 +791,316 @@ def _write_geotiff(path: Path, values: np.ndarray, valid: np.ndarray, epsg: int,
         dataset.write_mask((valid & np.isfinite(values)).astype("uint8") * 255)
 
 
+
+def _align_crop_probability_mask(
+    mask_path: Path,
+    reference_scene: dict[str, Any],
+    source_label: str,
+    source_date: str | None = None,
+    probability_threshold: float = 0.5,
+    minimum_cell_coverage: float = 0.8,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Area-average an independent fine-resolution crop mask to the native SME2 grid.
+
+    The source must be a single-band GeoTIFF with binary/probability values in
+    [0, 1]. The source grid must be finer than the SME2 grid and fully cover the
+    target grid extent. Source-data coverage and the area classified as crop
+    are warped separately. Cells below the coverage floor are excluded.
+    """
+    mask_path = Path(mask_path).expanduser().resolve()
+    if not mask_path.is_file():
+        raise AgricultureError(f"Crop-mask GeoTIFF does not exist: {mask_path}")
+    if not isinstance(source_label, str) or not source_label.strip() or len(source_label.strip()) > 180:
+        raise AgricultureError("Crop-mask provenance label must contain 1–180 characters.")
+    if not math.isfinite(probability_threshold) or not 0 <= probability_threshold <= 1:
+        raise AgricultureError("Crop probability threshold must be between 0 and 1.")
+    if not math.isfinite(minimum_cell_coverage) or not 0.5 <= minimum_cell_coverage <= 1:
+        raise AgricultureError("Minimum within-cell crop-mask coverage must be between 0.5 and 1.")
+    if source_date is not None:
+        try:
+            datetime.strptime(source_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise AgricultureError("Crop-mask source date must use YYYY-MM-DD.") from exc
+
+    target_transform = reference_scene["transform"]
+    target_epsg = int(reference_scene["epsg"])
+    target_crs = rasterio.crs.CRS.from_epsg(target_epsg)
+    aoi_mask = np.asarray(reference_scene["aoi_mask"], dtype=bool)
+    height, width = aoi_mask.shape
+    target_cell_area = abs(
+        target_transform.a * target_transform.e - target_transform.b * target_transform.d
+    )
+    if target_cell_area <= 0:
+        raise AgricultureError("SME2 native grid has an invalid cell area.")
+
+    try:
+        with rasterio.open(mask_path) as source:
+            if source.count != 1:
+                raise AgricultureError("Crop mask must be a single-band GeoTIFF probability/binary raster.")
+            if source.crs is None:
+                raise AgricultureError("Crop-mask GeoTIFF has no CRS; refusing to guess its spatial reference.")
+            if source.width < 2 or source.height < 2:
+                raise AgricultureError("Crop-mask GeoTIFF is too small to establish source-cell support.")
+            raw = source.read(1).astype("float64")
+            source_valid = (source.read_masks(1) > 0) & np.isfinite(raw)
+            if source.nodata is not None:
+                if isinstance(source.nodata, float) and math.isnan(source.nodata):
+                    source_valid &= np.isfinite(raw)
+                else:
+                    source_valid &= raw != float(source.nodata)
+            if not np.any(source_valid):
+                raise AgricultureError("Crop-mask GeoTIFF contains no valid probability cells.")
+            if np.any((raw[source_valid] < 0) | (raw[source_valid] > 1)):
+                raise AgricultureError("Crop-mask values must be probabilities/binary values in [0, 1]; class labels are not accepted.")
+
+            source_to_target_bounds = transform_bounds(
+                source.crs, target_crs, *source.bounds, densify_pts=41
+            )
+            target_corners = [
+                target_transform * (0, 0),
+                target_transform * (width, 0),
+                target_transform * (width, height),
+                target_transform * (0, height),
+            ]
+            target_left = min(point[0] for point in target_corners)
+            target_right = max(point[0] for point in target_corners)
+            target_bottom = min(point[1] for point in target_corners)
+            target_top = max(point[1] for point in target_corners)
+            tolerance = max(math.sqrt(target_cell_area) * 0.01, 0.01)
+            if (
+                source_to_target_bounds[0] > target_left + tolerance
+                or source_to_target_bounds[1] > target_bottom + tolerance
+                or source_to_target_bounds[2] < target_right - tolerance
+                or source_to_target_bounds[3] < target_top - tolerance
+            ):
+                raise AgricultureError(
+                    "Crop-mask raster does not cover the complete SME2 native-grid extent. "
+                    "Export the mask with a buffer around the AOI; edge cells must not be mistaken for fully observed crop/non-crop."
+                )
+
+            # Estimate source pixel area in the SME2 equal-area CRS. Reject
+            # coarse inputs rather than making them appear to have finer detail.
+            center_col, center_row = source.width / 2, source.height / 2
+            p00 = source.transform * (center_col, center_row)
+            p10 = source.transform * (center_col + 1, center_row)
+            p01 = source.transform * (center_col, center_row + 1)
+            transformer = Transformer.from_crs(source.crs, target_crs, always_xy=True)
+            q00 = transformer.transform(*p00)
+            q10 = transformer.transform(*p10)
+            q01 = transformer.transform(*p01)
+            source_cell_area = abs(
+                (q10[0] - q00[0]) * (q01[1] - q00[1])
+                - (q10[1] - q00[1]) * (q01[0] - q00[0])
+            )
+            if not math.isfinite(source_cell_area) or source_cell_area <= 0:
+                raise AgricultureError("Could not establish crop-mask source pixel area in the SME2 CRS.")
+            if source_cell_area > target_cell_area * 1.01:
+                raise AgricultureError(
+                    "Crop-mask source pixels are coarser than the SME2 native grid. "
+                    "A coarse mask cannot support a finer crop-area estimate."
+                )
+
+            source_crop = (source_valid & (raw >= probability_threshold)).astype("float32")
+            source_coverage = source_valid.astype("float32")
+            crop_fraction = np.zeros((height, width), dtype="float32")
+            coverage_fraction = np.zeros((height, width), dtype="float32")
+            reproject(
+                source=source_crop,
+                destination=crop_fraction,
+                src_transform=source.transform,
+                src_crs=source.crs,
+                dst_transform=target_transform,
+                dst_crs=target_crs,
+                resampling=Resampling.average,
+                init_dest_nodata=True,
+                dst_nodata=0.0,
+            )
+            reproject(
+                source=source_coverage,
+                destination=coverage_fraction,
+                src_transform=source.transform,
+                src_crs=source.crs,
+                dst_transform=target_transform,
+                dst_crs=target_crs,
+                resampling=Resampling.average,
+                init_dest_nodata=True,
+                dst_nodata=0.0,
+            )
+            crop_fraction = np.clip(crop_fraction, 0.0, 1.0)
+            coverage_fraction = np.clip(coverage_fraction, 0.0, 1.0)
+            covered = (coverage_fraction >= minimum_cell_coverage) & aoi_mask
+            # This is crop-classified share of the complete SME2 cell. Missing
+            # source coverage is not expanded into a false crop/non-crop value.
+            weights = np.where(covered, crop_fraction, 0.0).astype("float64")
+            aoi_cells = int(np.sum(aoi_mask))
+            covered_cells = int(np.sum(covered))
+            mapped_coverage = float(np.mean(coverage_fraction[aoi_mask])) if aoi_cells else 0.0
+            metadata = {
+                "method": "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1",
+                "source": source_label.strip(),
+                "source_date": source_date,
+                "source_filename": mask_path.name,
+                "source_sha256": sha256_file(mask_path),
+                "source_bytes": mask_path.stat().st_size,
+                "source_crs": source.crs.to_string(),
+                "source_cell_area_m2": float(source_cell_area),
+                "target_cell_area_m2": float(target_cell_area),
+                "probability_threshold": float(probability_threshold),
+                "minimum_cell_coverage": float(minimum_cell_coverage),
+                "aoi_native_cells": aoi_cells,
+                "mask_covered_cells": covered_cells,
+                "mask_coverage_fraction": covered_cells / aoi_cells if aoi_cells else 0.0,
+                "mean_source_data_coverage_fraction": mapped_coverage,
+                "crop_supported_cells": int(np.sum(weights > 0)),
+                "crop_area_equivalent_pixels": float(np.sum(weights)),
+                "weighted_statistic": "AREA_WEIGHTED_EMPIRICAL_CDF_LEFT_CONTINUOUS_V1",
+            }
+    except AgricultureError:
+        raise
+    except Exception as exc:
+        raise AgricultureError(f"Could not align the independent crop-mask GeoTIFF: {exc}") from exc
+
+    return weights, metadata
+
+
+def _weighted_quantile(values: np.ndarray, weights: np.ndarray, quantile: float) -> float:
+    """Deterministic weighted empirical quantile using the left-continuous CDF."""
+    order = np.argsort(values, kind="mergesort")
+    sorted_values = np.asarray(values, dtype="float64")[order]
+    sorted_weights = np.asarray(weights, dtype="float64")[order]
+    cumulative = np.cumsum(sorted_weights)
+    target = float(quantile) * float(cumulative[-1])
+    index = min(int(np.searchsorted(cumulative, target, side="left")), len(sorted_values) - 1)
+    return float(sorted_values[index])
+
+
+def _crop_weighted_summary(
+    scene: dict[str, Any],
+    cohort_mask: np.ndarray,
+    crop_weights: np.ndarray,
+    total_crop_area: float,
+) -> dict[str, Any]:
+    valid = (
+        np.asarray(cohort_mask, dtype=bool)
+        & np.asarray(scene["aoi_mask"], dtype=bool)
+        & np.isfinite(scene["moisture"])
+        & np.isfinite(scene["uncertainty"])
+        & (crop_weights > 0)
+    )
+    weights = np.asarray(crop_weights, dtype="float64")[valid]
+    valid_area = float(np.sum(weights))
+    result: dict[str, Any] = {
+        "date": scene["date"],
+        "valid_crop_area_equivalent_pixels": valid_area,
+        "total_crop_area_equivalent_pixels": float(total_crop_area),
+        "valid_crop_area_fraction": valid_area / total_crop_area if total_crop_area > 0 else 0.0,
+        "valid_native_cells": int(np.sum(valid)),
+        "weighted_soil_moisture": None,
+    }
+    if valid_area > 0:
+        moisture = np.asarray(scene["moisture"], dtype="float64")[valid]
+        uncertainty = np.asarray(scene["uncertainty"], dtype="float64")[valid]
+        result["weighted_soil_moisture"] = {
+            "median": _weighted_quantile(moisture, weights, 0.50),
+            "p05": _weighted_quantile(moisture, weights, 0.05),
+            "p95": _weighted_quantile(moisture, weights, 0.95),
+            "uncertainty_median": _weighted_quantile(uncertainty, weights, 0.50),
+        }
+    return result
+
+
+def _crop_support_audit(
+    scenes: list[dict[str, Any]],
+    crop_weights: np.ndarray,
+    mask_metadata: dict[str, Any],
+) -> tuple[dict[str, Any], np.ndarray]:
+    """Measure date-valid crop-area support and its strict all-date intersection."""
+    if not scenes:
+        raise AgricultureError("Cannot calculate crop support without SME2 observations.")
+    weights = np.asarray(crop_weights, dtype="float64")
+    first_aoi = np.asarray(scenes[0]["aoi_mask"], dtype=bool)
+    if weights.ndim != 2 or weights.shape != first_aoi.shape:
+        raise AgricultureError("Crop weights must match the clipped SME2 native grid.")
+    if not np.isfinite(weights).all() or np.any((weights < 0) | (weights > 1)):
+        raise AgricultureError("Crop support weights must be finite fractions in [0, 1].")
+    if not np.any(first_aoi) or any(
+        not np.array_equal(np.asarray(scene["aoi_mask"], dtype=bool), first_aoi)
+        or np.asarray(scene["valid"], dtype=bool).shape != weights.shape
+        for scene in scenes
+    ):
+        raise AgricultureError("Crop support requires matching SME2 AOI and observation grids.")
+
+    total_crop_area = float(np.sum(weights[first_aoi]))
+    observations = []
+    valid_masks = []
+    for scene in scenes:
+        valid = np.asarray(scene["valid"], dtype=bool) & first_aoi & (weights > 0)
+        valid_masks.append(valid)
+        row = _crop_weighted_summary(scene, valid, weights, total_crop_area)
+        row["status"] = (
+            "NO_CROP_SUPPORT" if total_crop_area <= 0
+            else "INSUFFICIENT_MASK_COVERAGE" if mask_metadata["mask_coverage_fraction"] < COVERAGE_FLOOR
+            else "NO_VALID_CROP_SUPPORT" if row["valid_crop_area_equivalent_pixels"] <= 0
+            else "INCONCLUSIVE_COVERAGE" if row["valid_crop_area_fraction"] < COVERAGE_FLOOR
+            else "COMPARABLE"
+        )
+        observations.append(row)
+
+    common = np.logical_and.reduce(valid_masks) if valid_masks else np.zeros(weights.shape, dtype=bool)
+    common &= first_aoi & (weights > 0)
+    common_area = float(np.sum(weights[common]))
+    common_fraction = common_area / total_crop_area if total_crop_area > 0 else 0.0
+    if total_crop_area <= 0:
+        status = "NO_CROP_SUPPORT"
+    elif mask_metadata["mask_coverage_fraction"] < COVERAGE_FLOOR:
+        status = "INSUFFICIENT_MASK_COVERAGE"
+    elif common_area <= 0:
+        status = "NO_COMMON_CROP_SUPPORT"
+    elif common_fraction < COVERAGE_FLOOR:
+        status = "INCONCLUSIVE_COVERAGE"
+    else:
+        status = "COMPARABLE"
+
+    common_observations = (
+        [_crop_weighted_summary(scene, common, weights, total_crop_area) for scene in scenes]
+        if common_area > 0 else []
+    )
+    result = {
+        **mask_metadata,
+        "observations": observations,
+        "common_support": {
+            "method": "ALL_DATE_VALID_CROP_AREA_INTERSECTION",
+            "status": status,
+            "valid_crop_area_equivalent_pixels": common_area,
+            "total_crop_area_equivalent_pixels": total_crop_area,
+            "valid_crop_area_fraction": common_fraction,
+            "valid_native_cells": int(np.sum(common)),
+            "observations": common_observations,
+        },
+    }
+    return result, common
+
+
+def _crop_support_preview(
+    crop_weights: np.ndarray,
+    visible_mask: np.ndarray,
+    path: Path,
+) -> None:
+    """Create a display-only native-grid crop-support image; raw masks stay local."""
+    weights = np.asarray(crop_weights, dtype="float64")
+    visible = np.asarray(visible_mask, dtype=bool) & (weights > 0)
+    if weights.shape != visible.shape or not np.any(visible):
+        raise AgricultureError(f"Refusing to render an empty crop-support preview: {path.name}")
+    intensity = np.clip(weights, 0, 1)
+    rgb = np.zeros((*weights.shape, 3), dtype=np.uint8)
+    rgb[..., 0] = (34 + 74 * intensity).astype("uint8")
+    rgb[..., 1] = (82 + 156 * intensity).astype("uint8")
+    rgb[..., 2] = (92 + 54 * (1 - intensity)).astype("uint8")
+    rgba = np.dstack([rgb, np.where(visible, 235, 0).astype("uint8")])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(rgba, mode="RGBA").save(path, format="PNG", optimize=True)
+
+
 def _validate_grid(first: dict[str, Any], other: dict[str, Any]) -> None:
     if other["moisture"].shape != first["moisture"].shape or other["epsg"] != first["epsg"]:
         raise AgricultureError("SME2 observations use different native grids/CRSs; no resampling is permitted.")
@@ -799,7 +1110,14 @@ def _validate_grid(first: dict[str, Any], other: dict[str, Any]) -> None:
         raise AgricultureError("SME2 observations have mixed track/direction/frame/bandwidth/polarization/frequency/release signatures.")
 
 
-def analyze(run_id: str) -> dict[str, Any]:
+def analyze(
+    run_id: str,
+    crop_mask_path: Path | None = None,
+    crop_mask_source: str | None = None,
+    crop_mask_date: str | None = None,
+    crop_probability_threshold: float = 0.5,
+    crop_mask_coverage_floor: float = 0.8,
+) -> dict[str, Any]:
     folder = run_folder(run_id)
     search_manifest = json_read(folder / "search.json")
     receipt = json_read(folder / "download.json")
@@ -835,6 +1153,19 @@ def analyze(run_id: str) -> dict[str, Any]:
     change_valid = baseline_valid & target["valid"] & np.isfinite(baseline_median)
     change = target["moisture"] - baseline_median
     matched_support, matched_mask = _matched_support(scenes)
+    crop_observability = None
+    crop_weights = None
+    crop_common_mask = None
+    if crop_mask_path is not None:
+        if not crop_mask_source:
+            raise AgricultureError("--crop-mask-source is required whenever --crop-mask is supplied.")
+        crop_weights, crop_mask_metadata = _align_crop_probability_mask(
+            crop_mask_path, first, crop_mask_source, crop_mask_date,
+            crop_probability_threshold, crop_mask_coverage_floor,
+        )
+        crop_observability, crop_common_mask = _crop_support_audit(scenes, crop_weights, crop_mask_metadata)
+    elif crop_mask_source or crop_mask_date:
+        raise AgricultureError("--crop-mask-source/--crop-mask-date cannot be used without --crop-mask.")
     output = folder / "result"
     (output / "previews").mkdir(parents=True, exist_ok=True)
     (output / "native").mkdir(parents=True, exist_ok=True)
@@ -860,6 +1191,15 @@ def analyze(run_id: str) -> dict[str, Any]:
     change_summary = _summary(change, change_valid, target["uncertainty"], target["aoi_mask"])
     change_name = "change-latest-minus-baseline.png"
     _preview(change, change_valid, output / "previews" / change_name, change=True)
+    if crop_observability is not None and crop_weights is not None and crop_common_mask is not None:
+        crop_preview = "previews/crop-support.png"
+        _crop_support_preview(crop_weights, crop_weights > 0, output / crop_preview)
+        crop_observability["preview"] = crop_preview
+        crop_observability["common_support"]["preview"] = None
+        if crop_observability["common_support"]["valid_native_cells"] > 0:
+            common_preview = "previews/crop-common-support.png"
+            _crop_support_preview(crop_weights, crop_common_mask, output / common_preview)
+            crop_observability["common_support"]["preview"] = common_preview
     if matched_support["valid_pixels"] > 0:
         for matched_item, scene in zip(matched_support["observations"], scenes):
             matched_name = f"matched-moisture-{scene['date']}.png"
@@ -900,6 +1240,8 @@ def analyze(run_id: str) -> dict[str, Any]:
         ],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if crop_observability is not None:
+        study["crop_observability"] = crop_observability
     json_write(output / "study.json", study)
     # Record a concise operator report separately from the public study.
     json_write(output / "analysis-report.json", {
@@ -928,6 +1270,14 @@ def publish(run_id: str, public_root: Path | None = None) -> Path:
         *(output / item["preview"] for item in study["observations"]),
         output / study["change_preview"],
         *(output / item["preview"] for item in study["matched_support"]["observations"]),
+        *(
+            output / relative
+            for relative in (
+                study.get("crop_observability", {}).get("preview"),
+                study.get("crop_observability", {}).get("common_support", {}).get("preview"),
+            )
+            if relative
+        ),
     ]
     checksums = {"schema_version": 1, "files": {}}
     for path in assets:
@@ -983,6 +1333,11 @@ def build_parser() -> argparse.ArgumentParser:
     get.add_argument("--series-id")
     process = sub.add_parser("analyze", help="Analyze genuine compatible SME2 HDF5 granules")
     process.add_argument("--run-id", required=True)
+    process.add_argument("--crop-mask", type=Path, help="Optional independent probability/binary crop-mask GeoTIFF (values 0..1)")
+    process.add_argument("--crop-mask-source", help="Required provenance label for the independent crop-mask source")
+    process.add_argument("--crop-mask-date", help="Optional source date, YYYY-MM-DD")
+    process.add_argument("--crop-probability-threshold", type=float, default=0.5)
+    process.add_argument("--crop-mask-coverage-floor", type=float, default=0.8)
     release = sub.add_parser("publish", help="Publish checksum-verified display previews only")
     release.add_argument("--run-id", required=True)
     return parser
@@ -998,8 +1353,14 @@ def main(argv: list[str] | None = None) -> int:
             downloaded = download(args.run_id, args.series_id)
             print(f"Downloaded and verified {len(downloaded)} granule(s).")
         elif args.command == "analyze":
-            study = analyze(args.run_id)
+            study = analyze(
+                args.run_id, args.crop_mask, args.crop_mask_source, args.crop_mask_date,
+                args.crop_probability_threshold, args.crop_mask_coverage_floor,
+            )
             print(f"{study['evidence_status']}: {study['target_summary']['valid_fraction']:.1%} target coverage; {study['change_summary']['valid_fraction']:.1%} change coverage.")
+            if study.get("crop_observability"):
+                crop = study["crop_observability"]["common_support"]
+                print(f"Crop observability: {crop['status']} · {crop['valid_crop_area_fraction']:.1%} of mapped crop area valid across all dates.")
         elif args.command == "publish":
             target = publish(args.run_id)
             print(f"Published display-only SME2 previews to {target}.")
