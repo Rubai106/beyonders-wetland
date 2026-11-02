@@ -74,8 +74,12 @@ def main() -> int:
         challenge_button.click(force=True)
         page.wait_for_function(
             """() => {
-              const button = document.querySelector(".wx-drawer button[aria-expanded]");
-              return button?.getAttribute("aria-expanded") === "true";
+              const buttons = [...document.querySelectorAll(".wx-drawer button[aria-expanded]")];
+              const challenge = buttons.find((button) =>
+                ["Challenge this detection", "Hide the challenge"].includes(button.textContent?.trim() ?? "")
+              );
+              return challenge?.getAttribute("aria-expanded") === "true"
+                && document.querySelector(".wx-drawer .wx-challenge .wx-scattering") !== null;
             }""",
             timeout=10_000,
         )
