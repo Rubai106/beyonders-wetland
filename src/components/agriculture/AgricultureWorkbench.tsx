@@ -306,6 +306,10 @@ export default function AgricultureWorkbench() {
       "date", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "date_valid_fraction",
       "date_valid_pixels", "total_pixels", "uncertainty_median", "same_pixel_median_m3_m3",
       "same_pixel_valid_fraction", "same_pixel_count", "support_composition_gap_m3_m3",
+      "surface_flag_total_aoi_pixels", "surface_flag_encoded_pixels", "surface_flag_unflagged_pixels",
+      "surface_flag_flagged_pixels", "surface_flag_fill_pixels", "surface_flag_invalid_pixels",
+      "surface_flag_unsupported_encoding_pixels", "surface_flag_marginal_counts_json",
+      "surface_flag_combinations_json",
       "crop_mask_source", "crop_mask_date", "crop_mask_threshold", "crop_mask_aoi_coverage_fraction",
       "crop_area_equivalent_pixels", "crop_valid_area_fraction", "crop_valid_area_equivalent_pixels",
       "crop_weighted_median_m3_m3", "crop_common_support_fraction", "crop_common_weighted_median_m3_m3",
@@ -317,11 +321,18 @@ export default function AgricultureWorkbench() {
       const crop = study.crop_observability;
       const cropDate = crop?.observations[index];
       const cropCommon = crop?.common_support.observations[index];
+      const surface = item.surface_flag_diagnostics;
       return [
         item.date, item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
         item.total_pixels, item.uncertainty_median, matched?.median ?? "",
         matched?.valid_fraction ?? "", matched?.valid_pixels ?? "",
         matched ? item.median - matched.median : "",
+        surface?.total_aoi_pixels ?? "", surface?.encoded_pixels ?? "",
+        surface?.unflagged_pixels ?? "", surface?.flagged_pixels ?? "",
+        surface?.fill_pixels ?? "", surface?.invalid_pixels ?? "",
+        surface?.unsupported_encoding_pixels ?? "",
+        surface ? JSON.stringify(surface.flags) : "",
+        surface?.flag_combinations ? JSON.stringify(surface.flag_combinations) : "",
         crop?.source ?? "", crop?.source_date ?? "", crop?.probability_threshold ?? "",
         crop?.mask_coverage_fraction ?? "", crop?.crop_area_equivalent_pixels ?? "",
         cropDate?.valid_crop_area_fraction ?? "", cropDate?.valid_crop_area_equivalent_pixels ?? "",
