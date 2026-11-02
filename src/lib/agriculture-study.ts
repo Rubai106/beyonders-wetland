@@ -60,6 +60,62 @@ export interface AgricultureMatchedSupport {
   observations: AgricultureMatchedObservation[];
 }
 
+export type AgricultureCropSupportStatus =
+  | "COMPARABLE" | "INCONCLUSIVE_COVERAGE" | "NO_COMMON_CROP_SUPPORT"
+  | "NO_CROP_SUPPORT" | "INSUFFICIENT_MASK_COVERAGE" | "NO_VALID_CROP_SUPPORT";
+
+export interface AgricultureCropWeightedMoisture {
+  median: number;
+  p05: number;
+  p95: number;
+  uncertainty_median: number;
+}
+
+export interface AgricultureCropSupportObservation {
+  date: string;
+  valid_crop_area_equivalent_pixels: number;
+  total_crop_area_equivalent_pixels: number;
+  valid_crop_area_fraction: number;
+  valid_native_cells: number;
+  weighted_soil_moisture: AgricultureCropWeightedMoisture | null;
+  status?: AgricultureCropSupportStatus;
+}
+
+export interface AgricultureCropCommonSupport {
+  method: "ALL_DATE_VALID_CROP_AREA_INTERSECTION";
+  status: Exclude<AgricultureCropSupportStatus, "NO_VALID_CROP_SUPPORT">;
+  valid_crop_area_equivalent_pixels: number;
+  total_crop_area_equivalent_pixels: number;
+  valid_crop_area_fraction: number;
+  valid_native_cells: number;
+  observations: AgricultureCropSupportObservation[];
+  preview: string | null;
+}
+
+export interface AgricultureCropObservability {
+  method: "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1";
+  source: string;
+  source_date: string | null;
+  source_filename: string;
+  source_sha256: string;
+  source_bytes: number;
+  source_crs: string;
+  source_cell_area_m2: number;
+  target_cell_area_m2: number;
+  probability_threshold: number;
+  minimum_cell_coverage: number;
+  aoi_native_cells: number;
+  mask_covered_cells: number;
+  mask_coverage_fraction: number;
+  mean_source_data_coverage_fraction: number;
+  crop_supported_cells: number;
+  crop_area_equivalent_pixels: number;
+  weighted_statistic: "AREA_WEIGHTED_EMPIRICAL_CDF_LEFT_CONTINUOUS_V1";
+  observations: AgricultureCropSupportObservation[];
+  common_support: AgricultureCropCommonSupport;
+  preview: string | null;
+}
+
 export interface AgricultureSupportDriftPoint {
   date: string;
   date_valid_median: number;
@@ -93,6 +149,7 @@ export interface AgricultureStudy {
   change_preview: string;
   change_summary: AgricultureSummary;
   matched_support: AgricultureMatchedSupport;
+  crop_observability?: AgricultureCropObservability;
   evidence_status: AgricultureStatus;
   sources: { title: string; url: string }[];
 }
@@ -189,6 +246,117 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
     Number(flags[id]) >= 0 && Number(flags[id]) <= encoded);
 }
 
+function validCropWeightedMoisture(value: unknown): value is AgricultureCropWeightedMoisture {
+  if (!isRecord(value)) return false;
+  return finiteRange(value.median, 0.02, 0.6) &&
+    finiteRange(value.p05, 0.02, 0.6) &&
+    finiteRange(value.p95, 0.02, 0.6) &&
+    Number(value.p05) <= Number(value.median) &&
+    Number(value.median) <= Number(value.p95) &&
+    finiteRange(value.uncertainty_median, 0, 0.6);
+}
+
+function validCropSupportObservation(
+  value: unknown,
+  expectedDate: unknown,
+  totalCropArea: number,
+  maximumNativeCells: number,
+  allowStatus: boolean,
+): value is AgricultureCropSupportObservation {
+  if (!isRecord(value)) return false;
+  const validArea = value.valid_crop_area_equivalent_pixels;
+  const totalArea = value.total_crop_area_equivalent_pixels;
+  const fraction = value.valid_crop_area_fraction;
+  const cells = value.valid_native_cells;
+  const moisture = value.weighted_soil_moisture;
+  return isoDay(value.date) && value.date === expectedDate &&
+    finiteRange(validArea, 0, totalCropArea + 0.000001) &&
+    finiteRange(totalArea, 0, totalCropArea + 0.000001) &&
+    Math.abs(Number(totalArea) - totalCropArea) < 0.00001 &&
+    finiteRange(fraction, 0, 1) &&
+    Math.abs(Number(fraction) - (totalCropArea > 0 ? Number(validArea) / totalCropArea : 0)) < 0.00001 &&
+    Number.isInteger(cells) && Number(cells) >= 0 && Number(cells) <= maximumNativeCells &&
+    (moisture === null ? Number(validArea) === 0 : Number(validArea) > 0 && validCropWeightedMoisture(moisture)) &&
+    (!allowStatus || (typeof value.status === "string" &&
+      ["COMPARABLE", "INCONCLUSIVE_COVERAGE", "NO_CROP_SUPPORT", "INSUFFICIENT_MASK_COVERAGE", "NO_VALID_CROP_SUPPORT"].includes(value.status)));
+}
+
+function validCropObservability(value: unknown, expectedDates: unknown[]): value is AgricultureCropObservability {
+  if (!isRecord(value) || value.method !== "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1") return false;
+  const common = isRecord(value.common_support) ? value.common_support : null;
+  const observations = Array.isArray(value.observations) ? value.observations : null;
+  const commonObservations = common && Array.isArray(common.observations) ? common.observations : null;
+  const nonnegativeIntegerFields = [
+    "source_bytes", "aoi_native_cells", "mask_covered_cells", "crop_supported_cells",
+  ] as const;
+  if (!nonnegativeIntegerFields.every((field) =>
+    Number.isInteger(value[field]) && Number(value[field]) >= (field === "aoi_native_cells" ? 1 : 0))) return false;
+  const aoiCells = Number(value.aoi_native_cells);
+  const coveredCells = Number(value.mask_covered_cells);
+  const cropCells = Number(value.crop_supported_cells);
+  const totalCropArea = value.crop_area_equivalent_pixels;
+  if (typeof value.source !== "string" || value.source.trim().length < 1 || value.source.length > 180 ||
+      (value.source_date !== null && !isoDay(value.source_date)) ||
+      typeof value.source_filename !== "string" || !value.source_filename ||
+      value.source_filename.includes("/") || value.source_filename.includes("\\") ||
+      !isSha256(value.source_sha256) || typeof value.source_crs !== "string" || !value.source_crs ||
+      !finiteRange(value.source_cell_area_m2, Number.MIN_VALUE, Number.MAX_VALUE) ||
+      !finiteRange(value.target_cell_area_m2, Number.MIN_VALUE, Number.MAX_VALUE) ||
+      !finiteRange(value.probability_threshold, 0, 1) ||
+      !finiteRange(value.minimum_cell_coverage, 0.5, 1) ||
+      coveredCells > aoiCells || cropCells > coveredCells ||
+      !finiteRange(value.mask_coverage_fraction, 0, 1) ||
+      Math.abs(Number(value.mask_coverage_fraction) - coveredCells / aoiCells) >= 0.00001 ||
+      !finiteRange(value.mean_source_data_coverage_fraction, 0, 1) ||
+      !finiteRange(totalCropArea, 0, coveredCells + 0.00001) ||
+      value.weighted_statistic !== "AREA_WEIGHTED_EMPIRICAL_CDF_LEFT_CONTINUOUS_V1" ||
+      !observations || observations.length !== expectedDates.length ||
+      !observations.every((item, index) =>
+        validCropSupportObservation(item, expectedDates[index], Number(totalCropArea), cropCells, true)) ||
+      !common || common.method !== "ALL_DATE_VALID_CROP_AREA_INTERSECTION" ||
+      !["COMPARABLE", "INCONCLUSIVE_COVERAGE", "NO_COMMON_CROP_SUPPORT", "NO_CROP_SUPPORT", "INSUFFICIENT_MASK_COVERAGE"].includes(String(common.status)) ||
+      !finiteRange(common.valid_crop_area_equivalent_pixels, 0, Number(totalCropArea) + 0.000001) ||
+      !finiteRange(common.total_crop_area_equivalent_pixels, 0, Number(totalCropArea) + 0.000001) ||
+      Math.abs(Number(common.total_crop_area_equivalent_pixels) - Number(totalCropArea)) >= 0.00001 ||
+      !finiteRange(common.valid_crop_area_fraction, 0, 1) ||
+      Math.abs(Number(common.valid_crop_area_fraction) -
+        (Number(totalCropArea) > 0 ? Number(common.valid_crop_area_equivalent_pixels) / Number(totalCropArea) : 0)) >= 0.00001 ||
+      !Number.isInteger(common.valid_native_cells) || Number(common.valid_native_cells) < 0 ||
+      Number(common.valid_native_cells) > cropCells ||
+      !commonObservations ||
+      (common.preview !== null && !safeRelativeAssetPath(common.preview, "previews/")) ||
+      (value.preview !== null && !safeRelativeAssetPath(value.preview, "previews/"))) return false;
+
+  const commonArea = Number(common.valid_crop_area_equivalent_pixels);
+  const expectedStatus = Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
+    Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
+    commonArea <= 0 ? "NO_COMMON_CROP_SUPPORT" :
+    Number(common.valid_crop_area_fraction) < 0.2 ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
+  if (common.status !== expectedStatus) return false;
+  if (commonArea <= 0) {
+    if (commonObservations.length !== 0 || common.preview !== null) return false;
+  } else {
+    if (commonObservations.length !== expectedDates.length || common.preview === null ||
+        !commonObservations.every((item, index) =>
+          validCropSupportObservation(item, expectedDates[index], Number(totalCropArea), cropCells, false) &&
+          Math.abs(Number((item as Record<string, unknown>).valid_crop_area_equivalent_pixels) - commonArea) < 0.00001)) return false;
+  }
+
+  for (let index = 0; index < observations.length; index += 1) {
+    const item = observations[index] as Record<string, unknown>;
+    const validArea = Number(item.valid_crop_area_equivalent_pixels);
+    const fraction = Number(item.valid_crop_area_fraction);
+    const expectedStatus = Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
+      Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
+      validArea <= 0 ? "NO_VALID_CROP_SUPPORT" :
+      fraction < 0.2 ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
+    if (item.status !== expectedStatus) return false;
+  }
+  if (Number(totalCropArea) <= 0 && value.preview !== null) return false;
+  if (Number(totalCropArea) > 0 && value.preview === null) return false;
+  return true;
+}
+
 function validObservation(value: unknown): value is AgricultureObservation {
   if (!isRecord(value)) return false;
   return (value.surface_flag_diagnostics === undefined ||
@@ -254,6 +422,8 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
 
   const study = value as unknown as AgricultureStudy;
   const dates = study.observations.map((item) => item.date);
+  if (study.crop_observability !== undefined &&
+      !validCropObservability(study.crop_observability, dates)) return false;
   const matched = study.matched_support;
   const matchedStatus = matched.valid_pixels === 0 ? "NO_COMMON_PIXELS" :
     matched.valid_fraction < study.coverage_floor ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
