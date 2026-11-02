@@ -906,3 +906,16 @@
   }
   .agriculture-workspace .agri-crop-gate__provenance dd { text-align: left; }
 }
+
+.agriculture-workspace .agri-map-legend__crop-complete {
+  background: #55bd91;
+  box-shadow: 0 0 0 1px rgb(85 189 145 / 28%);
+}
+.agriculture-workspace .agri-map-legend__crop-partial {
+  background: #d2a55f;
+  box-shadow: 0 0 0 1px rgb(210 165 95 / 28%);
+}
+.agriculture-workspace .agri-map-legend__crop-nodata {
+  background: #9a6268;
+  box-shadow: 0 0 0 1px rgb(154 98 104 / 28%);
+}
