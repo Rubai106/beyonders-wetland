@@ -105,6 +105,21 @@ class AgricultureSME2Tests(unittest.TestCase):
         self.assertTrue(common[0, 0])
         self.assertEqual([item["median"] for item in result["observations"]], [.20, .24, .28, .32])
 
+    def test_matched_support_reports_zero_common_pixels_without_filling(self):
+        aoi = np.ones((2, 2), dtype=bool)
+        scenes = [
+            self._matched_scene("2026-06-20", np.full((2, 2), .2), [[1, 0], [0, 0]], aoi),
+            self._matched_scene("2026-06-25", np.full((2, 2), .3), [[0, 1], [0, 0]], aoi),
+            self._matched_scene("2026-06-30", np.full((2, 2), .4), [[0, 0], [1, 0]], aoi),
+            self._matched_scene("2026-07-05", np.full((2, 2), .5), [[0, 0], [0, 1]], aoi),
+        ]
+        result, common = _matched_support(scenes)
+        self.assertEqual(result["status"], "NO_COMMON_PIXELS")
+        self.assertEqual(result["valid_pixels"], 0)
+        self.assertEqual(result["valid_fraction"], 0)
+        self.assertEqual(result["observations"], [])
+        self.assertFalse(common.any())
+
     def test_matched_support_refuses_different_aoi_pixel_footprints(self):
         aoi = np.ones((2, 2), dtype=bool)
         scenes = [
