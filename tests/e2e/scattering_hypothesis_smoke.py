@@ -40,8 +40,10 @@ def main() -> int:
         panel = page.locator(".wx-scattering")
         panel.wait_for(state="visible", timeout=10_000)
 
+        ledger_heading = panel.get_by_role("heading", name="Scattering hypothesis ledger")
+        ledger_heading.wait_for(state="visible", timeout=10_000)
         require(
-            panel.get_by_role("heading", name="Scattering hypothesis ledger").count() == 1,
+            ledger_heading.count() == 1,
             "candidate drawer exposes the Scattering hypothesis ledger",
         )
         require(
@@ -59,7 +61,16 @@ def main() -> int:
 
         soil = panel.locator(".wx-scattering__choice", has_text="Soil-moisture variation")
         soil.click()
-        soil_detail = panel.locator(".wx-scattering__detail").inner_text()
+        page.wait_for_function(
+            """() => {
+              const selected = document.querySelector(".wx-scattering__choice[aria-pressed='true'] strong");
+              return selected?.textContent?.trim() === "Soil-moisture variation";
+            }""",
+            timeout=10_000,
+        )
+        soil_detail_locator = panel.locator(".wx-scattering__detail")
+        soil_detail_locator.wait_for(state="visible", timeout=10_000)
+        soil_detail = soil_detail_locator.inner_text()
         require(
             "Cannot distinguish with this pair" in soil_detail
             and "No independent soil-moisture measurement" in soil_detail,
@@ -70,19 +81,16 @@ def main() -> int:
             ".wx-scattering__choice", has_text="Vegetation, roughness or intercepted water"
         )
         vegetation.click()
-        page.wait_for_timeout(250)
-        detail_locator = panel.locator(".wx-scattering__detail")
-        print(
-            "DEBUG after vegetation selection:",
-            {
-                "panel_count": panel.count(),
-                "detail_count": detail_locator.count(),
-                "pressed_choices": panel.locator(".wx-scattering__choice[aria-pressed='true']").all_text_contents(),
-                "page_errors": browser_errors,
-            },
-            flush=True,
+        page.wait_for_function(
+            """() => {
+              const selected = document.querySelector(".wx-scattering__choice[aria-pressed='true'] strong");
+              return selected?.textContent?.trim() === "Vegetation, roughness or intercepted water";
+            }""",
+            timeout=10_000,
         )
-        vegetation_detail = detail_locator.inner_text(timeout=5_000)
+        detail_locator = panel.locator(".wx-scattering__detail")
+        detail_locator.wait_for(state="visible", timeout=10_000)
+        vegetation_detail = detail_locator.inner_text()
         require(
             "Cannot distinguish with this pair" in vegetation_detail
             and "do not separate these effects" in vegetation_detail,
