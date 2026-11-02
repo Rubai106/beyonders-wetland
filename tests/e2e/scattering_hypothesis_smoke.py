@@ -40,10 +40,10 @@ def main() -> int:
         panel = page.locator(".wx-scattering")
         panel.wait_for(state="visible", timeout=10_000)
 
-        ledger_heading = panel.get_by_role("heading", name="Scattering hypothesis ledger")
+        ledger_heading = panel.locator("#wx-scattering-title")
         ledger_heading.wait_for(state="visible", timeout=10_000)
         require(
-            ledger_heading.count() == 1,
+            ledger_heading.inner_text().strip() == "Scattering hypothesis ledger",
             "candidate drawer exposes the Scattering hypothesis ledger",
         )
         require(
