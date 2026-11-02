@@ -34,4 +34,5 @@
 - Added WGS84/date/run-ID validation and terminal command generation. Earthdata credentials remain in the terminal; the browser does not execute processing.
 - Added the isolated pipeline/agriculture_sme2.py search/download/analyze/publish workflow and unit fixtures. Quality screening handles uint8 bit fields safely under NumPy 2.x, and AOI coverage uses all pixels inside the AOI as its denominator.
 - Added study schema and checksum validators with TypeScript tests.
-- No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and all local build/browser regression commands remain not run in this connected session.
+- Added a date-by-date spatial-support drift profile that compares each acquisition's own valid-footprint median with the fixed all-date cohort median. The visual gap and first-to-last gap shift expose when changing valid-pixel composition could alter the apparent time series; low coverage remains inconclusive and no pixels are filled.
+- No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and local Earthdata processing remain not run in this connected session.

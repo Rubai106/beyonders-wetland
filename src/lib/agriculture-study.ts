@@ -43,6 +43,15 @@ export interface AgricultureMatchedSupport {
   observations: AgricultureMatchedObservation[];
 }
 
+export interface AgricultureSupportDriftPoint {
+  date: string;
+  date_valid_median: number;
+  same_pixel_median: number;
+  gap_m3_m3: number;
+  date_valid_fraction: number;
+  same_pixel_fraction: number;
+}
+
 export interface AgricultureStudy {
   schema_version: 2;
   study_id: string;
@@ -226,6 +235,41 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
   const expectedStatus = target.valid_fraction < study.coverage_floor ||
     study.change_summary.valid_fraction < study.coverage_floor ? "INCONCLUSIVE_COVERAGE" : "EXPLORATORY";
   return study.evidence_status === expectedStatus;
+}
+
+/**
+ * Build a date-by-date spatial-support audit.
+ *
+ * A positive gap means the median over that date's valid footprint is higher
+ * than the median over the fixed all-date cohort. The gap is a comparison of
+ * two spatial samples, not a third sensor measurement or a moisture-change
+ * estimate. Return no profile when the fixed cohort is unavailable or the
+ * date alignment is inconsistent.
+ */
+export function buildAgricultureSupportDrift(study: AgricultureStudy): AgricultureSupportDriftPoint[] {
+  const matched = study.matched_support;
+  if (matched.valid_pixels <= 0 || matched.observations.length !== study.observations.length) return [];
+
+  const aligned = study.observations.every((observation, index) => {
+    const cohortObservation = matched.observations[index];
+    return cohortObservation?.date === observation.date &&
+      observation.total_pixels === matched.total_pixels &&
+      cohortObservation.total_pixels === matched.total_pixels &&
+      cohortObservation.valid_pixels === matched.valid_pixels;
+  });
+  if (!aligned) return [];
+
+  return study.observations.map((observation, index) => {
+    const cohortObservation = matched.observations[index];
+    return {
+      date: observation.date,
+      date_valid_median: observation.median,
+      same_pixel_median: cohortObservation.median,
+      gap_m3_m3: observation.median - cohortObservation.median,
+      date_valid_fraction: observation.valid_fraction,
+      same_pixel_fraction: cohortObservation.valid_fraction,
+    };
+  });
 }
 
 export function isAgricultureIndex(value: unknown): value is AgricultureIndex {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAgricultureSupportDrift,
   isAgricultureChecksumManifest,
   isAgricultureIndex,
   isAgricultureStudy,
@@ -49,6 +50,40 @@ const study = {
 };
 
 test("accepts a structurally valid exploratory study", () => assert.equal(isAgricultureStudy(study), true));
+
+test("builds a date-by-date support-composition gap over a fixed pixel cohort", () => {
+  const changed = structuredClone(study);
+  changed.observations.forEach((item, index) => {
+    item.median = [0.20, 0.25, 0.30, 0.35][index];
+  });
+  changed.matched_support.observations.forEach((item, index) => {
+    item.median = [0.20, 0.21, 0.22, 0.23][index];
+  });
+
+  const profile = buildAgricultureSupportDrift(changed);
+  assert.deepEqual(profile.map((item) => item.date), changed.observations.map((item) => item.date));
+  assert.deepEqual(profile.map((item) => Number(item.gap_m3_m3.toFixed(3))), [0, 0.04, 0.08, 0.12]);
+  assert.deepEqual(profile.map((item) => item.same_pixel_fraction), [0.6, 0.6, 0.6, 0.6]);
+});
+
+test("does not create a support-drift profile when the all-date cohort is empty", () => {
+  const changed = structuredClone(study);
+  changed.matched_support = {
+    method: "ALL_DATE_VALID_PIXEL_INTERSECTION",
+    status: "NO_COMMON_PIXELS",
+    valid_fraction: 0,
+    valid_pixels: 0,
+    total_pixels: 100,
+    observations: [],
+  };
+  assert.deepEqual(buildAgricultureSupportDrift(changed), []);
+});
+
+test("fails closed when date-valid and fixed-cohort dates are misaligned", () => {
+  const changed = structuredClone(study);
+  changed.matched_support.observations[2].date = "2026-06-27";
+  assert.deepEqual(buildAgricultureSupportDrift(changed), []);
+});
 
 test("accepts a zero-common-pixel audit without inventing matched observations", () => {
   const changed = structuredClone(study);

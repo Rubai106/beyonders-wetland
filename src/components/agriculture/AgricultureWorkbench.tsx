@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 import type { InvestigationDrawerTab } from "@/components/layout/InvestigationWorkspace";
 import {
+  buildAgricultureSupportDrift,
   isAgricultureChecksumManifest,
   isAgricultureIndex,
   isAgricultureStudy,
@@ -196,6 +197,62 @@ export default function AgricultureWorkbench() {
     return { min: min - (max - min || 0.02) * 0.12, max: max + (max - min || 0.02) * 0.12 };
   }, [chartObservations]);
 
+  const supportDrift = useMemo(
+    () => study ? buildAgricultureSupportDrift(study) : [],
+    [study],
+  );
+  const supportDriftStats = useMemo(() => {
+    if (!supportDrift.length) return null;
+    const absoluteGaps = supportDrift.map((item) => Math.abs(item.gap_m3_m3)).sort((a, b) => a - b);
+    const middle = Math.floor(absoluteGaps.length / 2);
+    const medianAbsoluteGap = absoluteGaps.length % 2
+      ? absoluteGaps[middle]
+      : (absoluteGaps[middle - 1] + absoluteGaps[middle]) / 2;
+    const firstGap = supportDrift[0].gap_m3_m3;
+    const lastGap = supportDrift[supportDrift.length - 1].gap_m3_m3;
+    const largest = supportDrift.reduce((best, item) =>
+      Math.abs(item.gap_m3_m3) > Math.abs(best.gap_m3_m3) ? item : best,
+    supportDrift[0]);
+    return {
+      medianAbsoluteGap,
+      gapShift: lastGap - firstGap,
+      firstGap,
+      lastGap,
+      largestGap: largest.gap_m3_m3,
+      largestGapDate: largest.date,
+    };
+  }, [supportDrift]);
+  const supportDriftPlot = useMemo(() => {
+    if (!supportDrift.length) return null;
+    const values = supportDrift.flatMap((item) => [item.date_valid_median, item.same_pixel_median]);
+    const rawMin = Math.min(...values);
+    const rawMax = Math.max(...values);
+    const padding = Math.max((rawMax - rawMin) * 0.16, 0.006);
+    const min = Math.max(0.02, rawMin - padding);
+    const max = Math.min(0.60, rawMax + padding);
+    const range = max > min ? max - min : 0.02;
+    const left = 42, right = 678, top = 18, bottom = 140;
+    const points = supportDrift.map((item, index) => {
+      const x = supportDrift.length === 1
+        ? (left + right) / 2
+        : left + (index / (supportDrift.length - 1)) * (right - left);
+      const y = (value: number) => bottom - ((value - min) / range) * (bottom - top);
+      return {
+        ...item,
+        x,
+        dateValidY: y(item.date_valid_median),
+        samePixelY: y(item.same_pixel_median),
+      };
+    });
+    return {
+      points,
+      dateValidLine: points.map((item) => item.x + "," + item.dateValidY).join(" "),
+      samePixelLine: points.map((item) => item.x + "," + item.samePixelY).join(" "),
+      min,
+      max,
+    };
+  }, [supportDrift]);
+
   const exportCsv = useCallback(() => {
     if (!study) return;
     const columns = [
@@ -286,6 +343,72 @@ export default function AgricultureWorkbench() {
                 : <p>No all-date common pixels are available, so a same-pixel median cannot be calculated.</p>}
               <small>This gap compares two spatial samples on the same date. It is not a measured soil-moisture change, accuracy score, or causal explanation. The cohort is fixed across the series; low coverage remains inconclusive.</small>
             </section>
+            {supportDriftPlot && supportDriftStats ? (
+              <section className="agri-support-drift" aria-labelledby="agri-support-drift-title">
+                <div className="agri-support-drift__head">
+                  <div>
+                    <span className="agri-eyebrow">SPATIAL SUPPORT SENSITIVITY</span>
+                    <strong id="agri-support-drift-title">Does the valid footprint change the story?</strong>
+                  </div>
+                  <span className={"agri-support-drift__status is-" + study.matched_support.status.toLowerCase().replaceAll("_", "-")}>
+                    {study.matched_support.status.replaceAll("_", " ")}
+                  </span>
+                </div>
+                <p className="agri-support-drift__intro">
+                  Each date compares its own valid-pixel median with the median over one fixed cohort that passed quality screening on every date.
+                </p>
+                <div className="agri-support-drift__stats">
+                  <div><span>Median |gap|</span><strong>{formatMoisture(supportDriftStats.medianAbsoluteGap)}</strong></div>
+                  <div><span>Gap shift · first to last</span><strong>{formatDifference(supportDriftStats.gapShift)}</strong></div>
+                  <div><span>Largest |gap|</span><strong>{formatMoisture(Math.abs(supportDriftStats.largestGap))}</strong><small>{dateLabel(supportDriftStats.largestGapDate)}</small></div>
+                </div>
+                <div className="agri-support-drift__plot">
+                  <svg viewBox="0 0 720 178" role="img" aria-label={"Date-valid and fixed-cohort median soil moisture across " + supportDrift.length + " dates. Vertical connectors show the sample-composition gap."}>
+                    <line x1="42" x2="678" y1="18" y2="18" className="agri-support-drift__grid" />
+                    <line x1="42" x2="678" y1="79" y2="79" className="agri-support-drift__grid" />
+                    <line x1="42" x2="678" y1="140" y2="140" className="agri-support-drift__grid" />
+                    <text x="4" y="22" className="agri-support-drift__axis">{supportDriftPlot.max.toFixed(2)}</text>
+                    <text x="4" y="144" className="agri-support-drift__axis">{supportDriftPlot.min.toFixed(2)}</text>
+                    {supportDriftPlot.points.map((point) => (
+                      <line
+                        key={"gap-" + point.date}
+                        x1={point.x}
+                        x2={point.x}
+                        y1={point.dateValidY}
+                        y2={point.samePixelY}
+                        className="agri-support-drift__connector"
+                      />
+                    ))}
+                    <polyline points={supportDriftPlot.dateValidLine} className="agri-support-drift__line agri-support-drift__line--valid" />
+                    <polyline points={supportDriftPlot.samePixelLine} className="agri-support-drift__line agri-support-drift__line--fixed" />
+                    {supportDriftPlot.points.map((point) => (
+                      <g key={"point-" + point.date}>
+                        <circle cx={point.x} cy={point.dateValidY} r="4" className="agri-support-drift__point agri-support-drift__point--valid" />
+                        <circle cx={point.x} cy={point.samePixelY} r="4" className="agri-support-drift__point agri-support-drift__point--fixed" />
+                      </g>
+                    ))}
+                    <text x="42" y="166" className="agri-support-drift__date">{dateLabel(supportDrift[0].date)}</text>
+                    <text x="678" y="166" textAnchor="end" className="agri-support-drift__date">{dateLabel(supportDrift[supportDrift.length - 1].date)}</text>
+                  </svg>
+                </div>
+                <div className="agri-support-drift__legend">
+                  <span><i className="is-valid" />Date-valid footprint median</span>
+                  <span><i className="is-fixed" />Fixed all-date cohort median</span>
+                  <span><i className="is-gap" />Gap at each acquisition</span>
+                </div>
+                <p className="agri-support-drift__note">
+                  Gap = date-valid median − fixed-cohort median. A changing gap warns that different valid-pixel footprints may alter the apparent series. It is not another moisture measurement, a correction to the SME2 product, or evidence of crop stress. {study.matched_support.status === "INCONCLUSIVE_COVERAGE" ? "The fixed cohort is below the 20% AOI coverage floor, so this comparison remains inconclusive." : ""}
+                </p>
+              </section>
+            ) : study.matched_support.valid_pixels === 0 ? (
+              <section className="agri-support-drift agri-support-drift--empty" aria-label="Spatial support sensitivity unavailable">
+                <div className="agri-support-drift__head">
+                  <div><span className="agri-eyebrow">SPATIAL SUPPORT SENSITIVITY</span><strong>No shared native pixels across all dates</strong></div>
+                  <span className="agri-support-drift__status is-no-common-pixels">NOT AVAILABLE</span>
+                </div>
+                <p className="agri-support-drift__note">A date-by-date gap cannot be calculated without a fixed cohort. The audit is not widened or interpolated to create one.</p>
+              </section>
+            ) : null}
             <div className="agri-reading">
               <span className="agri-eyebrow">CURRENT LAYER</span>
               <strong>{layer === "change" ? "Latest − baseline median" : layer === "matched" ? "Soil moisture · fixed pixel cohort" : "Soil moisture · selected date"}</strong>
@@ -474,6 +597,11 @@ export default function AgricultureWorkbench() {
             <span className="agri-eyebrow">WHY SAME-PIXEL COMPARISON MATTERS</span>
             <strong>Separate moisture movement from changing spatial support</strong>
             <p>Date-specific medians can represent different sets of valid pixels as quality flags and acquisition gaps change. The same-pixel trajectory fixes the cohort to the intersection of all dates, so both trajectories can be compared. A difference between their medians is a sample-composition gap, not another moisture-change measurement. The matched cohort can become small or empty; when that happens, the app reports inconclusive or unavailable rather than filling gaps.</p>
+          </div>
+          <div className="agri-reading">
+            <span className="agri-eyebrow">HOW TO READ THE SUPPORT-DRIFT PROFILE</span>
+            <strong>Track the gap between two spatial samples</strong>
+            <p>For each date, the profile compares the median across all pixels valid on that date with the median across the fixed pixels valid on every date. A changing gap is a warning that footprint composition may alter the apparent time series. It is a descriptive sensitivity check, not a validated correction or a new physical measurement. A fixed cohort below 20% of AOI pixels remains inconclusive.</p>
           </div>
           <div className="agri-reading">
             <span className="agri-eyebrow">WHAT VALIDATION WOULD NEED</span>

@@ -199,6 +199,172 @@
 }
 
 
+/* Date-by-date spatial support sensitivity profile */
+.agriculture-workspace .agri-support-drift {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #3f554d;
+  border-radius: 4px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(98 129 111 / 12%), transparent 58%),
+    #0e191b;
+}
+.agriculture-workspace .agri-support-drift__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.agriculture-workspace .agri-support-drift__head > div {
+  display: grid;
+  gap: 5px;
+}
+.agriculture-workspace .agri-support-drift__head strong {
+  color: #e7eee5;
+  font-size: .78rem;
+  line-height: 1.35;
+}
+.agriculture-workspace .agri-support-drift__intro {
+  color: #9fb1ab;
+  font-size: .64rem;
+  line-height: 1.5;
+}
+.agriculture-workspace .agri-support-drift__status {
+  flex: 0 0 auto;
+  max-width: 45%;
+  padding: 5px 7px;
+  border: 1px solid #526e60;
+  border-radius: 3px;
+  background: #17271f;
+  color: #c5e2c4;
+  font: 650 .54rem/1.3 var(--font-mono, monospace);
+  text-align: center;
+  text-transform: uppercase;
+}
+.agriculture-workspace .agri-support-drift__status.is-inconclusive-coverage {
+  border-color: #806743;
+  background: #2a2116;
+  color: #f0d19a;
+}
+.agriculture-workspace .agri-support-drift__status.is-no-common-pixels {
+  border-color: #75534d;
+  background: #2a1917;
+  color: #efc0b5;
+}
+.agriculture-workspace .agri-support-drift__stats {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 6px;
+}
+.agriculture-workspace .agri-support-drift__stats > div {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid #2a4040;
+  background: #111f22;
+}
+.agriculture-workspace .agri-support-drift__stats span,
+.agriculture-workspace .agri-support-drift__stats small {
+  color: #92a9a9;
+  font-size: .56rem;
+  line-height: 1.35;
+}
+.agriculture-workspace .agri-support-drift__stats strong {
+  color: #e7d5a6;
+  font: 650 .76rem/1.3 var(--font-mono, monospace);
+  overflow-wrap: anywhere;
+}
+.agriculture-workspace .agri-support-drift__plot {
+  overflow: hidden;
+  border: 1px solid #273c3d;
+  border-radius: 3px;
+  background: linear-gradient(180deg,#101d20,#0b1518);
+}
+.agriculture-workspace .agri-support-drift__plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 125px;
+}
+.agriculture-workspace .agri-support-drift__grid {
+  stroke: #314345;
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+.agriculture-workspace .agri-support-drift__axis,
+.agriculture-workspace .agri-support-drift__date {
+  fill: #7f9698;
+  font: 10px var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-support-drift__line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.agriculture-workspace .agri-support-drift__line--valid { stroke: #72c4b4; }
+.agriculture-workspace .agri-support-drift__line--fixed { stroke: #e0c17d; }
+.agriculture-workspace .agri-support-drift__connector {
+  stroke: #8d9690;
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: .8;
+}
+.agriculture-workspace .agri-support-drift__point--valid {
+  fill: #72c4b4;
+  stroke: #0b1518;
+  stroke-width: 1.5;
+}
+.agriculture-workspace .agri-support-drift__point--fixed {
+  fill: #e0c17d;
+  stroke: #0b1518;
+  stroke-width: 1.5;
+}
+.agriculture-workspace .agri-support-drift__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 13px;
+  color: #9baead;
+  font-size: .58rem;
+}
+.agriculture-workspace .agri-support-drift__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.agriculture-workspace .agri-support-drift__legend i {
+  display: inline-block;
+  width: 13px;
+  height: 3px;
+  border-radius: 3px;
+}
+.agriculture-workspace .agri-support-drift__legend i.is-valid { background: #72c4b4; }
+.agriculture-workspace .agri-support-drift__legend i.is-fixed { background: #e0c17d; }
+.agriculture-workspace .agri-support-drift__legend i.is-gap {
+  width: 1px;
+  height: 10px;
+  background: #a4b2a8;
+}
+.agriculture-workspace .agri-support-drift__note {
+  color: #899d9b;
+  font-size: .6rem;
+  line-height: 1.55;
+}
+.agriculture-workspace .agri-support-drift--empty {
+  border-style: dashed;
+}
+@media (max-width: 600px) {
+  .agriculture-workspace .agri-support-drift__stats {
+    grid-template-columns: 1fr;
+  }
+  .agriculture-workspace .agri-support-drift__head {
+    align-items: flex-start;
+  }
+}
+
 /* Same-pixel temporal support audit */
 .agriculture-workspace .agri-map-legend__matched {
   background: #d7b96f;

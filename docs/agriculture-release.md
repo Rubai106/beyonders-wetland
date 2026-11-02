@@ -22,6 +22,10 @@ The following implementation and safety changes are committed on the development
 
 The NASA/JPL specification lists the root SME2 moisture/uncertainty layers separately from algorithm-candidate datasets and defines the retrieval and surface quality flags. The current `surfaceQualityFlag == 0` rule is intentionally conservative: it excludes static water, urban, precipitation, snow/ice, frozen ground, terrain and dense-vegetation flags. This can reduce valid coverage in vegetated crop areas; it must not be interpreted as evidence of no soil moisture.
 
+## Spatial-support sensitivity audit
+
+The Explore panel now plots the per-date median from each date's valid footprint beside the median from the fixed all-date pixel cohort. Vertical connectors show the gap between those spatial samples at each acquisition. The summary reports the median absolute gap, first-to-last gap shift and largest absolute gap. These values are a descriptive diagnostic for spatial-support sensitivity, not a correction or physical change estimate. The fixed-cohort coverage status remains visible; below 20% is inconclusive and zero common pixels stays unavailable.
+
 ## Scientific boundaries
 
 - Product: `NISAR_L3_SME2_PROVISIONAL_V1`, PROVISIONAL maturity.

@@ -43,6 +43,16 @@ SME2 uses the shared EASE-Grid 2.0 Global grid (EPSG:6933) at approximately 200 
 
 The publish command copies only study.json, the web checksum manifest and preview PNGs into public/agriculture/current. Native GeoTIFFs and original HDF5 granules remain in local operator storage.
 
+## Spatial-support drift profile
+
+The browser derives a support-composition gap for each acquisition date:
+
+`gap(date) = median(date-valid pixels) - median(fixed all-date cohort)`
+
+The date-valid median uses every AOI pixel passing that date's SME2 quality screen. The fixed-cohort median uses only native pixels that passed the screen on every date in the series. The two lines therefore summarize different spatial samples. Their date-by-date gap reveals whether a changing valid footprint could alter the apparent temporal trajectory; the change in that gap from the first to last date is a descriptive sensitivity measure.
+
+This is not a correction to the SME2 product, a second moisture measurement, an accuracy estimate, or a crop-stress indicator. The all-date cohort may be spatially selective and must retain its actual AOI coverage. A cohort below 20% remains inconclusive; an empty cohort produces no profile. No missing pixels are filled and no cohort is widened.
+
 ## Quality protocol
 
 - `soilMoisture` must be finite and in [0.02, 0.60] m³/m³.
