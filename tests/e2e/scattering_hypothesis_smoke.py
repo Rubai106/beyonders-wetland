@@ -71,19 +71,9 @@ def main() -> int:
         page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button = page.locator(".wx-drawer").get_by_role("button", name="Challenge this detection")
         challenge_button.wait_for(state="visible", timeout=10_000)
-        challenge_button.click(force=True)
-        page.wait_for_function(
-            """() => {
-              const buttons = [...document.querySelectorAll(".wx-drawer button[aria-expanded]")];
-              const challenge = buttons.find((button) =>
-                ["Challenge this detection", "Hide the challenge"].includes(button.textContent?.trim() ?? "")
-              );
-              return challenge?.getAttribute("aria-expanded") === "true"
-                && document.querySelector(".wx-drawer .wx-challenge .wx-scattering") !== null;
-            }""",
-            timeout=10_000,
-        )
-        panel = page.locator(".wx-scattering")
+        challenge_button.scroll_into_view_if_needed()
+        challenge_button.click(timeout=10_000)
+        panel = page.locator(".wx-drawer .wx-challenge .wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
         ledger_heading = panel.locator("#wx-scattering-title")
         ledger_heading.wait_for(state="visible", timeout=10_000)
