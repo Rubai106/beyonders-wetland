@@ -194,11 +194,22 @@ def main() -> int:
             """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="open-water"][aria-pressed="true"]') !== null""",
             timeout=10_000,
         )
-        open_water_detail = panel.locator('.wx-scattering__detail[aria-label="Open-water surface scattering"]')
+        open_water_detail = panel.locator(".wx-scattering__detail")
+        page.wait_for_function(
+            """() => document.querySelector(".wx-scattering__detail")?.textContent?.includes(
+              "Relatively smooth, exposed water can reflect radar energy away from a side-looking sensor"
+            ) === true""",
+            timeout=10_000,
+        )
         open_water_detail.wait_for(state="visible", timeout=10_000)
         require(
             panel.locator('.wx-scattering__choice[data-hypothesis-id="open-water"][aria-pressed="true"]').count() == 1,
             "open-water hypothesis becomes selected",
+        )
+        require(
+            "Relatively smooth, exposed water can reflect radar energy away from a side-looking sensor"
+            in open_water_detail.inner_text(),
+            "open-water detail panel renders the selected physical mechanism",
         )
         request_panel = panel.locator(".wx-evidence-request")
         require(
