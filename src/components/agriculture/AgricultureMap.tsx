@@ -32,7 +32,7 @@ export default function AgricultureMap({
   previewUrl: string | null;
   satelliteBasemap: boolean;
   noStudy: boolean;
-  layer: "moisture" | "change";
+  layer: "moisture" | "change" | "matched";
 }) {
   const extent = displayBounds ?? aoi;
   const bounds: LatLngBoundsExpression | undefined = extent
@@ -83,11 +83,14 @@ export default function AgricultureMap({
         {layer === "change" ? <>
           <span><i className="agri-map-legend__decrease" />Decrease</span>
           <span><i className="agri-map-legend__increase" />Increase</span>
+        </> : layer === "matched" ? <>
+          <span><i className="agri-map-legend__matched" />Same pixels · all dates</span>
+          <span><i className="agri-map-legend__transparent" />Outside cohort</span>
         </> : <>
           <span><i className="agri-map-legend__low" />Lower moisture</span>
           <span><i className="agri-map-legend__high" />Higher moisture</span>
+          <span><i className="agri-map-legend__transparent" />Not assessed</span>
         </>}
-        <span><i className="agri-map-legend__transparent" />Not assessed</span>
       </div>}
     </div>
   );
