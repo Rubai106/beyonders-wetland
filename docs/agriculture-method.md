@@ -53,6 +53,22 @@ This explains one gate only. The existing acceptance rule remains unchanged: sur
 
 Fill and non-finite/fractional values are reported separately. Encodings outside the documented eight-bit range are reported as unsupported rather than relabelled. Historical packages without this optional field remain readable; the UI identifies the missing audit rather than reconstructing it.
 
+## Exact surface-flag overlap atlas (Step 1C)
+
+New analyses also retain the exact non-zero eight-bit surfaceQualityFlag values found inside the AOI, grouped by raw bit pattern. Each pattern is a mutually exclusive pixel group: a pixel with mask 0x05, for example, appears once in that pattern, while it contributes to both the static-water and precipitation marginal counts above.
+
+The published flag_combinations array stores each integer mask and its pixel count, sorted by descending frequency and then ascending mask. Its counts must sum exactly to flagged_pixels; the browser publication validator also reconstructs every per-bit marginal count from those masks and rejects inconsistent packages. The eight columns in the interactive atlas show which documented bits are set for each signature. Selecting a row reveals its hexadecimal mask, named conditions, AOI share and encoded-pixel share. The interface initially shows the eight most frequent signatures and can expand to the full list.
+
+The distinction is important:
+
+- **Marginal reason counts** answer how many pixels contain each individual bit. These counts overlap and must not be added together.
+- **Exact signatures** answer how many pixels have each complete combination of documented bits. These rows are mutually exclusive and reconcile to the total flagged-pixel count.
+- Fill, invalid and unsupported encodings remain separate from valid eight-bit signatures; they are not coerced into a synthetic flag combination.
+
+The CSV export preserves the marginal counts and exact signatures as separate JSON columns, alongside the AOI, encoded, clear, flagged, fill, invalid and unsupported totals. Historical schema-v2 packages without flag_combinations remain readable and show an explicit “not recorded” state rather than fabricating combinations.
+
+This is an audit of the stored bitfield only. It does not identify the underlying physical cause, crop type, field boundary or a crop-specific exclusion. The quality rule remains surfaceQualityFlag == 0 with all existing SME2 retrieval, moisture, uncertainty, fill and AOI checks unchanged. The overlap atlas does not turn a flagged pixel into a valid measurement or provide a quality correction.
+
 ## Independent crop-mask observability gate
 
 The optional **Step 1B crop-area gate** tests whether the selected AOI contains independently mapped crop area that also remains observable under the existing SME2 quality screen. It does not infer cropland from moisture, surface flags or AOI geometry.
