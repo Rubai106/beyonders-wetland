@@ -145,6 +145,7 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
         {assessment.hypotheses.map((hypothesis, index) => (
           <button
             className="wx-scattering__choice"
+            data-hypothesis-id={hypothesis.id}
             data-active={selected.id === hypothesis.id}
             key={hypothesis.id}
             type="button"
