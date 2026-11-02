@@ -474,8 +474,85 @@ export default function AgricultureWorkbench() {
                     );
                   })}
                 </div>
+                <section className="agri-flag-atlas" aria-labelledby="agri-flag-atlas-title">
+                  <div className="agri-flag-atlas__head">
+                    <div>
+                      <span className="agri-eyebrow">STEP 1C · JOINT BITFIELD AUDIT</span>
+                      <strong id="agri-flag-atlas-title">Which surface flags occur together?</strong>
+                    </div>
+                    {flagCombinations && <span>{flagCombinations.length} unique signatures</span>}
+                  </div>
+                  {flagCombinations === null ? (
+                    <p className="agri-flag-atlas__empty">Exact flag combinations were not included in this older publication. Re-run the local analysis to record the joint bitfield signatures.</p>
+                  ) : flagCombinations.length === 0 ? (
+                    <p className="agri-flag-atlas__empty">No encoded non-zero surface-flag signatures were recorded for this AOI and date.</p>
+                  ) : (
+                    <>
+                      <p className="agri-flag-atlas__intro">Each row is one exact eight-bit SME2 surfaceQualityFlag pattern. Unlike the marginal bars above, these rows are mutually exclusive and reconcile to the flagged-pixel total. Select a row to inspect its documented conditions.</p>
+                      <div className="agri-flag-atlas__axis" aria-hidden="true">
+                        <span>MASK</span>
+                        <span className="agri-flag-atlas__axis-bits">
+                          {["W", "U", "P", "S", "PS", "FG", "T", "DV"].map((label, bit) => (
+                            <span key={bit} title={SURFACE_FLAG_LABELS[bit].label}>{label}</span>
+                          ))}
+                        </span>
+                        <span>PIXELS / SHARE</span>
+                      </div>
+                      <div className="agri-flag-atlas__list" role="group" aria-label="Select an exact SME2 surface-flag combination">
+                        {visibleFlagCombinations.map((item) => {
+                          const active = selectedFlagCombination?.mask === item.mask;
+                          const labels = SURFACE_FLAG_LABELS
+                            .filter((_flag, bit) => (item.mask & (1 << bit)) !== 0)
+                            .map((flag) => flag.label);
+                          const hex = "0x" + item.mask.toString(16).toUpperCase().padStart(2, "0");
+                          return (
+                            <button key={item.mask} type="button" className={active ? "is-active" : ""}
+                              aria-pressed={active}
+                              aria-label={hex + " · " + labels.join(", ") + " · " + item.pixels.toLocaleString() + " pixels"}
+                              onClick={() => setSelectedFlagMask(item.mask)}>
+                              <span className="agri-flag-atlas__mask">{hex}</span>
+                              <span className="agri-flag-atlas__matrix" aria-hidden="true">
+                                {SURFACE_FLAG_LABELS.map((_flag, bit) => (
+                                  <i key={bit} className={(item.mask & (1 << bit)) !== 0 ? "is-on" : ""} />
+                                ))}
+                              </span>
+                              <span className="agri-flag-atlas__count">
+                                <strong>{item.pixels.toLocaleString()}</strong>
+                                <small>{formatPercent(item.pixels / surfaceDiagnostics.encoded_pixels)}</small>
+                              </span>
+                              <span className="agri-flag-atlas__bar" aria-hidden="true">
+                                <i style={{ width: formatPercent(item.pixels / flagCombinationMax) }} />
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {flagCombinations.length > 8 && (
+                        <button type="button" className="agri-flag-atlas__more"
+                          aria-expanded={showAllFlagCombinations}
+                          onClick={() => setShowAllFlagCombinations((value) => !value)}>
+                          {showAllFlagCombinations ? "Show the 8 most frequent signatures" : "Show all " + flagCombinations.length + " signatures"}
+                        </button>
+                      )}
+                      {selectedFlagCombination && (
+                        <div className="agri-flag-atlas__detail" aria-live="polite">
+                          <div className="agri-flag-atlas__detail-head">
+                            <span>SELECTED BIT PATTERN</span>
+                            <strong>{"0x" + selectedFlagCombination.mask.toString(16).toUpperCase().padStart(2, "0")}</strong>
+                          </div>
+                          <div className="agri-flag-atlas__detail-flags">
+                            {selectedFlagLabels.map((flag) => (
+                              <div key={flag.id}><strong>{flag.label}</strong><small>{flag.detail}</small></div>
+                            ))}
+                          </div>
+                          <p><strong>{selectedFlagCombination.pixels.toLocaleString()} pixels</strong> · {formatPercent(selectedFlagCombination.pixels / surfaceDiagnostics.total_aoi_pixels)} of the AOI · {formatPercent(selectedFlagCombination.pixels / surfaceDiagnostics.encoded_pixels)} of encoded pixels.</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </section>
                 <p className="agri-observability__note">
-                  Counts are <strong>not mutually exclusive</strong>: a pixel can appear in more than one row. This audit does not relax the current surfaceQualityFlag == 0 rule. A surface-flag-clear pixel can still fail the retrieval, moisture, uncertainty or fill checks in the full SME2 quality screen.
+                  Marginal flag counts are <strong>not mutually exclusive</strong>: one pixel can carry several bits. The overlap atlas groups each encoded pixel into exactly one raw bit pattern, so its row counts sum to the flagged total. Neither view relaxes the current surfaceQualityFlag == 0 rule. A surface-flag-clear pixel can still fail retrieval, moisture, uncertainty or fill checks in the full SME2 quality screen.
                 </p>
               </section>
             ) : (
