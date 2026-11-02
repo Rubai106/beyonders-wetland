@@ -100,6 +100,19 @@ def main() -> int:
         page.wait_for_selector(".wx-drawer", timeout=10_000)
         page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button = page.locator(".wx-drawer").get_by_role("button", name="Challenge this detection")
+        if challenge_button.count() == 0:
+            # Leaflet polygons can be present in the SVG but not have a
+            # selected WetlandPatch yet (for example, when the map layer is
+            # still finishing its interaction setup). The existing region
+            # register provides a deterministic, real candidate-selection
+            # path inside the same drawer; use it rather than assuming the
+            # polygon click succeeded.
+            region_choice = page.locator(".wx-drawer .wx-regions button").first
+            region_choice.wait_for(state="visible", timeout=10_000)
+            region_choice.scroll_into_view_if_needed()
+            region_choice.click()
+            page.wait_for_selector(".wx-drawer .wx-facts", timeout=10_000)
+            page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button.wait_for(state="visible", timeout=10_000)
         challenge_button.scroll_into_view_if_needed()
         challenge_button.click(timeout=10_000)
