@@ -259,6 +259,7 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
   if (value.flag_combinations !== undefined) {
     if (!Array.isArray(value.flag_combinations)) return false;
     const seen = new Set<number>();
+    const combinedBitCounts = ids.map(() => 0);
     let totalCombinationPixels = 0;
     let previousPixels = Number.POSITIVE_INFINITY;
     let previousMask = -1;
@@ -271,10 +272,14 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
       if (pixels > previousPixels || (pixels === previousPixels && mask <= previousMask)) return false;
       seen.add(mask);
       totalCombinationPixels += pixels;
+      ids.forEach((_id, bit) => {
+        if ((mask & (1 << bit)) !== 0) combinedBitCounts[bit] += pixels;
+      });
       previousPixels = pixels;
       previousMask = mask;
     }
-    if (totalCombinationPixels !== flagged) return false;
+    if (totalCombinationPixels !== flagged ||
+        !ids.every((id, bit) => combinedBitCounts[bit] === Number(flags[id]))) return false;
   }
   return true;
 }
