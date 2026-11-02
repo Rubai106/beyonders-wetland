@@ -30,7 +30,7 @@ function granuleShortlistKey(search: EvidenceArchiveSearch, granule: CmrGranule,
 }
 function granuleDayOffset(candidateDate: string, granule: CmrGranule): number | null {
   const acquisitionDate = (granule.timeStart ?? granule.timeEnd)?.slice(0, 10);
-  if (!acquisitionDate || !/^\\d{4}-\\d{2}-\\d{2}$/.test(candidateDate)) return null;
+  if (!acquisitionDate || !/^\d{4}-\d{2}-\d{2}$/.test(candidateDate)) return null;
   const candidateMs = Date.parse(candidateDate + "T00:00:00Z");
   const acquisitionMs = Date.parse(acquisitionDate + "T00:00:00Z");
   if (!Number.isFinite(candidateMs) || !Number.isFinite(acquisitionMs)) return null;
