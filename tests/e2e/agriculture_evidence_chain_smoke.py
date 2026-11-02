@@ -50,6 +50,15 @@ def main() -> int:
             state="visible", timeout=20_000
         )
         require(True, "the workspace explicitly states that no genuine Agriculture publication is bundled")
+        page.get_by_text("Same-pixel time-series audit", exact=True).wait_for(state="visible", timeout=10_000)
+        require(
+            page.locator(".agri-cohort-audit").count() == 0,
+            "the matched-pixel feature is introduced without fabricated coverage or moisture statistics",
+        )
+        require(
+            page.locator(".agri-map-empty").is_visible(),
+            "the map continues to show basemap context only until genuine SME2 data are published",
+        )
 
         tabs = page.locator(".wx-tabs [role='tab']")
         require(tabs.count() == 5, "Explore, Operator, Evidence, Check it and Learn tabs are all present")
