@@ -87,10 +87,8 @@ def main() -> int:
         # inspector. A host-wide route would also mock unrelated CMR resources
         # used elsewhere in the Wetland drawer.
         page.route(
-            lambda request_url: (
-                urlparse(request_url).scheme == "https"
-                and urlparse(request_url).netloc == "cmr.earthdata.nasa.gov"
-                and urlparse(request_url).path.startswith("/search/granules.umm_json_v1_18_6")
+            lambda request_url: request_url.startswith(
+                "https://cmr.earthdata.nasa.gov/search/granules.umm_json_v1_18_6"
             ),
             mock_cmr,
         )
@@ -244,7 +242,6 @@ def main() -> int:
         )
         cmr_link = request_panel.locator("a", has_text="Search CMR").first
         cmr_url = cmr_link.get_attribute("href") or ""
-        from urllib.parse import parse_qs, urlparse
         query = parse_qs(urlparse(cmr_url).query)
         require(
             urlparse(cmr_url).netloc == "cmr.earthdata.nasa.gov"
