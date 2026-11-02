@@ -15,7 +15,7 @@ import numpy as np
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, CMR_PAGE_SIZE, quality_mask, safe_run_id, validate_aoi_dates, _cmr_search,
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
-    _baseline_layers, _epsg_from_handle, _validate_moisture_units,
+    _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
 )
 
 
@@ -50,6 +50,34 @@ class AgricultureSME2Tests(unittest.TestCase):
                               np.full(shape, 15, dtype=np.uint8),
                               np.array([[0, 1, 2, 255]], dtype=np.uint8))
         np.testing.assert_array_equal(result, [[True, False, False, False]])
+
+    def test_surface_flag_diagnostics_decode_overlapping_documented_bits(self):
+        flags = np.array([[0, 1, 4, 128, 3, 256, -9999, np.nan, 1.5]], dtype="float64")
+        aoi = np.ones(flags.shape, dtype=bool)
+        result = surface_flag_diagnostics(flags, aoi, [-9999])
+        self.assertEqual(result["method"], "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS")
+        self.assertEqual(result["total_aoi_pixels"], 9)
+        self.assertEqual(result["encoded_pixels"], 5)
+        self.assertEqual(result["unflagged_pixels"], 1)
+        self.assertEqual(result["flagged_pixels"], 4)
+        self.assertEqual(result["fill_pixels"], 1)
+        self.assertEqual(result["invalid_pixels"], 2)
+        self.assertEqual(result["unsupported_encoding_pixels"], 1)
+        self.assertEqual(result["flags"]["static_water"], 2)
+        self.assertEqual(result["flags"]["urban_area"], 1)
+        self.assertEqual(result["flags"]["precipitation"], 1)
+        self.assertEqual(result["flags"]["dense_vegetation"], 1)
+        self.assertGreater(sum(result["flags"].values()), result["flagged_pixels"])
+
+    def test_surface_flag_diagnostics_respect_aoi_and_reject_shape_mismatch(self):
+        values = np.array([[0, 1, 2]], dtype="float64")
+        aoi = np.array([[True, False, True]])
+        result = surface_flag_diagnostics(values, aoi)
+        self.assertEqual(result["total_aoi_pixels"], 2)
+        self.assertEqual(result["unflagged_pixels"], 1)
+        self.assertEqual(result["flags"]["urban_area"], 0)
+        with self.assertRaisesRegex(AgricultureError, "matching two-dimensional arrays"):
+            surface_flag_diagnostics(values, np.ones((1, 2), dtype=bool))
 
     def test_moisture_and_uncertainty_are_screened(self):
         moisture = np.array([[.01, .2, .61, .3]])
