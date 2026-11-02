@@ -106,13 +106,20 @@ def main() -> int:
         region_choice.wait_for(state="visible", timeout=10_000)
         region_choice.scroll_into_view_if_needed()
         region_choice.click()
-        page.locator(".wx-drawer .wx-facts").wait_for(state="visible", timeout=10_000)
 
+        # The challenge action only exists after a candidate is selected.
+        # Wait for that exact disclosure control, not a generic facts block
+        # elsewhere in the Explore drawer.
         challenge_button = page.locator(".wx-drawer .wx-tool__action").get_by_role(
             "button", name="Challenge this detection"
         )
         challenge_button.wait_for(state="visible", timeout=10_000)
-        challenge_button.scroll_into_view_if_needed()
+        # ToolFrame places the action after the full evidence content. Move
+        # the drawer's own scroll container to its end before clicking so the
+        # nested panel does not race Playwright's auto-scroll routine.
+        page.locator(".wx-drawer__body").evaluate(
+            "(element) => { element.scrollTop = element.scrollHeight; }"
+        )
         challenge_button.click(timeout=10_000)
         # Wait for the parent disclosure to commit before inspecting its
         # conditionally rendered content. The challenge sits above the action
