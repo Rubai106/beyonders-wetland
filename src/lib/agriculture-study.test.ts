@@ -66,12 +66,34 @@ test("validates the per-date SME2 surface-flag observability audit", () => {
       static_water: 2, urban_area: 3, precipitation: 12, snow_or_ice: 0,
       permanent_snow_or_ice: 0, frozen_ground: 1, terrain: 1, dense_vegetation: 11,
     },
+    flag_combinations: [
+      { mask: 4, pixels: 8 },
+      { mask: 128, pixels: 7 },
+      { mask: 132, pixels: 4 },
+      { mask: 2, pixels: 2 },
+      { mask: 1, pixels: 1 },
+      { mask: 3, pixels: 1 },
+      { mask: 32, pixels: 1 },
+      { mask: 64, pixels: 1 },
+    ],
   };
   assert.equal(isAgricultureStudy(changed), true);
 
   const inconsistent = structuredClone(changed);
   inconsistent.observations[0].surface_flag_diagnostics.flags.dense_vegetation = 96;
   assert.equal(isAgricultureStudy(inconsistent), false);
+
+  const wrongCombinationTotal = structuredClone(changed);
+  wrongCombinationTotal.observations[0].surface_flag_diagnostics.flag_combinations[0].pixels = 7;
+  assert.equal(isAgricultureStudy(wrongCombinationTotal), false);
+
+  const wrongMarginal = structuredClone(changed);
+  wrongMarginal.observations[0].surface_flag_diagnostics.flags.precipitation = 11;
+  assert.equal(isAgricultureStudy(wrongMarginal), false);
+
+  const unordered = structuredClone(changed);
+  unordered.observations[0].surface_flag_diagnostics.flag_combinations.reverse();
+  assert.equal(isAgricultureStudy(unordered), false);
 });
 
 test("validates an independently sourced, area-weighted crop-support audit", () => {
