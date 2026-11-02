@@ -95,10 +95,12 @@ def main() -> int:
         page.wait_for_selector(".wx-obs", timeout=20_000)
         page.wait_for_selector("path.wx-patch", timeout=20_000)
 
-        # Select a real packaged Tanguar Haor candidate from the drawer's
-        # region register. This is the same UI-backed selection action as a
-        # map click, but avoids depending on Leaflet's SVG hit-testing timing
-        # in a headless browser.
+        # Open Explore through its actual on-screen control, then select a
+        # real packaged Tanguar Haor candidate from the region register.
+        # This avoids depending on Leaflet SVG hit-testing timing in headless
+        # Chromium while preserving the real drawer selection workflow.
+        page.locator(".wx-drawer-reopen").wait_for(state="visible", timeout=10_000)
+        page.locator(".wx-drawer-reopen").click()
         page.wait_for_selector(".wx-drawer", timeout=10_000)
         region_choice = page.locator(".wx-drawer .wx-regions button").first
         region_choice.wait_for(state="visible", timeout=10_000)
