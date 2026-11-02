@@ -51,9 +51,11 @@ test("open-water request builds product-specific DSWx collection URLs with candi
   const query = getQuery(hls.queryUrl);
   assert.equal(query.get("short_name"), "OPERA_L3_DSWX-HLS_V1");
   assert.equal(query.get("version"), "1.0");
-  assert.equal(query.has("bounding_box"), true);
+  assert.equal(query.has("polygon"), true);
+  assert.equal(query.has("bounding_box"), false);
   assert.equal(query.has("point"), false);
-  assert.equal(request.spatialSearch.method, "candidate-bounding-box");
+  assert.equal(request.spatialSearch.method, "candidate-polygon");
+  assert.equal(request.archiveSearches[0].spatialFilter, "polygon");
   assert.deepEqual(request.spatialSearch.boundingBox, [32.9, -24.6, 33.1, -24.4]);
 });
 
@@ -100,8 +102,11 @@ test("multipolygon bounds include all outer rings, while the request retains the
   };
   const request = buildEvidenceRequest(patch({ geometry: multi }), "open-water");
   assert.deepEqual(request.spatialSearch.boundingBox, [32, -25, 33.1, -23.9]);
+  assert.equal(request.spatialSearch.method, "candidate-polygon");
+  assert.equal(request.spatialSearch.polygonParts?.length, 2);
+  assert.equal(getQuery(request.archiveSearches[0].queryUrl).getAll("polygon[]").length, 2);
+  assert.equal(getQuery(request.archiveSearches[0].queryUrl).get("options[polygon][or]"), "true");
   assert.deepEqual(request.candidate.geometry, multi);
-  assert.match(request.spatialSearch.interpretation, /gaps between multipart regions/i);
 });
 
 test("invalid date prevents archive URLs rather than inventing a time range", () => {
@@ -109,6 +114,42 @@ test("invalid date prevents archive URLs rather than inventing a time range", ()
   assert.equal(request.temporalSearch, null);
   assert.equal(request.archiveSearches.length, 0);
   assert.ok(request.warnings.some((warning) => /valid YYYY-MM-DD/i.test(warning)));
+});
+
+test("polygon rings are closed and counter-clockwise before they are sent to CMR", () => {
+  const clockwise = {
+    type: "Polygon" as const,
+    coordinates: [[
+      [32.9, -24.6],
+      [32.9, -24.4],
+      [33.1, -24.4],
+      [33.1, -24.6],
+      [32.9, -24.6],
+    ]],
+  };
+  const request = buildEvidenceRequest(patch({ geometry: clockwise }), "open-water");
+  const ring = (getQuery(request.archiveSearches[0].queryUrl).get("polygon") ?? "").split(",").map(Number);
+  assert.equal(ring.length, 10);
+  let twiceArea = 0;
+  for (let i = 0; i < ring.length; i += 2) {
+    const next = (i + 2) % ring.length;
+    twiceArea += ring[i] * ring[next + 1] - ring[next] * ring[i + 1];
+  }
+  assert.ok(twiceArea > 0);
+  assert.deepEqual([ring[0], ring[1]], [ring[ring.length - 2], ring[ring.length - 1]]);
+});
+
+test("polygon discovery records that interior holes are not subtracted", () => {
+  const withHole = {
+    type: "Polygon" as const,
+    coordinates: [
+      [[32.9, -24.6], [33.1, -24.6], [33.1, -24.4], [32.9, -24.4], [32.9, -24.6]],
+      [[32.95, -24.55], [33.05, -24.55], [33.05, -24.45], [32.95, -24.45], [32.95, -24.55]],
+    ],
+  };
+  const request = buildEvidenceRequest(patch({ geometry: withHole }), "open-water");
+  assert.equal(request.spatialSearch.holesIgnored, true);
+  assert.ok(request.warnings.some((warning) => /interior holes are not subtracted/i.test(warning)));
 });
 
 test("invalid geometry uses centroid only; invalid centroid blocks spatial searches", () => {
