@@ -55,6 +55,10 @@ def main() -> int:
             page.locator(".agri-cohort-audit").count() == 0,
             "the matched-pixel feature is introduced without fabricated coverage or moisture statistics",
         )
+        require(
+            page.locator(".agri-flag-atlas").count() == 0,
+            "the new flag-overlap atlas is withheld when no real SME2 publication exists",
+        )
         agriculture_map = page.locator(".agri-map")
         require(
             agriculture_map.count() == 1 and agriculture_map.is_visible(),
