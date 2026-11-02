@@ -818,9 +818,11 @@ def _align_crop_probability_mask(
         raise AgricultureError("Minimum within-cell crop-mask coverage must be between 0.5 and 1.")
     if source_date is not None:
         try:
-            datetime.strptime(source_date, "%Y-%m-%d")
+            parsed_source_date = datetime.strptime(source_date, "%Y-%m-%d")
         except ValueError as exc:
             raise AgricultureError("Crop-mask source date must use YYYY-MM-DD.") from exc
+        if parsed_source_date.strftime("%Y-%m-%d") != source_date:
+            raise AgricultureError("Crop-mask source date must use zero-padded YYYY-MM-DD.")
 
     target_transform = reference_scene["transform"]
     target_epsg = int(reference_scene["epsg"])
@@ -1038,8 +1040,8 @@ def _crop_support_audit(
         valid_masks.append(valid)
         row = _crop_weighted_summary(scene, valid, weights, total_crop_area)
         row["status"] = (
-            "NO_CROP_SUPPORT" if total_crop_area <= 0
-            else "INSUFFICIENT_MASK_COVERAGE" if mask_metadata["mask_coverage_fraction"] < COVERAGE_FLOOR
+            "INSUFFICIENT_MASK_COVERAGE" if mask_metadata["mask_coverage_fraction"] < COVERAGE_FLOOR
+            else "NO_CROP_SUPPORT" if total_crop_area <= 0
             else "NO_VALID_CROP_SUPPORT" if row["valid_crop_area_equivalent_pixels"] <= 0
             else "INCONCLUSIVE_COVERAGE" if row["valid_crop_area_fraction"] < COVERAGE_FLOOR
             else "COMPARABLE"
@@ -1050,10 +1052,10 @@ def _crop_support_audit(
     common &= first_aoi & (weights > 0)
     common_area = float(np.sum(weights[common]))
     common_fraction = common_area / total_crop_area if total_crop_area > 0 else 0.0
-    if total_crop_area <= 0:
-        status = "NO_CROP_SUPPORT"
-    elif mask_metadata["mask_coverage_fraction"] < COVERAGE_FLOOR:
+    if mask_metadata["mask_coverage_fraction"] < COVERAGE_FLOOR:
         status = "INSUFFICIENT_MASK_COVERAGE"
+    elif total_crop_area <= 0:
+        status = "NO_CROP_SUPPORT"
     elif common_area <= 0:
         status = "NO_COMMON_CROP_SUPPORT"
     elif common_fraction < COVERAGE_FLOOR:
