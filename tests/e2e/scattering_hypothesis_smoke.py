@@ -186,7 +186,6 @@ def main() -> int:
             request_panel.get_by_role("button", name="Download evidence request JSON").click()
         download = download_info.value
         request_path = download.path()
-        import json
         with open(request_path, encoding="utf-8") as request_file:
             exported = json.load(request_file)
         require(
