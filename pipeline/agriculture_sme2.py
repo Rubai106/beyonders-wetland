@@ -676,6 +676,19 @@ def surface_flag_diagnostics(surface_flag: np.ndarray, aoi_mask: np.ndarray,
     total = int(np.sum(aoi))
     encoded_count = int(np.sum(encoded))
     flagged_count = int(np.sum(encoded & (raw != 0)))
+
+    # Exact combinations are mutually exclusive signatures, unlike the
+    # per-bit marginal counts above. Their pixel totals must reconcile to
+    # flagged_count, making overlapping exclusion reasons auditable without
+    # changing the strict surfaceQualityFlag == 0 quality gate.
+    unique_masks, unique_counts = np.unique(raw[encoded & (raw != 0)], return_counts=True)
+    flag_combinations = sorted(
+        (
+            {"mask": int(mask), "pixels": int(count)}
+            for mask, count in zip(unique_masks, unique_counts)
+        ),
+        key=lambda item: (-item["pixels"], item["mask"]),
+    )
     return {
         "method": SURFACE_FLAG_METHOD,
         "total_aoi_pixels": total,
@@ -686,6 +699,7 @@ def surface_flag_diagnostics(surface_flag: np.ndarray, aoi_mask: np.ndarray,
         "invalid_pixels": int(np.sum(invalid)),
         "unsupported_encoding_pixels": int(np.sum(unsupported)),
         "flags": flags,
+        "flag_combinations": flag_combinations,
     }
 
 
