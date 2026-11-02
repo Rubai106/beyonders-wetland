@@ -33,7 +33,7 @@ const MAX_DATE = "2026-10-31";
 const RUN_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
 
 type LoadState = "loading" | "not-published" | "ready" | "error";
-type MapLayer = "moisture" | "change" | "matched" | "crop" | "crop-common";
+type MapLayer = "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
 type SeriesSupportMode = "date-valid" | "same-pixels";
 const SURFACE_FLAG_LABELS: Array<{ id: AgricultureSurfaceFlagId; label: string; detail: string }> = [
   { id: "static_water", label: "Static water body", detail: "Surface-water mask" },
@@ -190,6 +190,7 @@ export default function AgricultureWorkbench() {
       : layer === "matched" ? selectedMatchedObservation?.preview ?? ""
       : layer === "crop" ? cropObservability?.preview ?? ""
       : layer === "crop-common" ? cropObservability?.common_support.preview ?? ""
+      : layer === "crop-source" ? cropObservability?.source_coverage_preview ?? ""
       : selectedObservation?.preview ?? ""
     : "";
 
@@ -357,6 +358,7 @@ export default function AgricultureWorkbench() {
       : layer === "matched" ? selectedMatchedObservation?.valid_fraction ?? 0
       : layer === "crop" ? selectedCropObservation?.valid_crop_area_fraction ?? 0
       : layer === "crop-common" ? cropObservability?.common_support.valid_crop_area_fraction ?? 0
+      : layer === "crop-source" ? cropObservability?.mask_coverage_fraction ?? 0
       : selectedObservation?.valid_fraction ?? 0
     : 0;
   const displayedSummary = study
@@ -388,16 +390,18 @@ export default function AgricultureWorkbench() {
           {study ? <>
             <div className="agri-stat-grid">
               <div>
-                <span>{layer === "change" ? "Median moisture difference" : cropLayerActive ? "Crop-weighted SME2 median" : "Median soil moisture"}</span>
-                <strong>{layer === "change"
-                  ? formatDifference(study.change_summary.median)
-                  : cropLayerActive
-                    ? cropWeightedMoisture ? formatMoisture(cropWeightedMoisture.median) : "NOT ASSESSED"
-                    : formatMoisture(layer === "matched" ? selectedMatchedObservation?.median ?? 0 : selectedObservation?.median ?? 0)}</strong>
-                <small>{layer === "change" ? "Latest minus baseline median" : layer === "matched" ? "Same pixels across every date" : layer === "crop-common" ? "Fixed crop-area cohort" : layer === "crop" ? "Selected date · independent crop support" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small>
+                <span>{layer === "crop-source" ? "Mean source-data coverage" : layer === "change" ? "Median moisture difference" : cropLayerActive ? "Crop-weighted SME2 median" : "Median soil moisture"}</span>
+                <strong>{layer === "crop-source"
+                  ? formatPercent(cropObservability?.mean_source_data_coverage_fraction ?? 0)
+                  : layer === "change"
+                    ? formatDifference(study.change_summary.median)
+                    : cropLayerActive
+                      ? cropWeightedMoisture ? formatMoisture(cropWeightedMoisture.median) : "NOT ASSESSED"
+                      : formatMoisture(layer === "matched" ? selectedMatchedObservation?.median ?? 0 : selectedObservation?.median ?? 0)}</strong>
+                <small>{layer === "crop-source" ? "Average valid mask-source fraction across AOI cells" : layer === "change" ? "Latest minus baseline median" : layer === "matched" ? "Same pixels across every date" : layer === "crop-common" ? "Fixed crop-area cohort" : layer === "crop" ? "Selected date · independent crop support" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small>
               </div>
-              <div><span>{cropLayerActive ? "Valid mapped crop area" : "Valid coverage"}</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "crop-common" ? "Common crop area · every date" : layer === "crop" ? "Selected-date crop area" : layer === "change" ? "Change-layer coverage" : layer === "matched" ? "Same pixels · all dates" : "Selected-date coverage"}</small></div>
-              <div><span>{layer === "change" ? "Target-date uncertainty" : "Median uncertainty"}</span><strong>{displayedUncertainty === undefined ? "—" : displayedUncertainty.toFixed(3)}</strong><small>{layer === "change" ? "Not propagated into change" : cropLayerActive ? "Crop-area weighted product uncertainty" : "Product-reported"}</small></div>
+              <div><span>{layer === "crop-source" ? "AOI cells above floor" : cropLayerActive ? "Valid mapped crop area" : "Valid coverage"}</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "crop-source" ? "Native cells with at least the configured source coverage" : layer === "crop-common" ? "Common crop area · every date" : layer === "crop" ? "Selected-date crop area" : layer === "change" ? "Change-layer coverage" : layer === "matched" ? "Same pixels · all dates" : "Selected-date coverage"}</small></div>
+              <div><span>{layer === "crop-source" ? "Within-cell coverage floor" : layer === "change" ? "Target-date uncertainty" : "Median uncertainty"}</span><strong>{layer === "crop-source" ? formatPercent(cropObservability?.minimum_cell_coverage ?? 0.8) : displayedUncertainty === undefined ? "—" : displayedUncertainty.toFixed(3)}</strong><small>{layer === "crop-source" ? "Cells below this are excluded from crop-area estimates" : layer === "change" ? "Not propagated into change" : cropLayerActive ? "Crop-area weighted product uncertainty" : "Product-reported"}</small></div>
             </div>
             <section className="agri-cohort-audit" aria-label="Same-pixel time-series comparability audit">
               <div className="agri-cohort-audit__head">
@@ -510,7 +514,8 @@ export default function AgricultureWorkbench() {
                 <div className="agri-crop-gate__controls">
                   <button type="button" aria-pressed={layer === "crop"} onClick={() => setLayer("crop")} disabled={!cropObservability.preview}>View crop-area support</button>
                   <button type="button" aria-pressed={layer === "crop-common"} onClick={() => setLayer("crop-common")} disabled={!cropObservability.common_support.preview}>View all-date crop cohort</button>
-                  <span>{layer === "crop-common" ? "Fixed all-date crop cohort" : layer === "crop" ? "Selected-date crop mask support" : "Select a date row or map layer to inspect the crop mask"}</span>
+                  <button type="button" aria-pressed={layer === "crop-source"} onClick={() => setLayer("crop-source")}>View mask quality</button>
+                  <span>{layer === "crop-common" ? "Fixed all-date crop cohort" : layer === "crop" ? "Selected-date crop mask support" : layer === "crop-source" ? "Source-data coverage for each native SME2 cell" : "Select a date row or map layer to inspect the crop mask"}</span>
                 </div>
                 <dl className="agri-crop-gate__provenance">
                   <div><dt>Independent source</dt><dd>{cropObservability.source}</dd></div>
@@ -605,6 +610,7 @@ export default function AgricultureWorkbench() {
                 : layer === "matched" ? "Soil moisture · fixed pixel cohort"
                 : layer === "crop" ? "Independent crop mask · native-cell fraction"
                 : layer === "crop-common" ? "Crop area · fixed all-date cohort"
+                : layer === "crop-source" ? "Mask quality · per-cell source coverage"
                 : "Soil moisture · selected date"}</strong>
               <p>{layer === "change"
                 ? "Difference between " + study.target_date + " and the pixel-wise median of " + study.baseline_count + " baseline dates. Positive and negative values are changes in the measured soil-moisture variable, not crop-health classifications. The displayed uncertainty remains the target-date product uncertainty; it is not propagated into this difference."
@@ -614,7 +620,9 @@ export default function AgricultureWorkbench() {
                     ? "The overlay shows the area fraction of source pixels meeting the independent crop threshold inside each native SME2 cell. Cells with insufficient source coverage are transparent; no crop identity is inferred from the SME2 moisture measurements."
                     : layer === "crop-common"
                       ? "The overlay retains only mapped crop-area cells that passed the unchanged SME2 quality screen on every date. This is a strict comparability cohort, not a crop-health or representativeness guarantee."
-                      : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its date-specific valid-pixel coverage and uncertainty."}</p>
+                      : layer === "crop-source"
+                        ? "Each native SME2 cell is coloured by the fraction of source-mask pixels with valid data. Green meets the configured within-cell coverage floor, amber is partial, and red indicates no valid source data. This is source-input quality, not crop classification."
+                        : "The selected observation is " + (selectedObservation ? dateLabel(selectedObservation.date) : "not selected") + ". The estimate is displayed with its date-specific valid-pixel coverage and uncertainty."}</p>
             </div>
             {previewError && <p className="agri-alert" role="alert">{previewError}</p>}
             <button type="button" className="agri-secondary-button" onClick={exportCsv}>Export dated statistics · CSV</button>
@@ -861,7 +869,8 @@ export default function AgricultureWorkbench() {
         <button type="button" aria-pressed={layer === "matched"} disabled={!study || study.matched_support.observations.length === 0} onClick={() => { setLayer("matched"); setSeriesSupportMode("same-pixels"); }}>Same pixels</button>
         <button type="button" aria-pressed={layer === "crop"} disabled={!cropObservability?.preview} onClick={() => setLayer("crop")}>Crop area</button>
         <button type="button" aria-pressed={layer === "crop-common"} disabled={!cropObservability?.common_support.preview} onClick={() => setLayer("crop-common")}>Crop cohort</button>
-        <span>{layer === "change" ? "Latest − baseline" : layer === "matched" ? "All dates · fixed cohort" : layer === "crop" ? "Independent crop-area mask" : layer === "crop-common" ? "Quality-valid crop area · all dates" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
+        <button type="button" aria-pressed={layer === "crop-source"} disabled={!cropObservability?.source_coverage_preview} onClick={() => setLayer("crop-source")}>Mask QA</button>
+        <span>{layer === "change" ? "Latest − baseline" : layer === "matched" ? "All dates · fixed cohort" : layer === "crop" ? "Independent crop-area mask" : layer === "crop-common" ? "Quality-valid crop area · all dates" : layer === "crop-source" ? "Independent mask source coverage" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
       </div>}
       drawerTabs={drawerTabs}
       drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" />{loadState === "error" ? loadError : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</div>}
