@@ -87,7 +87,7 @@ def main() -> int:
         # inspector. A host-wide route would also mock unrelated CMR resources
         # used elsewhere in the Wetland drawer.
         page.route(
-            "https://cmr.earthdata.nasa.gov/search/granules.umm_json_v1_18_6*",
+            "**/search/granules.umm_json_v1_18_6**",
             mock_cmr,
         )
 
@@ -257,15 +257,25 @@ def main() -> int:
         )
         search_button = request_panel.get_by_role("button", name="Search NASA CMR granules")
         search_button.evaluate("(button) => button.click()")
-        page.wait_for_function(
-            """() => {
-              const status = document.querySelector(".wx-cmr-inspector__status")?.textContent ?? "";
-              return status.startsWith("CMR search completed")
-                || status.startsWith("Some collection searches completed")
-                || status.startsWith("CMR could not be reached");
-            }""",
-            timeout=20_000,
-        )
+        try:
+            page.wait_for_function(
+                """() => {
+                  const status = document.querySelector(".wx-cmr-inspector__status")?.textContent ?? "";
+                  return status.startsWith("CMR search completed")
+                    || status.startsWith("Some collection searches completed")
+                    || status.startsWith("CMR could not be reached");
+                }""",
+                timeout=20_000,
+            )
+        except Exception:
+            print("DEBUG intercepted CMR requests:", json.dumps(cmr_requests), flush=True)
+            print(
+                "DEBUG visible CMR status:",
+                page.locator(".wx-cmr-inspector__status").all_inner_texts(),
+                flush=True,
+            )
+            print("DEBUG browser errors:", json.dumps(browser_errors), flush=True)
+            raise
         cmr_gets = [url for method, url in cmr_requests if method == "GET"]
         require(
             len(cmr_gets) == 2,
