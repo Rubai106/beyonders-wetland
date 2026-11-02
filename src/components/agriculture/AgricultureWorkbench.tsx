@@ -267,7 +267,7 @@ export default function AgricultureWorkbench() {
           {study ? <>
             <div className="agri-stat-grid">
               <div><span>{layer === "change" ? "Median moisture difference" : "Median soil moisture"}</span><strong>{layer === "change" ? formatDifference(study.change_summary.median) : formatMoisture(layer === "matched" ? selectedMatchedObservation?.median ?? 0 : selectedObservation?.median ?? 0)}</strong><small>{layer === "change" ? "Latest minus baseline median" : layer === "matched" ? "Same pixels across every date" : selectedObservation ? dateLabel(selectedObservation.date) : ""}</small></div>
-              <div><span>Valid coverage</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "change" ? "Change-layer coverage" : "Selected-date coverage"}</small></div>
+              <div><span>Valid coverage</span><strong>{formatPercent(currentCoverage)}</strong><small>{layer === "change" ? "Change-layer coverage" : layer === "matched" ? "Same pixels · all dates" : "Selected-date coverage"}</small></div>
               <div><span>{layer === "change" ? "Target-date uncertainty" : "Median uncertainty"}</span><strong>{(displayedSummary?.uncertainty_median ?? 0).toFixed(3)}</strong><small>{layer === "change" ? "Not propagated into change" : "Product-reported"}</small></div>
             </div>
             <section className="agri-cohort-audit" aria-label="Same-pixel time-series comparability audit">
@@ -296,7 +296,16 @@ export default function AgricultureWorkbench() {
             </div>
             {previewError && <p className="agri-alert" role="alert">{previewError}</p>}
             <button type="button" className="agri-secondary-button" onClick={exportCsv}>Export dated statistics · CSV</button>
-          </> : <div className="agri-no-study"><strong>No published SME2 result yet</strong><p>The workspace is ready, but no genuine, checksum-verified Agriculture study has been published here.</p></div>}
+          </> : <div className="agri-no-study">
+            <strong>No published SME2 result yet</strong>
+            <p>The workspace is ready, but no genuine, checksum-verified Agriculture study has been published here.</p>
+            <div className="agri-empty-method">
+              <span className="agri-eyebrow">NEW ANALYSIS MODE · READY FOR REAL DATA</span>
+              <strong>Same-pixel time-series audit</strong>
+              <p>Once a real compatible SME2 series is processed, compare each date's full valid footprint with one fixed cohort of pixels that passed the quality screen on every date.</p>
+            </div>
+            <small>No demo values or synthetic maps are shown while the real study is unpublished.</small>
+          </div>}
         </div>
       ),
     },
@@ -351,6 +360,11 @@ export default function AgricultureWorkbench() {
               <span className="agri-eyebrow">EVIDENCE STATUS</span>
               <strong>{study.evidence_status === "INCONCLUSIVE_COVERAGE" ? "Inconclusive · coverage below 20%" : "Exploratory · not independently validated"}</strong>
               <p>Target coverage: {formatPercent(target?.valid_fraction ?? 0)} · change coverage: {formatPercent(study.change_summary.valid_fraction)} · fixed floor: 20%.</p>
+            </div>
+            <div className={"agri-verdict " + (study.matched_support.status === "COMPARABLE" ? "" : "is-inconclusive")}>
+              <span className="agri-eyebrow">SAME-PIXEL SUPPORT</span>
+              <strong>{study.matched_support.status.replaceAll("_", " ")}</strong>
+              <p>{study.matched_support.valid_pixels.toLocaleString()} of {study.matched_support.total_pixels.toLocaleString()} AOI pixels ({formatPercent(study.matched_support.valid_fraction)}) remain valid on every date. This tests temporal sample consistency, not retrieval accuracy.</p>
             </div>
             <details className="agri-details" open>
               <summary>Quality and screening protocol</summary>
