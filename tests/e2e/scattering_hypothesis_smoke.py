@@ -82,6 +82,57 @@ def main() -> int:
             in panel.inner_text(),
             "scientific guardrails prohibit invented confidence or accuracy",
         )
+
+        # Step 2: build a real, selected-hypothesis CMR request and export its manifest.
+        open_water = panel.locator(".wx-scattering__choice", has_text="Open-water surface scattering")
+        open_water.click()
+        request_panel = panel.locator(".wx-evidence-request")
+        require(
+            request_panel.get_by_role("heading", name="Hypothesis-to-evidence request").count() == 1,
+            "selected hypothesis opens its evidence-request builder",
+        )
+        require(
+            request_panel.locator(".wx-evidence-request__archive").count() == 2,
+            "open-water request offers two product-specific archive searches",
+        )
+        cmr_link = request_panel.locator("a", has_text="Search CMR").first
+        cmr_url = cmr_link.get_attribute("href") or ""
+        from urllib.parse import parse_qs, urlparse
+        query = parse_qs(urlparse(cmr_url).query)
+        require(
+            urlparse(cmr_url).netloc == "cmr.earthdata.nasa.gov"
+            and query.get("short_name") == ["OPERA_L3_DSWX-HLS_V1"]
+            and query.get("version") == ["1.0"],
+            "CMR query targets the verified OPERA DSWx-HLS collection and version",
+        )
+        require(
+            ("bounding_box" in query) != ("point" in query),
+            "archive query uses either candidate bounds or an explicitly centroid-only point",
+        )
+        page.locator("[data-testid='evidence-window']").select_option("3")
+        expanded_query = parse_qs(urlparse(cmr_link.get_attribute("href") or "").query)
+        temporal = expanded_query.get("temporal[]", [""])[0].split(",")
+        require(
+            len(temporal) == 2 and temporal[0].endswith("T00:00:00Z") and temporal[1].endswith("T23:59:59Z"),
+            "adjusting the date window regenerates an explicit UTC granule-search range",
+        )
+        with page.expect_download() as download_info:
+            request_panel.get_by_role("button", name="Download evidence request JSON").click()
+        download = download_info.value
+        request_path = download.path()
+        import json
+        with open(request_path, encoding="utf-8") as request_file:
+            exported = json.load(request_file)
+        require(
+            exported.get("schemaVersion") == "beyonders.evidence-request/1.0"
+            and exported.get("hypothesis", {}).get("id") == "open-water"
+            and len(exported.get("archiveSearches", [])) == 2,
+            "downloaded JSON preserves the selected hypothesis, query links and request schema",
+        )
+        require(
+            any("not a validation result" in warning for warning in exported.get("warnings", [])),
+            "exported request warns that archive matches are not validation",
+        )
         require(not browser_errors, "hypothesis interaction produces no browser runtime errors")
 
         browser.close()

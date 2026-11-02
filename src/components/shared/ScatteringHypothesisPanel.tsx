@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { WetlandPatch } from "@/lib/types";
+import { downloadFile } from "@/lib/real-export";
+import { buildEvidenceRequest, type TemporalWindowDays } from "@/lib/evidence-request";
 import {
   buildScatteringHypothesisAssessment,
   type ScatteringHypothesis,
@@ -29,7 +31,16 @@ function defaultHypothesis(classification: WetlandPatch["classification"]): Scat
 export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPatch }) {
   const assessment = buildScatteringHypothesisAssessment(patch);
   const [selectedId, setSelectedId] = useState<ScatteringHypothesisId>(() => defaultHypothesis(patch.classification));
+  const [temporalWindowDays, setTemporalWindowDays] = useState<TemporalWindowDays>(0);
   const selected = assessment.hypotheses.find((item) => item.id === selectedId) ?? assessment.hypotheses[0];
+  const evidenceRequest = useMemo(
+    () => buildEvidenceRequest(patch, selected.id, temporalWindowDays),
+    [patch, selected.id, temporalWindowDays],
+  );
+  const exportEvidenceRequest = () => {
+    const json = JSON.stringify(evidenceRequest, null, 2);
+    downloadFile(`evidence-request-${evidenceRequest.requestId.toLowerCase()}.json`, json, "application/json");
+  };
 
   return (
     <section className="wx-scattering" aria-labelledby="wx-scattering-title">
@@ -101,9 +112,91 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
         <ul>{assessment.guardrails.map((item) => <li key={item}>{item}</li>)}</ul>
       </div>
 
+      <section className="wx-evidence-request" aria-labelledby="wx-evidence-request-title">
+        <header className="wx-evidence-request__header">
+          <p className="wx-micro">STEP 02 · TURN AN EVIDENCE GAP INTO A SEARCHABLE REQUEST</p>
+          <h4 id="wx-evidence-request-title">Hypothesis-to-evidence request</h4>
+          <p>{evidenceRequest.hypothesis.question}</p>
+        </header>
+
+        <div className="wx-evidence-request__controls">
+          <label htmlFor="wx-evidence-window">
+            Archive date window
+            <select
+              id="wx-evidence-window"
+              data-testid="evidence-window"
+              value={temporalWindowDays}
+              onChange={(event) => setTemporalWindowDays(Number(event.target.value) as TemporalWindowDays)}
+            >
+              <option value={0}>Same UTC day</option>
+              <option value={1}>±1 day</option>
+              <option value={3}>±3 days</option>
+              <option value={7}>±7 days</option>
+              <option value={14}>±14 days</option>
+            </select>
+          </label>
+          <p>Discovery window only. Widen it to find candidate granules; it does not make an observation scientifically time-equivalent.</p>
+        </div>
+
+        <div className="wx-evidence-request__spatial">
+          <span className="wx-micro">SPATIAL SEARCH SCOPE</span>
+          <strong>{evidenceRequest.spatialSearch.label}</strong>
+          <p>{evidenceRequest.spatialSearch.interpretation}</p>
+        </div>
+
+        <div className="wx-evidence-request__criteria">
+          <div>
+            <span className="wx-micro">WHAT COULD SUPPORT THIS HYPOTHESIS</span>
+            <ul>{evidenceRequest.evidenceThatCouldSupport.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+          <div>
+            <span className="wx-micro">WHAT COULD CHALLENGE IT</span>
+            <ul>{evidenceRequest.evidenceThatCouldChallenge.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+        </div>
+
+        <div className="wx-evidence-request__archives">
+          <div className="wx-evidence-request__archives-head">
+            <span className="wx-micro">PRODUCT-SPECIFIC NASA ARCHIVE SEARCHES</span>
+            <span>{evidenceRequest.archiveSearches.length} query templates</span>
+          </div>
+          {evidenceRequest.archiveSearches.length > 0 ? evidenceRequest.archiveSearches.map((search) => (
+            <article className="wx-evidence-request__archive" key={search.shortName}>
+              <div>
+                <strong>{search.title}</strong>
+                <span>{search.shortName} · v{search.version} · {search.nominalResolution} · {search.sensor}</span>
+                <small>{search.role}</small>
+                <p>{search.limitation}</p>
+              </div>
+              <a href={search.queryUrl} target="_blank" rel="noreferrer">Search CMR ↗</a>
+            </article>
+          )) : (
+            <p className="wx-evidence-request__empty">A NASA archive query cannot be generated until the candidate date and spatial reference are valid.</p>
+          )}
+        </div>
+
+        <div className="wx-evidence-request__protocol">
+          <span className="wx-micro">MINIMUM REVIEW PROTOCOL</span>
+          <ol>{evidenceRequest.minimumReviewProtocol.map((item) => <li key={item}>{item}</li>)}</ol>
+        </div>
+
+        <ul className="wx-evidence-request__guardrails">
+          {evidenceRequest.guardrails.map((item) => <li key={item}>{item}</li>)}
+          {evidenceRequest.warnings.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+
+        <div className="wx-evidence-request__export">
+          <button type="button" className="wx-btn wx-btn--primary" onClick={exportEvidenceRequest}>
+            Download evidence request JSON
+          </button>
+          <span className="wx-mono">ID · {evidenceRequest.requestId}</span>
+        </div>
+      </section>
+
       <footer className="wx-scattering__sources">
         <span>Science basis:</span>
         <a href="https://earthdata.nasa.gov/s3fs-public/2025-04/SARHB_CH5_Content.pdf" target="_blank" rel="noreferrer">NASA SAR Handbook, Chapter 5 ↗</a>
+        <a href="https://cmr.earthdata.nasa.gov/search/site/docs/search/api.html" target="_blank" rel="noreferrer">NASA CMR Search API ↗</a>
         <a href="https://doi.org/10.3390/rs16040656" target="_blank" rel="noreferrer">Flood Detection with SAR: A Review ↗</a>
       </footer>
     </section>
