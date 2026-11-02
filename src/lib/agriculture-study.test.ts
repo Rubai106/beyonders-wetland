@@ -51,6 +51,29 @@ const study = {
 
 test("accepts a structurally valid exploratory study", () => assert.equal(isAgricultureStudy(study), true));
 
+test("validates the per-date SME2 surface-flag observability audit", () => {
+  const changed = structuredClone(study);
+  changed.observations[0].surface_flag_diagnostics = {
+    method: "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+    total_aoi_pixels: 100,
+    encoded_pixels: 95,
+    unflagged_pixels: 70,
+    flagged_pixels: 25,
+    fill_pixels: 3,
+    invalid_pixels: 1,
+    unsupported_encoding_pixels: 1,
+    flags: {
+      static_water: 2, urban_area: 3, precipitation: 12, snow_or_ice: 0,
+      permanent_snow_or_ice: 0, frozen_ground: 1, terrain: 1, dense_vegetation: 11,
+    },
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+
+  const inconsistent = structuredClone(changed);
+  inconsistent.observations[0].surface_flag_diagnostics.flags.dense_vegetation = 96;
+  assert.equal(isAgricultureStudy(inconsistent), false);
+});
+
 test("builds a date-by-date support-composition gap over a fixed pixel cohort", () => {
   const changed = structuredClone(study);
   changed.observations.forEach((item, index) => {
