@@ -38,7 +38,7 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
           <p className="wx-micro">MEASURED RESPONSE ≠ PHYSICAL CAUSE</p>
           <h3 id="wx-scattering-title">Scattering hypothesis ledger</h3>
           <p>Candidate {assessment.candidateId} · observation {assessment.observationDate}</p>
-          <p>Compare the detector's selected response with other physical explanations that the available pair cannot resolve.</p>
+          <p>Compare the detector&apos;s selected response with other physical explanations that the available pair cannot resolve.</p>
         </div>
         <span className="wx-scattering__class">{assessment.detectorClassLabel}</span>
       </header>
