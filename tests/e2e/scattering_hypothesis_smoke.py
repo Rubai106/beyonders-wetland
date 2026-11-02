@@ -105,7 +105,11 @@ def main() -> int:
         soil.evaluate("(button) => button.click()")
         soil_detail_locator = panel.locator('.wx-scattering__detail[aria-label="Soil-moisture variation"]')
         soil_detail_locator.wait_for(state="visible", timeout=10_000)
-        require(soil.get_attribute("aria-pressed") == "true", "soil-moisture hypothesis becomes selected")
+        active_soil = panel.locator(".wx-scattering__choice[aria-pressed='true']")
+        require(
+            "Soil-moisture variation" in active_soil.inner_text(),
+            "soil-moisture hypothesis becomes the active choice",
+        )
         soil_detail = soil_detail_locator.inner_text()
         require(
             "Cannot distinguish with this pair" in soil_detail
@@ -121,9 +125,10 @@ def main() -> int:
             '.wx-scattering__detail[aria-label="Vegetation, roughness or intercepted water"]'
         )
         vegetation_detail_locator.wait_for(state="visible", timeout=10_000)
+        active_vegetation = panel.locator(".wx-scattering__choice[aria-pressed='true']")
         require(
-            vegetation.get_attribute("aria-pressed") == "true",
-            "vegetation and surface hypothesis becomes selected",
+            "Vegetation, roughness or intercepted water" in active_vegetation.inner_text(),
+            "vegetation and surface hypothesis becomes the active choice",
         )
         vegetation_detail = vegetation_detail_locator.inner_text()
         require(
