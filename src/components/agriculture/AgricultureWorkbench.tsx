@@ -543,7 +543,7 @@ export default function AgricultureWorkbench() {
                 const high = 100 - ((item.p95 - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
                 return <div key={item.date} className={"agri-chart-point " + (index === selectedIndex ? "is-active" : "")} style={{ left: left + "%", top: top + "%" }}>
                   <span className="agri-chart-range" style={{ height: Math.max(3, low - high) + "%", top: (high - top) + "%" }} />
-                  <button type="button" aria-label={"Select " + dateLabel(item.date) + "; median " + formatMoisture(item.median) + ", P05 " + formatMoisture(item.p05) + ", P95 " + formatMoisture(item.p95)} aria-pressed={index === selectedIndex} onClick={() => { setSelectedIndex(index); setLayer("moisture"); }}><span /></button>
+                  <button type="button" aria-label={"Select " + dateLabel(item.date) + "; median " + formatMoisture(item.median) + ", P05 " + formatMoisture(item.p05) + ", P95 " + formatMoisture(item.p95)} aria-pressed={index === selectedIndex} onClick={() => { setSelectedIndex(index); setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}><span /></button>
                 </div>;
               })}
             </div>
