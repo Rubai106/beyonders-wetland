@@ -113,6 +113,8 @@ export default function AgricultureWorkbench() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
   const [seriesSupportMode, setSeriesSupportMode] = useState<SeriesSupportMode>("date-valid");
+  const [selectedFlagMask, setSelectedFlagMask] = useState<number | null>(null);
+  const [showAllFlagCombinations, setShowAllFlagCombinations] = useState(false);
   const [previewState, setPreviewState] = useState<{ asset: string; url: string | null; error: string } | null>(null);
   const [satelliteBasemap, setSatelliteBasemap] = useState(false);
   const [west, setWest] = useState("");
@@ -374,6 +376,16 @@ export default function AgricultureWorkbench() {
     ? selectedObservation.median - selectedMatchedObservation.median
     : null;
   const surfaceDiagnostics = selectedObservation?.surface_flag_diagnostics ?? null;
+  const flagCombinations = surfaceDiagnostics?.flag_combinations ?? null;
+  const selectedFlagCombination = flagCombinations?.find((item) => item.mask === selectedFlagMask) ??
+    flagCombinations?.[0] ?? null;
+  const visibleFlagCombinations = flagCombinations
+    ? showAllFlagCombinations ? flagCombinations : flagCombinations.slice(0, 8)
+    : [];
+  const selectedFlagLabels = selectedFlagCombination
+    ? SURFACE_FLAG_LABELS.filter((_flag, bit) => (selectedFlagCombination.mask & (1 << bit)) !== 0)
+    : [];
+  const flagCombinationMax = flagCombinations?.[0]?.pixels ?? 1;
   const noStudy = loadState === "not-published" || loadState === "loading";
   const statusText = loadState === "loading" ? "Checking published study" :
     loadState === "ready" ? "Checksum verified" :
