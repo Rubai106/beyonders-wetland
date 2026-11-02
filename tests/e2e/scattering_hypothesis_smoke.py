@@ -95,24 +95,20 @@ def main() -> int:
         page.wait_for_selector(".wx-obs", timeout=20_000)
         page.wait_for_selector("path.wx-patch", timeout=20_000)
 
-        # Open a real candidate from the packaged Tanguar Haor showcase.
-        page.locator("path.wx-patch").nth(40).click(force=True)
+        # Select a real packaged Tanguar Haor candidate from the drawer's
+        # region register. This is the same UI-backed selection action as a
+        # map click, but avoids depending on Leaflet's SVG hit-testing timing
+        # in a headless browser.
         page.wait_for_selector(".wx-drawer", timeout=10_000)
-        page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
-        challenge_button = page.locator(".wx-drawer").get_by_role("button", name="Challenge this detection")
-        if challenge_button.count() == 0:
-            # Leaflet polygons can be present in the SVG but not have a
-            # selected WetlandPatch yet (for example, when the map layer is
-            # still finishing its interaction setup). The existing region
-            # register provides a deterministic, real candidate-selection
-            # path inside the same drawer; use it rather than assuming the
-            # polygon click succeeded.
-            region_choice = page.locator(".wx-drawer .wx-regions button").first
-            region_choice.wait_for(state="visible", timeout=10_000)
-            region_choice.scroll_into_view_if_needed()
-            region_choice.click()
-            page.wait_for_selector(".wx-drawer .wx-facts", timeout=10_000)
-            page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
+        region_choice = page.locator(".wx-drawer .wx-regions button").first
+        region_choice.wait_for(state="visible", timeout=10_000)
+        region_choice.scroll_into_view_if_needed()
+        region_choice.click()
+        page.locator(".wx-drawer .wx-facts").wait_for(state="visible", timeout=10_000)
+
+        challenge_button = page.locator(".wx-drawer .wx-tool__action").get_by_role(
+            "button", name="Challenge this detection"
+        )
         challenge_button.wait_for(state="visible", timeout=10_000)
         challenge_button.scroll_into_view_if_needed()
         challenge_button.click(timeout=10_000)
@@ -120,19 +116,18 @@ def main() -> int:
         # conditionally rendered content. The challenge sits above the action
         # button, so opening it also changes the drawer's scroll geometry.
         page.wait_for_function(
-            """() => Array.from(document.querySelectorAll(".wx-tool__action button[aria-expanded]"))
-              .some((button) => button.getAttribute("aria-expanded") === "true")""",
+            """() => document.querySelector(".wx-tool__action button[aria-expanded='true']") !== null""",
             timeout=20_000,
         )
         panel = page.locator(".wx-drawer .wx-challenge .wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
-        ledger_heading = panel.locator("#wx-scattering-title")
+        ledger_heading = panel.locator(".wx-scattering__header h3")
         try:
-            ledger_heading.wait_for(state="attached", timeout=20_000)
+            ledger_heading.wait_for(state="visible", timeout=20_000)
         except Exception:
-            print("DEBUG challenge expanded:", page.locator(".wx-tool__action button[aria-expanded]").first.get_attribute("aria-expanded"))
+            print("DEBUG action HTML:", page.locator(".wx-tool__action").evaluate("(element) => element.outerHTML") if page.locator(".wx-tool__action").count() else "missing")
+            print("DEBUG challenge HTML:", page.locator(".wx-drawer .wx-challenge").evaluate("(element) => element.outerHTML.slice(0, 8000)") if page.locator(".wx-drawer .wx-challenge").count() else "missing")
             print("DEBUG scattering panel count:", panel.count())
-            print("DEBUG scattering panel HTML:", panel.first.evaluate("(element) => element.outerHTML.slice(0, 5000)") if panel.count() else "missing")
             raise
         ledger_heading.scroll_into_view_if_needed(timeout=10_000)
         ledger_heading.wait_for(state="visible", timeout=10_000)
