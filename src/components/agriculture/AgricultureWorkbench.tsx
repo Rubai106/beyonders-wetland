@@ -526,7 +526,7 @@ export default function AgricultureWorkbench() {
                   <div><dt>Mask checksum</dt><dd><code>{cropObservability.source_sha256.slice(0, 18)}…</code></dd></div>
                 </dl>
                 <p className="agri-crop-gate__note">
-                  Crop weights are the area share of source pixels meeting the selected probability threshold within each native SME2 cell. This is not crop-species identification, a verified parcel boundary, root-zone moisture, or a crop-stress diagnosis. Per-date and fixed-cohort summaries preserve the existing strict SME2 quality screen; missing mask area is not labelled non-crop.
+                  Crop weights are the area share of source pixels meeting the selected probability threshold within each native SME2 cell. SME2 still measures the complete native cell, which may mix crop and non-crop land; area weighting does not isolate moisture inside cropped sub-pixels. This is not crop-species identification, a verified parcel boundary, root-zone moisture, or a crop-stress diagnosis. Per-date and fixed-cohort summaries preserve the existing strict SME2 quality screen; missing mask area is not labelled non-crop.
                 </p>
               </section>
             ) : (
