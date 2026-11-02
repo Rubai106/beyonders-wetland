@@ -103,9 +103,25 @@ def main() -> int:
         challenge_button.wait_for(state="visible", timeout=10_000)
         challenge_button.scroll_into_view_if_needed()
         challenge_button.click(timeout=10_000)
+        # Wait for the parent disclosure to commit before inspecting its
+        # conditionally rendered content. The challenge sits above the action
+        # button, so opening it also changes the drawer's scroll geometry.
+        page.wait_for_function(
+            """() => Array.from(document.querySelectorAll(".wx-tool__action button[aria-expanded]"))
+              .some((button) => button.getAttribute("aria-expanded") === "true")""",
+            timeout=20_000,
+        )
         panel = page.locator(".wx-drawer .wx-challenge .wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
         ledger_heading = panel.locator("#wx-scattering-title")
+        try:
+            ledger_heading.wait_for(state="attached", timeout=20_000)
+        except Exception:
+            print("DEBUG challenge expanded:", page.locator(".wx-tool__action button[aria-expanded]").first.get_attribute("aria-expanded"))
+            print("DEBUG scattering panel count:", panel.count())
+            print("DEBUG scattering panel HTML:", panel.first.evaluate("(element) => element.outerHTML.slice(0, 5000)") if panel.count() else "missing")
+            raise
+        ledger_heading.scroll_into_view_if_needed(timeout=10_000)
         ledger_heading.wait_for(state="visible", timeout=10_000)
         require(
             ledger_heading.inner_text().strip() == "Scattering hypothesis ledger",
