@@ -11,11 +11,14 @@ from pathlib import Path
 
 import h5py
 import numpy as np
+import rasterio
+from rasterio.transform import from_origin
 
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, CMR_PAGE_SIZE, quality_mask, safe_run_id, validate_aoi_dates, _cmr_search,
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
+    _align_crop_probability_mask, _crop_support_audit,
 )
 
 
@@ -78,6 +81,113 @@ class AgricultureSME2Tests(unittest.TestCase):
         self.assertEqual(result["flags"]["urban_area"], 1)
         with self.assertRaisesRegex(AgricultureError, "matching two-dimensional arrays"):
             surface_flag_diagnostics(values, np.ones((1, 2), dtype=bool))
+
+    def _crop_reference_scene(self):
+        return {
+            "aoi_mask": np.ones((2, 2), dtype=bool),
+            "epsg": 6933,
+            "transform": from_origin(0, 400, 200, 200),
+        }
+
+    def test_crop_mask_area_averages_fine_probability_cells_to_native_sme2_cells(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "crop-probability.tif"
+            columns = np.arange(40).reshape(1, 40)
+            values = np.broadcast_to(np.where((columns % 20) < 10, 0.9, 0.1), (40, 40)).astype("float32")
+            with rasterio.open(
+                path, "w", driver="GTiff", height=40, width=40, count=1,
+                dtype="float32", crs="EPSG:6933", transform=from_origin(0, 400, 10, 10),
+            ) as dataset:
+                dataset.write(values, 1)
+
+            weights, metadata = _align_crop_probability_mask(
+                path, self._crop_reference_scene(), "Dynamic World crops probability",
+                "2026-10-20", probability_threshold=0.5, minimum_cell_coverage=0.8,
+            )
+            np.testing.assert_allclose(weights, np.full((2, 2), 0.5), atol=0.01)
+            self.assertEqual(metadata["method"], "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1")
+            self.assertEqual(metadata["mask_covered_cells"], 4)
+            self.assertAlmostEqual(metadata["mask_coverage_fraction"], 1.0)
+            self.assertAlmostEqual(metadata["crop_area_equivalent_pixels"], 2.0, places=2)
+            self.assertEqual(metadata["source_date"], "2026-10-20")
+            self.assertEqual(metadata["source_sha256"], __import__("hashlib").sha256(path.read_bytes()).hexdigest())
+
+    def test_crop_mask_nodata_is_not_treated_as_non_crop(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "crop-with-gap.tif"
+            values = np.full((40, 40), 0.9, dtype="float32")
+            values[:20, :20] = -9999
+            with rasterio.open(
+                path, "w", driver="GTiff", height=40, width=40, count=1,
+                dtype="float32", crs="EPSG:6933", transform=from_origin(0, 400, 10, 10),
+                nodata=-9999,
+            ) as dataset:
+                dataset.write(values, 1)
+
+            weights, metadata = _align_crop_probability_mask(
+                path, self._crop_reference_scene(), "Independent crop mask",
+            )
+            self.assertEqual(metadata["mask_covered_cells"], 3)
+            self.assertAlmostEqual(metadata["mask_coverage_fraction"], 0.75)
+            self.assertEqual(weights[0, 0], 0)
+            np.testing.assert_allclose(weights[0, 1:], 1.0, atol=0.01)
+            np.testing.assert_allclose(weights[1, :], 1.0, atol=0.01)
+
+    def test_crop_mask_rejects_coarse_source_instead_of_upsampling_it(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "coarse-mask.tif"
+            with rasterio.open(
+                path, "w", driver="GTiff", height=2, width=2, count=1,
+                dtype="float32", crs="EPSG:6933", transform=from_origin(-200, 600, 400, 400),
+            ) as dataset:
+                dataset.write(np.ones((2, 2), dtype="float32"), 1)
+            with self.assertRaisesRegex(AgricultureError, "coarser than the SME2 native grid"):
+                _align_crop_probability_mask(path, self._crop_reference_scene(), "Coarse mask")
+
+    def _crop_scene(self, date, moisture, valid):
+        values = np.asarray(moisture, dtype="float64")
+        return {
+            "date": date,
+            "moisture": values,
+            "uncertainty": np.full(values.shape, 0.03, dtype="float64"),
+            "valid": np.asarray(valid, dtype=bool),
+            "aoi_mask": np.ones(values.shape, dtype=bool),
+        }
+
+    def test_crop_area_audit_uses_fractional_weights_and_strict_all_date_intersection(self):
+        weights = np.array([[1.0, 0.5], [0.25, 0.0]], dtype="float64")
+        scenes = [
+            self._crop_scene("2026-06-20", [[0.20, 0.30], [0.40, 0.50]], [[1, 1], [1, 0]]),
+            self._crop_scene("2026-06-25", [[0.22, 0.32], [0.42, 0.52]], [[0, 0], [1, 0]]),
+            self._crop_scene("2026-06-30", [[0.24, 0.34], [0.44, 0.54]], [[0, 0], [1, 0]]),
+        ]
+        result, common = _crop_support_audit(
+            scenes, weights, {"mask_coverage_fraction": 1.0, "source": "test fixture"},
+        )
+        self.assertAlmostEqual(result["crop_area_equivalent_pixels"], 1.75)
+        self.assertEqual(result["crop_supported_cells"], 3)
+        self.assertEqual(result["common_support"]["status"], "INCONCLUSIVE_COVERAGE")
+        self.assertAlmostEqual(result["common_support"]["valid_crop_area_equivalent_pixels"], 0.25)
+        self.assertAlmostEqual(result["common_support"]["valid_crop_area_fraction"], 0.25 / 1.75)
+        np.testing.assert_array_equal(common, [[False, False], [True, False]])
+        self.assertAlmostEqual(result["observations"][0]["valid_crop_area_fraction"], 1.0)
+        self.assertAlmostEqual(result["observations"][1]["valid_crop_area_fraction"], 0.25 / 1.75)
+        self.assertAlmostEqual(
+            result["common_support"]["observations"][0]["weighted_soil_moisture"]["median"], 0.40,
+        )
+
+    def test_crop_area_audit_reports_no_crop_support_without_fabricating_summaries(self):
+        scenes = [
+            self._crop_scene("2026-06-20", np.full((2, 2), 0.2), np.ones((2, 2), dtype=bool)),
+            self._crop_scene("2026-06-25", np.full((2, 2), 0.3), np.ones((2, 2), dtype=bool)),
+        ]
+        result, common = _crop_support_audit(
+            scenes, np.zeros((2, 2)), {"mask_coverage_fraction": 1.0, "source": "empty test mask"},
+        )
+        self.assertEqual(result["common_support"]["status"], "NO_CROP_SUPPORT")
+        self.assertEqual(result["common_support"]["observations"], [])
+        self.assertFalse(common.any())
+        self.assertIsNone(result["observations"][0]["weighted_soil_moisture"])
 
     def test_moisture_and_uncertainty_are_screened(self):
         moisture = np.array([[.01, .2, .61, .3]])
