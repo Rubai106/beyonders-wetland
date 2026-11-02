@@ -125,7 +125,7 @@ export function buildScatteringHypothesisAssessment(
       id: "open-water",
       title: "Open-water surface scattering",
       status: selectedStatus(openWaterSelected),
-      statusLabel: openWaterSelected ? "Selected by current detector" : "Not selected by current detector",
+      statusLabel: openWaterSelected ? "Selected detector signature" : "Not selected · not ruled out",
       mechanism: "Relatively smooth, exposed water can reflect radar energy away from a side-looking sensor and produce a darker return. Wind, surface roughness, vegetation, incidence angle and water conditions can change this response.",
       candidateReadout: openWaterSelected
         ? "The existing detector assigned this candidate to its OPEN_WATER response class. " + hhText + "; " + hvText + ". This records the selected radar signature, not a verified water observation."
@@ -141,7 +141,7 @@ export function buildScatteringHypothesisAssessment(
       id: "flooded-vegetation",
       title: "Flooded-vegetation double bounce",
       status: selectedStatus(vegetatedInundationSelected),
-      statusLabel: vegetatedInundationSelected ? "Selected by current detector" : "Not selected by current detector",
+      statusLabel: vegetatedInundationSelected ? "Selected detector signature" : "Not selected · not ruled out",
       mechanism: "At L-band, energy can penetrate some vegetation and interact with both a water surface and upright stems or trunks. This double-bounce contribution can increase co-polarized HH return, but its strength depends on canopy structure, density, geometry and surface conditions.",
       candidateReadout: vegetatedInundationSelected
         ? "The existing detector assigned this candidate to its VEGETATED_INUNDATION response class. " + hhText + "; " + hvText + ". This is a detector-selected signature, not confirmation of flooded vegetation."

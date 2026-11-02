@@ -21,7 +21,9 @@ function statusTone(status: ScatteringHypothesis["status"]): string {
 }
 
 function defaultHypothesis(classification: WetlandPatch["classification"]): ScatteringHypothesisId {
-  return classification === "VEGETATED_INUNDATION" ? "flooded-vegetation" : "open-water";
+  if (classification === "VEGETATED_INUNDATION") return "flooded-vegetation";
+  if (classification === "OPEN_WATER") return "open-water";
+  return "soil-moisture";
 }
 
 export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPatch }) {
@@ -35,13 +37,14 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
         <div>
           <p className="wx-micro">MEASURED RESPONSE ≠ PHYSICAL CAUSE</p>
           <h3 id="wx-scattering-title">Scattering hypothesis ledger</h3>
+          <p>Candidate {assessment.candidateId} · observation {assessment.observationDate}</p>
           <p>Compare the detector's selected response with other physical explanations that the available pair cannot resolve.</p>
         </div>
         <span className="wx-scattering__class">{assessment.detectorClassLabel}</span>
       </header>
 
       <div className="wx-scattering__measurements" aria-label="Recorded candidate measurements">
-        {assessment.measurements.slice(0, 4).map((measurement) => (
+        {assessment.measurements.map((measurement) => (
           <div className="wx-scattering__metric" key={measurement.id}>
             <span>{measurement.label}</span>
             <strong>{formatMeasurement(measurement.value, measurement.unit)}</strong>
