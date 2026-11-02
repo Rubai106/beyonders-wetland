@@ -14,7 +14,24 @@ export interface AgricultureSummary {
   uncertainty_median: number;
 }
 
+export type AgricultureSurfaceFlagId =
+  | "static_water" | "urban_area" | "precipitation" | "snow_or_ice"
+  | "permanent_snow_or_ice" | "frozen_ground" | "terrain" | "dense_vegetation";
+
+export interface AgricultureSurfaceFlagDiagnostics {
+  method: "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS";
+  total_aoi_pixels: number;
+  encoded_pixels: number;
+  unflagged_pixels: number;
+  flagged_pixels: number;
+  fill_pixels: number;
+  invalid_pixels: number;
+  unsupported_encoding_pixels: number;
+  flags: Record<AgricultureSurfaceFlagId, number>;
+}
+
 export interface AgricultureObservation extends AgricultureSummary {
+  surface_flag_diagnostics?: AgricultureSurfaceFlagDiagnostics;
   date: string;
   preview: string;
   release: string;
@@ -146,9 +163,33 @@ function validSummary(value: unknown, moisture = true): value is AgricultureSumm
     Math.abs(Number(value.valid_fraction) - Number(value.valid_pixels) / Number(value.total_pixels)) < 0.000001;
 }
 
+function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): value is AgricultureSurfaceFlagDiagnostics {
+  if (!isRecord(value) || value.method !== "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS" || !isRecord(value.flags)) return false;
+  const fields = [
+    "total_aoi_pixels", "encoded_pixels", "unflagged_pixels", "flagged_pixels",
+    "fill_pixels", "invalid_pixels", "unsupported_encoding_pixels",
+  ] as const;
+  if (!fields.every((field) => Number.isInteger(value[field]) && Number(value[field]) >= 0)) return false;
+  const total = Number(value.total_aoi_pixels);
+  const encoded = Number(value.encoded_pixels);
+  const unflagged = Number(value.unflagged_pixels);
+  const flagged = Number(value.flagged_pixels);
+  if (total !== expectedTotal || total <= 0 || unflagged + flagged !== encoded ||
+      encoded + Number(value.fill_pixels) + Number(value.invalid_pixels) +
+        Number(value.unsupported_encoding_pixels) !== total) return false;
+  const ids: AgricultureSurfaceFlagId[] = [
+    "static_water", "urban_area", "precipitation", "snow_or_ice",
+    "permanent_snow_or_ice", "frozen_ground", "terrain", "dense_vegetation",
+  ];
+  return ids.every((id) => Number.isInteger(value.flags[id]) &&
+    Number(value.flags[id]) >= 0 && Number(value.flags[id]) <= encoded);
+}
+
 function validObservation(value: unknown): value is AgricultureObservation {
   if (!isRecord(value)) return false;
-  return isoDay(value.date) && safeRelativeAssetPath(value.preview, "previews/") &&
+  return (value.surface_flag_diagnostics === undefined ||
+      validSurfaceFlagDiagnostics(value.surface_flag_diagnostics, Number(value.total_pixels))) &&
+    isoDay(value.date) && safeRelativeAssetPath(value.preview, "previews/") &&
     typeof value.release === "string" && /^P\d{5}$/.test(value.release) &&
     Number(value.release.slice(1)) >= 5023 &&
     typeof value.track === "string" && value.track.length > 0 &&
