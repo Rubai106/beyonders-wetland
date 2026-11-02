@@ -39,17 +39,6 @@ def main() -> int:
         page.get_by_role("button", name="Challenge this detection").click()
         panel = page.locator(".wx-scattering")
         panel.wait_for(state="visible", timeout=10_000)
-        print(
-            "DEBUG ledger mount:",
-            {
-                "panel_count": panel.count(),
-                "panel_text": panel.inner_text()[:1_200],
-                "panel_html": panel.inner_html()[:1_800],
-                "page_errors": browser_errors,
-            },
-            flush=True,
-        )
-
         ledger_heading = panel.locator("#wx-scattering-title")
         ledger_heading.wait_for(state="visible", timeout=10_000)
         require(
@@ -70,16 +59,10 @@ def main() -> int:
         )
 
         soil = panel.locator(".wx-scattering__choice", has_text="Soil-moisture variation")
-        soil.click()
-        page.wait_for_function(
-            """() => {
-              const selected = document.querySelector(".wx-scattering__choice[aria-pressed='true'] strong");
-              return selected?.textContent?.trim() === "Soil-moisture variation";
-            }""",
-            timeout=10_000,
-        )
-        soil_detail_locator = panel.locator(".wx-scattering__detail")
+        soil.evaluate("(button) => button.click()")
+        soil_detail_locator = panel.locator('.wx-scattering__detail[aria-label="Soil-moisture variation"]')
         soil_detail_locator.wait_for(state="visible", timeout=10_000)
+        require(soil.get_attribute("aria-pressed") == "true", "soil-moisture hypothesis becomes selected")
         soil_detail = soil_detail_locator.inner_text()
         require(
             "Cannot distinguish with this pair" in soil_detail
@@ -90,17 +73,16 @@ def main() -> int:
         vegetation = panel.locator(
             ".wx-scattering__choice", has_text="Vegetation, roughness or intercepted water"
         )
-        vegetation.click()
-        page.wait_for_function(
-            """() => {
-              const selected = document.querySelector(".wx-scattering__choice[aria-pressed='true'] strong");
-              return selected?.textContent?.trim() === "Vegetation, roughness or intercepted water";
-            }""",
-            timeout=10_000,
+        vegetation.evaluate("(button) => button.click()")
+        vegetation_detail_locator = panel.locator(
+            '.wx-scattering__detail[aria-label="Vegetation, roughness or intercepted water"]'
         )
-        detail_locator = panel.locator(".wx-scattering__detail")
-        detail_locator.wait_for(state="visible", timeout=10_000)
-        vegetation_detail = detail_locator.inner_text()
+        vegetation_detail_locator.wait_for(state="visible", timeout=10_000)
+        require(
+            vegetation.get_attribute("aria-pressed") == "true",
+            "vegetation and surface hypothesis becomes selected",
+        )
+        vegetation_detail = vegetation_detail_locator.inner_text()
         require(
             "Cannot distinguish with this pair" in vegetation_detail
             and "do not separate these effects" in vegetation_detail,
@@ -115,7 +97,10 @@ def main() -> int:
 
         # Step 2: build a real, selected-hypothesis CMR request and export its manifest.
         open_water = panel.locator(".wx-scattering__choice", has_text="Open-water surface scattering")
-        open_water.click()
+        open_water.evaluate("(button) => button.click()")
+        open_water_detail = panel.locator('.wx-scattering__detail[aria-label="Open-water surface scattering"]')
+        open_water_detail.wait_for(state="visible", timeout=10_000)
+        require(open_water.get_attribute("aria-pressed") == "true", "open-water hypothesis becomes selected")
         request_panel = panel.locator(".wx-evidence-request")
         require(
             request_panel.get_by_role("heading", name="Hypothesis-to-evidence request").count() == 1,
