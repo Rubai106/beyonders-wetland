@@ -1192,10 +1192,12 @@ def analyze(
     change_name = "change-latest-minus-baseline.png"
     _preview(change, change_valid, output / "previews" / change_name, change=True)
     if crop_observability is not None and crop_weights is not None and crop_common_mask is not None:
-        crop_preview = "previews/crop-support.png"
-        _crop_support_preview(crop_weights, crop_weights > 0, output / crop_preview)
-        crop_observability["preview"] = crop_preview
+        crop_observability["preview"] = None
         crop_observability["common_support"]["preview"] = None
+        if crop_observability["crop_area_equivalent_pixels"] > 0:
+            crop_preview = "previews/crop-support.png"
+            _crop_support_preview(crop_weights, crop_weights > 0, output / crop_preview)
+            crop_observability["preview"] = crop_preview
         if crop_observability["common_support"]["valid_native_cells"] > 0:
             common_preview = "previews/crop-common-support.png"
             _crop_support_preview(crop_weights, crop_common_mask, output / common_preview)
