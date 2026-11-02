@@ -14,7 +14,7 @@ import numpy as np
 
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, CMR_PAGE_SIZE, quality_mask, safe_run_id, validate_aoi_dates, _cmr_search,
-    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary,
+    parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units,
 )
 
@@ -56,6 +56,61 @@ class AgricultureSME2Tests(unittest.TestCase):
         uncertainty = np.array([[.01, np.nan, .01, -1]])
         result = quality_mask(moisture, uncertainty, np.full((1, 4), 15), np.zeros((1, 4)))
         self.assertFalse(result.any())
+
+    def _matched_scene(self, date, values, valid, aoi=None):
+        values = np.asarray(values, dtype="float64")
+        mask = np.asarray(valid, dtype=bool)
+        return {
+            "date": date,
+            "moisture": values,
+            "uncertainty": np.full(values.shape, 0.03, dtype="float64"),
+            "valid": mask,
+            "aoi_mask": np.ones(values.shape, dtype=bool) if aoi is None else np.asarray(aoi, dtype=bool),
+        }
+
+    def test_matched_support_uses_one_exact_all_date_pixel_cohort(self):
+        aoi = np.ones((2, 2), dtype=bool)
+        scenes = [
+            self._matched_scene("2026-06-20", [[.20, .21], [.22, .23]], [[1, 1], [0, 0]], aoi),
+            self._matched_scene("2026-06-25", [[.24, .25], [.26, .27]], [[1, 0], [1, 0]], aoi),
+            self._matched_scene("2026-06-30", [[.28, .29], [.30, .31]], [[1, 0], [0, 1]], aoi),
+            self._matched_scene("2026-07-05", [[.32, .33], [.34, .35]], [[1, 1], [1, 0]], aoi),
+        ]
+        result, common = _matched_support(scenes)
+        self.assertEqual(result["method"], "ALL_DATE_VALID_PIXEL_INTERSECTION")
+        self.assertEqual(result["status"], "COMPARABLE")
+        self.assertEqual(result["valid_pixels"], 1)
+        self.assertEqual(result["total_pixels"], 4)
+        self.assertEqual(result["valid_fraction"], .25)
+        np.testing.assert_array_equal(common, [[True, False], [False, False]])
+        self.assertEqual([item["date"] for item in result["observations"]], [scene["date"] for scene in scenes])
+        self.assertEqual([item["median"] for item in result["observations"]], [.20, .24, .28, .32])
+        self.assertTrue(all(item["valid_pixels"] == 1 and item["total_pixels"] == 4 for item in result["observations"]))
+
+    def test_matched_support_reports_below_floor_without_expanding_cohort(self):
+        aoi = np.ones((2, 2), dtype=bool)
+        scenes = [
+            self._matched_scene("2026-06-20", [[.20, .21], [.22, .23]], [[1, 1], [0, 0]], aoi),
+            self._matched_scene("2026-06-25", [[.24, .25], [.26, .27]], [[1, 0], [1, 0]], aoi),
+            self._matched_scene("2026-06-30", [[.28, .29], [.30, .31]], [[1, 0], [0, 1]], aoi),
+            self._matched_scene("2026-07-05", [[.32, .33], [.34, .35]], [[1, 1], [1, 0]], aoi),
+        ]
+        scenes[0]["valid"][0, 0] = False
+        result, common = _matched_support(scenes)
+        self.assertEqual(result["status"], "NO_COMMON_PIXELS")
+        self.assertEqual(result["valid_pixels"], 0)
+        self.assertEqual(result["valid_fraction"], 0)
+        self.assertEqual(result["observations"], [])
+        self.assertFalse(common.any())
+
+    def test_matched_support_refuses_different_aoi_pixel_footprints(self):
+        aoi = np.ones((2, 2), dtype=bool)
+        scenes = [
+            self._matched_scene("2026-06-20", np.full((2, 2), .2), np.ones((2, 2), dtype=bool), aoi),
+            self._matched_scene("2026-06-25", np.full((2, 2), .3), np.ones((2, 2), dtype=bool), np.array([[1, 1], [1, 0]])),
+        ]
+        with self.assertRaisesRegex(AgricultureError, "same AOI pixel footprint"):
+            _matched_support(scenes)
 
     def test_summary_coverage_uses_all_aoi_pixels_as_denominator(self):
         values = np.array([[.2, .3], [.4, .5]])
