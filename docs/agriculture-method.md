@@ -10,9 +10,9 @@ This module does not classify crop type, identify field boundaries, diagnose cro
 
 The /agriculture route uses the shared GeoNexSAR investigation workspace.
 
-- **Explore:** checksum-verified moisture previews, per-date statistics, target-minus-baseline layer, timeline, P05–P95 range chart and CSV export.
-- **Operator:** validated WGS84 AOI, date range and run ID; creates CLI commands for the local terminal. The browser does not start Earthdata downloads or local Python jobs.
-- **Evidence:** product maturity, granule identity, source digests, retrieval/surface flag method, coverage floor and official sources.
+- **Explore:** checksum-verified moisture, change, independent crop-area and all-date crop-cohort previews; per-date statistics, timeline, support audits and CSV export.
+- **Operator:** validated WGS84 AOI, date range and run ID, plus an optional local crop-mask path and provenance label; creates CLI commands for the local terminal. The browser does not upload masks or start Earthdata downloads/local Python jobs.
+- **Evidence:** product maturity, granule identity, source digests, retrieval/surface flags, crop-mask provenance, coverage floors and official sources.
 
 When public/agriculture/current/index.json is absent, the page displays an explicit no-publication state. The basemap is context only; no synthetic map or measurements are substituted.
 
@@ -52,6 +52,57 @@ The audit reports the AOI denominator, decodable values, zero-valued surface fla
 This explains one gate only. The existing acceptance rule remains unchanged: surfaceQualityFlag must equal zero, and the complete SME2 screen must also pass the retrieval flag, moisture range, uncertainty, fill and AOI tests. “Surface-flag clear” is not the same as “valid soil-moisture retrieval”. Dense-vegetation flags are relevant when assessing crop observability, but they do not identify crops or prove that all flagged pixels are cropland.
 
 Fill and non-finite/fractional values are reported separately. Encodings outside the documented eight-bit range are reported as unsupported rather than relabelled. Historical packages without this optional field remain readable; the UI identifies the missing audit rather than reconstructing it.
+
+## Independent crop-mask observability gate
+
+The optional **Step 1B crop-area gate** tests whether the selected AOI contains independently mapped crop area that also remains observable under the existing SME2 quality screen. It does not infer cropland from moisture, surface flags or AOI geometry.
+
+### Input contract and command
+
+Supply a local, single-band GeoTIFF with a declared CRS and values in [0, 1]. Values may be binary (0/1) or probabilities. Class IDs, RGB masks, multi-band files, rasters without CRS, source pixels coarser than the SME2 native cell area, and rasters that do not cover the full clipped SME2 grid extent are rejected. Export the source mask with a buffer around the AOI so edge cells are not falsely treated as fully observed.
+
+Example (PowerShell; run after the regular search and download commands):
+
+~~~powershell
+python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01 --crop-mask "D:\\data\\crop-probability.tif" --crop-mask-source "Dynamic World V1 · crops probability" --crop-mask-date 2026-07-18 --crop-probability-threshold 0.5 --crop-mask-coverage-floor 0.8
+~~~
+
+The Operator tab can generate the optional arguments. The path is read by the local Python process. The browser does not transmit the GeoTIFF. The source label and date must identify the actual collection/product and source observation window; do not write "Dynamic World" unless that is the exact data product used.
+
+### Native-grid aggregation
+
+The pipeline thresholds source pixels at the recorded probability threshold (default 0.50), then area-averages the binary crop indicator onto each native SME2 cell using Resampling.average in the SME2 EPSG:6933 equal-area grid. It independently area-averages a valid-source indicator. These two outputs must not be conflated:
+
+- **Source coverage** is the share of a target cell for which a valid source value exists. A target cell is eligible only when this reaches the configured within-cell floor (default 0.80).
+- **Crop fraction** is the crop-classified share of the *complete* SME2 target cell. It remains fractional at field boundaries; missing source data are not re-normalized into crop or non-crop.
+- The sum of eligible crop fractions is reported as crop-area-equivalent SME2 pixels. It is an area accounting unit, not a count of whole fields or a number of independent samples.
+
+The AOI footprint uses the same SME2 pixel-centre selection as the original moisture analysis. Cells outside the AOI, or with insufficient valid mask coverage, receive no crop weight. No coarse mask is upsampled to create finer detail. The selected source file's byte count, SHA-256, CRS, cell-area estimate, date/label, threshold and coverage policy are recorded in the study package.
+
+### Date-specific and fixed crop support
+
+For acquisition date t, crop-area support is the sum of crop fractions for native cells passing the unchanged SME2 quality screen on date t. Crop coverage(t) is valid crop area(t) divided by total mapped crop area.
+
+The pipeline reports a crop-area-weighted empirical median, P05, P95 and product uncertainty for each date. Weights are fractional crop-area equivalents, not equal whole-cell counts. The fixed crop cohort is the strict intersection of native cells with positive mapped crop fraction that pass the existing SME2 screen on **every** selected date. Each date's weighted summary is then recalculated over that identical common support.
+
+No missing SME2 pixels are filled, no flagged pixels are accepted, and the surfaceQualityFlag == 0 rule is not relaxed. The crop cohort is a support-comparability diagnostic; a spatially small cohort may not represent every crop, field or soil type.
+
+### Status interpretation
+
+- `COMPARABLE`: mask coverage meets the 20% AOI policy floor and valid crop support/common support covers at least 20% of mapped crop area.
+- `INCONCLUSIVE_COVERAGE`: some common crop support exists, but it covers less than 20% of mapped crop area.
+- `INSUFFICIENT_MASK_COVERAGE`: less than 20% of AOI native cells meet the within-cell source-coverage floor.
+- `NO_COMMON_CROP_SUPPORT`: crop area exists, but no mapped crop cell passed SME2 quality on every date.
+- `NO_CROP_SUPPORT`: no eligible crop area remains in the AOI.
+- Per-date `NO_VALID_CROP_SUPPORT`: no crop-weighted SME2 pixel is valid on that acquisition.
+
+The 20% gates are conservative comparability policy thresholds, not validated universal scientific standards. A higher mask-coverage requirement can be chosen for a study, but a threshold change must be explicitly versioned and reviewed; it must not silently lower the policy floor.
+
+### Publication and interpretation boundary
+
+The raw crop-mask GeoTIFF, original HDF5 files and native raster arrays remain in local operator storage. Publication includes only the display-only PNG support previews, derived weighted summaries, mask provenance and integrity checksums. If no mask is supplied, the UI says **NOT ASSESSED**; the AOI is never assumed to be cropland.
+
+A Dynamic World crop-probability layer is cropland-likelihood context, not crop-species identification, a verified field boundary, or independent ground truth. A mask threshold does not prove crop identity. The weighted result remains a summary of SME2 surface-soil-moisture estimates over the mapped crop-area support, not root-zone moisture, crop health, yield or irrigation need.
 
 ## Spatial-support drift profile
 
