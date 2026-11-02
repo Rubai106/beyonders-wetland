@@ -127,7 +127,7 @@ The **Step 1B independent crop-area gate is implemented in code** on Rubai-dev:
 - Keep the existing surfaceQualityFlag == 0 and all other SME2 quality rules unchanged. The raw crop GeoTIFF remains local; the public package contains only derived statistics/provenance and PNG previews.
 - Mark weak mask or common crop support inconclusive/unavailable instead of widening the mask, filling missing pixels or relaxing quality rules. Historical packages without this optional field remain readable.
 
-**Gate output:** a reproducible answer to “how much independently mapped crop area is covered by the selected AOI, and what fraction remains SME2 quality-valid for each date and across the exact common cohort?” This is an observability/comparability gate, not a crop identity guarantee or a crop-health diagnosis. The implementation is code-complete for this slice, but no real mask or pilot result is claimed until an operator supplies an actual source raster and verifies it against the real SME2 granules.
+**Gate output:** a reproducible answer to “how much independently mapped crop area is covered by the selected AOI, and what fraction remains SME2 quality-valid for each date and across the exact common cohort?” This is an observability/comparability gate, not a crop identity guarantee or a crop-health diagnosis. Because SME2 measures the complete native cell, crop-fraction weighting does not isolate moisture within cropped sub-pixels when a cell mixes land-cover types. The implementation is code-complete for this slice, but no real mask or pilot result is claimed until an operator supplies an actual source raster and verifies it against the real SME2 granules.
 
 ### Step 2 — Water-to-Canopy Response Audit
 
