@@ -196,6 +196,10 @@ def main() -> int:
         first_shortlist = request_panel.locator("[data-testid='cmr-shortlist-checkbox']").first
         first_shortlist.evaluate("(checkbox) => checkbox.click()")
         require(first_shortlist.is_checked(), "analyst can shortlist a granule for further review")
+        first_shortlist.evaluate("(checkbox) => checkbox.click()")
+        require(not first_shortlist.is_checked(), "analyst can remove a granule from the shortlist")
+        first_shortlist.evaluate("(checkbox) => checkbox.click()")
+        require(first_shortlist.is_checked(), "analyst can restore a granule to the review shortlist")
 
         with page.expect_download() as download_info:
             request_panel.get_by_role("button", name="Download evidence request JSON").click()

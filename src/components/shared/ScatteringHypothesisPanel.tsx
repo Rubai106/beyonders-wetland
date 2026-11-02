@@ -308,7 +308,9 @@ export default function ScatteringHypothesisPanel({ patch }: { patch: WetlandPat
                     <label className="wx-cmr-granule__shortlist">
                       <input type="checkbox" data-testid="cmr-shortlist-checkbox"
                         checked={shortlistedGranules.includes(key)}
-                        onChange={(checked) => setShortlistedGranules((current) => checked ? [...current, key] : current.filter((item) => item !== key))} />
+                        onChange={(event) => setShortlistedGranules((current) => event.currentTarget.checked
+                          ? current.includes(key) ? current : [...current, key]
+                          : current.filter((item) => item !== key))} />
                       <span>Shortlist for review</span>
                     </label>
                   </article>
