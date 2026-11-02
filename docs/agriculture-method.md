@@ -43,6 +43,16 @@ SME2 uses the shared EASE-Grid 2.0 Global grid (EPSG:6933) at approximately 200 
 
 The publish command copies only study.json, the web checksum manifest and preview PNGs into public/agriculture/current. Native GeoTIFFs and original HDF5 granules remain in local operator storage.
 
+## Surface-flag observability audit
+
+Each new per-date study observation records a **surface-flag observability audit** from the SME2 surfaceQualityFlag layer. The diagnostic decodes the eight conditions documented in the product specification: static water, urban area, precipitation, snow/ice, permanent snow/ice, frozen ground, terrain and dense vegetation.
+
+The audit reports the AOI denominator, decodable values, zero-valued surface flags, one-or-more flagged pixels, fill/invalid values and unsupported encodings. Per-bit counts are deliberately **non-exclusive**: a pixel carrying more than one bit appears in more than one reason row. Do not sum the reason rows as if they partition the AOI.
+
+This explains one gate only. The existing acceptance rule remains unchanged: surfaceQualityFlag must equal zero, and the complete SME2 screen must also pass the retrieval flag, moisture range, uncertainty, fill and AOI tests. “Surface-flag clear” is not the same as “valid soil-moisture retrieval”. Dense-vegetation flags are relevant when assessing crop observability, but they do not identify crops or prove that all flagged pixels are cropland.
+
+Fill and non-finite/fractional values are reported separately. Encodings outside the documented eight-bit range are reported as unsupported rather than relabelled. Historical packages without this optional field remain readable; the UI identifies the missing audit rather than reconstructing it.
+
 ## Spatial-support drift profile
 
 The browser derives a support-composition gap for each acquisition date:
