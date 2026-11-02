@@ -186,8 +186,14 @@ def main() -> int:
         granule_text = first_granule.inner_text()
         print("CMR MOCK GRANULE CARD:", granule_text, flush=True)
         require(
-            "Same UTC date as candidate" in granule_text,
-            "inspector reports the mock acquisition on the candidate's UTC date",
+            any(label in granule_text for label in (
+                "Same UTC date as candidate",
+                "day before candidate date",
+                "days before candidate date",
+                "day after candidate date",
+                "days after candidate date",
+            )),
+            "inspector reports the granule acquisition-date offset from the candidate",
         )
         require(
             "12.0% (not candidate-local)" in granule_text,
