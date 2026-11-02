@@ -919,3 +919,225 @@
   background: #9a6268;
   box-shadow: 0 0 0 1px rgb(154 98 104 / 28%);
 }
+
+/* Exact, mutually exclusive SME2 surface-flag signatures (Step 1C). */
+.agriculture-workspace .agri-flag-atlas {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #344a43;
+  border-radius: 3px;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgb(112 153 128 / 10%), transparent 58%),
+    #0b1516;
+}
+.agriculture-workspace .agri-flag-atlas__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.agriculture-workspace .agri-flag-atlas__head > div {
+  display: grid;
+  gap: 4px;
+}
+.agriculture-workspace .agri-flag-atlas__head strong {
+  color: #e3eddf;
+  font-size: .7rem;
+  line-height: 1.35;
+}
+.agriculture-workspace .agri-flag-atlas__head > span {
+  flex: 0 0 auto;
+  color: #9ab2a4;
+  font: 600 .52rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-flag-atlas__intro,
+.agriculture-workspace .agri-flag-atlas__empty {
+  margin: 0;
+  color: #91a69c;
+  font-size: .57rem;
+  line-height: 1.5;
+}
+.agriculture-workspace .agri-flag-atlas__axis,
+.agriculture-workspace .agri-flag-atlas__list > button {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 66px;
+  align-items: center;
+  gap: 7px;
+}
+.agriculture-workspace .agri-flag-atlas__axis {
+  padding: 0 8px 3px;
+  color: #7f968d;
+  font: 600 .47rem var(--font-mono, monospace);
+  letter-spacing: .04em;
+}
+.agriculture-workspace .agri-flag-atlas__axis > span:last-child {
+  text-align: right;
+}
+.agriculture-workspace .agri-flag-atlas__axis-bits,
+.agriculture-workspace .agri-flag-atlas__matrix {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.agriculture-workspace .agri-flag-atlas__axis-bits span {
+  min-width: 0;
+  color: #90a69a;
+  font-size: .45rem;
+}
+.agriculture-workspace .agri-flag-atlas__list {
+  display: grid;
+  gap: 4px;
+}
+.agriculture-workspace .agri-flag-atlas__list > button {
+  grid-template-rows: auto 3px;
+  min-width: 0;
+  padding: 7px 8px 6px;
+  border: 1px solid #283b36;
+  border-radius: 2px;
+  background: #0e191a;
+  color: #d0ded2;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.agriculture-workspace .agri-flag-atlas__list > button:hover {
+  border-color: #718d79;
+  background: #14231f;
+  transform: translateX(2px);
+}
+.agriculture-workspace .agri-flag-atlas__list > button.is-active {
+  border-color: #a2b978;
+  background: linear-gradient(90deg, #1d3025, #101d1c);
+  box-shadow: inset 2px 0 #c8c77b;
+}
+.agriculture-workspace .agri-flag-atlas__mask {
+  color: #d4c58f;
+  font: 700 .59rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-flag-atlas__matrix {
+  min-height: 12px;
+}
+.agriculture-workspace .agri-flag-atlas__matrix i {
+  display: block;
+  justify-self: center;
+  width: 7px;
+  height: 7px;
+  border: 1px solid #40524a;
+  border-radius: 50%;
+  background: #172421;
+}
+.agriculture-workspace .agri-flag-atlas__matrix i.is-on {
+  border-color: #e1d28b;
+  background: #c6ba78;
+  box-shadow: 0 0 7px rgb(198 186 120 / 30%);
+}
+.agriculture-workspace .agri-flag-atlas__count {
+  display: grid;
+  gap: 1px;
+  justify-items: end;
+}
+.agriculture-workspace .agri-flag-atlas__count strong {
+  color: #dce8d7;
+  font: 700 .6rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-flag-atlas__count small {
+  color: #829a8f;
+  font: 500 .47rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-flag-atlas__bar {
+  grid-column: 2 / -1;
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #22342f;
+}
+.agriculture-workspace .agri-flag-atlas__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6f9f89, #d0c17d);
+}
+.agriculture-workspace .agri-flag-atlas__more {
+  justify-self: start;
+  padding: 5px 7px;
+  border: 1px solid #4b6558;
+  border-radius: 2px;
+  background: #12211c;
+  color: #bad0bd;
+  font: 600 .52rem var(--font-mono, monospace);
+  cursor: pointer;
+}
+.agriculture-workspace .agri-flag-atlas__more:hover {
+  border-color: #9cb37b;
+  color: #e1e9d0;
+}
+.agriculture-workspace .agri-flag-atlas__detail {
+  display: grid;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #43584a;
+  background: linear-gradient(135deg, rgb(121 147 91 / 10%), #101a1a 65%);
+}
+.agriculture-workspace .agri-flag-atlas__detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.agriculture-workspace .agri-flag-atlas__detail-head span {
+  color: #8ca69a;
+  font: 600 .48rem var(--font-mono, monospace);
+  letter-spacing: .05em;
+}
+.agriculture-workspace .agri-flag-atlas__detail-head strong {
+  color: #e5d49a;
+  font: 700 .72rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-flag-atlas__detail-flags {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+.agriculture-workspace .agri-flag-atlas__detail-flags > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 7px;
+  border-left: 2px solid #b3ac73;
+  background: #15231e;
+}
+.agriculture-workspace .agri-flag-atlas__detail-flags strong {
+  color: #d8e4d6;
+  font-size: .55rem;
+}
+.agriculture-workspace .agri-flag-atlas__detail-flags small {
+  color: #8da398;
+  font-size: .49rem;
+  line-height: 1.4;
+}
+.agriculture-workspace .agri-flag-atlas__detail > p {
+  margin: 0;
+  color: #99aea2;
+  font-size: .54rem;
+  line-height: 1.45;
+}
+.agriculture-workspace .agri-flag-atlas__detail > p strong {
+  color: #e3d39a;
+  font: 650 .57rem var(--font-mono, monospace);
+}
+@media (max-width: 600px) {
+  .agriculture-workspace .agri-flag-atlas__axis,
+  .agriculture-workspace .agri-flag-atlas__list > button {
+    grid-template-columns: 36px minmax(0, 1fr) 56px;
+    gap: 5px;
+  }
+  .agriculture-workspace .agri-flag-atlas__axis-bits,
+  .agriculture-workspace .agri-flag-atlas__matrix { gap: 2px; }
+  .agriculture-workspace .agri-flag-atlas__matrix i { width: 6px; height: 6px; }
+  .agriculture-workspace .agri-flag-atlas__detail-flags { grid-template-columns: 1fr; }
+}
+
