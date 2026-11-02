@@ -71,11 +71,16 @@ def main() -> int:
         page.locator(".wx-drawer__body").evaluate("(element) => { element.scrollTop = element.scrollHeight; }")
         challenge_button = page.locator(".wx-drawer").get_by_role("button", name="Challenge this detection")
         challenge_button.wait_for(state="visible", timeout=10_000)
-        challenge_button.evaluate("(button) => button.click()")
+        print("CHALLENGE BUTTON BEFORE:", challenge_button.evaluate("(button) => button.outerHTML"), flush=True)
+        challenge_button.click(force=True)
         page.wait_for_function(
-            """() => document.querySelector(".wx-drawer button[aria-expanded='true']") !== null""",
+            """() => {
+              const button = document.querySelector(".wx-drawer button[aria-expanded]");
+              return button?.getAttribute("aria-expanded") === "true";
+            }""",
             timeout=10_000,
         )
+        print("CHALLENGE BUTTON AFTER:", challenge_button.evaluate("(button) => button.outerHTML"), flush=True)
         panel = page.locator(".wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
         ledger_heading = panel.locator("#wx-scattering-title")
