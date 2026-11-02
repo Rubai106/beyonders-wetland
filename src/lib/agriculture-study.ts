@@ -272,9 +272,9 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
       if (pixels > previousPixels || (pixels === previousPixels && mask <= previousMask)) return false;
       seen.add(mask);
       totalCombinationPixels += pixels;
-      ids.forEach((_id, bit) => {
+      for (let bit = 0; bit < ids.length; bit += 1) {
         if ((mask & (1 << bit)) !== 0) combinedBitCounts[bit] += pixels;
-      });
+      }
       previousPixels = pixels;
       previousMask = mask;
     }
