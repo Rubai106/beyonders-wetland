@@ -183,10 +183,15 @@ def main() -> int:
             "OPERA_L3_DSWX-HLS_V1_" in first_granule.inner_text() and "T102000_TEST" in first_granule.inner_text(),
             "inspector renders the returned collection granule identifier",
         )
+        granule_text = first_granule.inner_text()
+        print("CMR MOCK GRANULE CARD:", granule_text, flush=True)
         require(
-            "Same UTC date as candidate" in first_granule.inner_text()
-            and "12.0% (not candidate-local)" in first_granule.inner_text(),
-            "inspector shows acquisition-date relation and labels cloud cover as granule-level metadata",
+            "Same UTC date as candidate" in granule_text,
+            "inspector reports the mock acquisition on the candidate's UTC date",
+        )
+        require(
+            "12.0% (not candidate-local)" in granule_text,
+            "inspector labels cloud-cover metadata as granule-level rather than candidate-local",
         )
         first_shortlist = request_panel.locator("[data-testid='cmr-shortlist-checkbox']").first
         first_shortlist.evaluate("(checkbox) => checkbox.click()")
