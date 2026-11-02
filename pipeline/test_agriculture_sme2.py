@@ -71,6 +71,26 @@ class AgricultureSME2Tests(unittest.TestCase):
         self.assertEqual(result["flags"]["precipitation"], 1)
         self.assertEqual(result["flags"]["dense_vegetation"], 1)
         self.assertGreater(sum(result["flags"].values()), result["flagged_pixels"])
+        self.assertEqual(result["flag_combinations"], [
+            {"mask": 1, "pixels": 1},
+            {"mask": 3, "pixels": 1},
+            {"mask": 4, "pixels": 1},
+            {"mask": 128, "pixels": 1},
+        ])
+        self.assertEqual(sum(item["pixels"] for item in result["flag_combinations"]), result["flagged_pixels"])
+
+    def test_surface_flag_combinations_are_exclusive_and_sorted_by_count(self):
+        values = np.array([[1, 3, 3, 1, 5, 0]], dtype="float64")
+        result = surface_flag_diagnostics(values, np.ones(values.shape, dtype=bool))
+        self.assertEqual(result["flag_combinations"], [
+            {"mask": 1, "pixels": 2},
+            {"mask": 3, "pixels": 2},
+            {"mask": 5, "pixels": 1},
+        ])
+        self.assertEqual(sum(item["pixels"] for item in result["flag_combinations"]), 5)
+        self.assertEqual(result["flags"]["static_water"], 5)
+        self.assertEqual(result["flags"]["urban_area"], 2)
+        self.assertEqual(result["flags"]["precipitation"], 1)
 
     def test_surface_flag_diagnostics_respect_aoi_and_reject_shape_mismatch(self):
         values = np.array([[0, 1, 2]], dtype="float64")
