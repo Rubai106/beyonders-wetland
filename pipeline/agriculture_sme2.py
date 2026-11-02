@@ -43,6 +43,19 @@ RUN_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 DATE_RE = re.compile(r"(?<!\d)(20\d{6})T\d{6}(?!\d)")
 RELEASE_RE = re.compile(r"(?<![A-Z0-9])(P\d{5})(?!\d)", re.I)
 FLAG_NAMES = ("retrievalQualityFlag", "surfaceQualityFlag")
+# NISAR L3 SME2 product specification: surfaceQualityFlag is an Int16 bit field.
+# These labels are diagnostics only; the quality gate remains surfaceQualityFlag == 0.
+SURFACE_FLAG_BITS = (
+    ("static_water", 0),
+    ("urban_area", 1),
+    ("precipitation", 2),
+    ("snow_or_ice", 3),
+    ("permanent_snow_or_ice", 4),
+    ("frozen_ground", 5),
+    ("terrain", 6),
+    ("dense_vegetation", 7),
+)
+SURFACE_FLAG_METHOD = "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS"
 SOURCE_LIST = [
     {"title": "ASF NISAR SME2 guide", "url": "https://nisar-docs.asf.alaska.edu/sme2/"},
     {"title": "NISAR PROVISIONAL product known issues", "url": "https://nisar-docs.asf.alaska.edu/provisional-known-issues/"},
@@ -522,11 +535,16 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
 
         fill_values = []
         uncertainty_fill_values = []
+        surface_fill_values = []
         for key in ("_FillValue", "missing_value", "fillValue"):
             if key in moisture_ds.attrs:
                 fill_values.append(float(np.asarray(moisture_ds.attrs[key]).reshape(-1)[0]))
             if key in uncertainty_ds.attrs:
                 uncertainty_fill_values.append(float(np.asarray(uncertainty_ds.attrs[key]).reshape(-1)[0]))
+            if key in surface_ds.attrs:
+                surface_fill_values.append(float(np.asarray(surface_ds.attrs[key]).reshape(-1)[0]))
+        if not surface_fill_values:
+            surface_fill_values.append(-9999.0)
 
 
     if not np.isfinite(x).all() or not np.isfinite(y).all() or len(x) < 2 or len(y) < 2:
@@ -568,6 +586,7 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
     fill_excluded = int(np.sum(~fill_ok & in_aoi))
     retrieval_counts = {str(int(value)): int(np.sum(retrieval[in_aoi] == value)) for value in np.unique(retrieval[in_aoi]) if np.isfinite(value)}
     surface_counts = {str(int(value)): int(np.sum(surface[in_aoi] == value)) for value in np.unique(surface[in_aoi]) if np.isfinite(value)}
+    surface_diagnostics = surface_flag_diagnostics(surface, in_aoi, surface_fill_values)
     moisture = moisture[row0:row1, col0:col1]
     uncertainty = uncertainty[row0:row1, col0:col1]
     retrieval = retrieval[row0:row1, col0:col1]
@@ -591,6 +610,7 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         "aoi_mask": in_aoi, "epsg": epsg, "transform": transform, "preview_bounds": preview_bounds,
         "signature": signature, "file": path, "fill_excluded": fill_excluded,
         "retrieval_flag_counts": retrieval_counts, "surface_flag_counts": surface_counts,
+        "surface_flag_diagnostics": surface_diagnostics,
     }
 
 
@@ -621,6 +641,51 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     if fill_ok is not None:
         valid &= np.asarray(fill_ok, dtype=bool)
     return valid
+
+
+def surface_flag_diagnostics(surface_flag: np.ndarray, aoi_mask: np.ndarray,
+                             fill_values: list[float] | None = None) -> dict[str, Any]:
+    """Count documented SME2 surface-quality bits inside the AOI.
+
+    Per-bit counts are deliberately non-exclusive: one pixel may carry multiple
+    flags. This function is diagnostic only and does not alter quality_mask().
+    Values outside the documented encoding are reported separately.
+    """
+    values = np.asarray(surface_flag, dtype="float64")
+    aoi = np.asarray(aoi_mask, dtype=bool)
+    if values.shape != aoi.shape or values.ndim != 2:
+        raise AgricultureError("Surface-flag diagnostics require matching two-dimensional arrays.")
+
+    fill = np.zeros(values.shape, dtype=bool)
+    for sentinel in (fill_values or [-9999.0]):
+        if np.isfinite(sentinel):
+            fill |= np.isfinite(values) & np.isclose(values, float(sentinel))
+
+    integer = np.isfinite(values) & np.isclose(values, np.rint(values))
+    invalid = aoi & ~fill & (~integer | (values < 0))
+    unsupported = aoi & ~fill & integer & (values > 255)
+    encoded = aoi & ~fill & integer & (values >= 0) & (values <= 255)
+    raw = np.zeros(values.shape, dtype="uint16")
+    raw[encoded] = np.rint(values[encoded]).astype("uint16")
+
+    flags = {
+        name: int(np.sum(encoded & ((raw & (1 << bit)) != 0)))
+        for name, bit in SURFACE_FLAG_BITS
+    }
+    total = int(np.sum(aoi))
+    encoded_count = int(np.sum(encoded))
+    flagged_count = int(np.sum(encoded & (raw != 0)))
+    return {
+        "method": SURFACE_FLAG_METHOD,
+        "total_aoi_pixels": total,
+        "encoded_pixels": encoded_count,
+        "unflagged_pixels": int(np.sum(encoded & (raw == 0))),
+        "flagged_pixels": flagged_count,
+        "fill_pixels": int(np.sum(aoi & fill)),
+        "invalid_pixels": int(np.sum(invalid)),
+        "unsupported_encoding_pixels": int(np.sum(unsupported)),
+        "flags": flags,
+    }
 
 
 def _summary(values: np.ndarray, mask: np.ndarray, uncertainty: np.ndarray | None = None,
@@ -789,6 +854,7 @@ def analyze(run_id: str) -> dict[str, Any]:
             "fill_excluded_pixels": scene["fill_excluded"],
             "retrieval_flag_counts": scene["retrieval_flag_counts"],
             "surface_flag_counts": scene["surface_flag_counts"],
+            "surface_flag_diagnostics": scene["surface_flag_diagnostics"],
         })
     target_summary = _summary(target["moisture"], target["valid"], target["uncertainty"], target["aoi_mask"])
     change_summary = _summary(change, change_valid, target["uncertainty"], target["aoi_mask"])
