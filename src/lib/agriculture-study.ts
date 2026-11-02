@@ -290,7 +290,8 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
     "source_bytes", "aoi_native_cells", "mask_covered_cells", "crop_supported_cells",
   ] as const;
   if (!nonnegativeIntegerFields.every((field) =>
-    Number.isInteger(value[field]) && Number(value[field]) >= (field === "aoi_native_cells" ? 1 : 0))) return false;
+    Number.isInteger(value[field]) && Number(value[field]) >= (field === "aoi_native_cells" ? 1 : 0)) ||
+      Number(value.source_bytes) <= 0) return false;
   const aoiCells = Number(value.aoi_native_cells);
   const coveredCells = Number(value.mask_covered_cells);
   const cropCells = Number(value.crop_supported_cells);
@@ -328,8 +329,8 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
       (value.preview !== null && !safeRelativeAssetPath(value.preview, "previews/"))) return false;
 
   const commonArea = Number(common.valid_crop_area_equivalent_pixels);
-  const expectedStatus = Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
-    Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
+  const expectedStatus = Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
+    Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
     commonArea <= 0 ? "NO_COMMON_CROP_SUPPORT" :
     Number(common.valid_crop_area_fraction) < 0.2 ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
   if (common.status !== expectedStatus) return false;
@@ -346,8 +347,8 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
     const item = observations[index] as Record<string, unknown>;
     const validArea = Number(item.valid_crop_area_equivalent_pixels);
     const fraction = Number(item.valid_crop_area_fraction);
-    const expectedStatus = Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
-      Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
+    const expectedStatus = Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
+      Number(totalCropArea) <= 0 ? "NO_CROP_SUPPORT" :
       validArea <= 0 ? "NO_VALID_CROP_SUPPORT" :
       fraction < 0.2 ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
     if (item.status !== expectedStatus) return false;
