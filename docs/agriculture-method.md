@@ -71,13 +71,13 @@ The Operator tab can generate the optional arguments. The path is read by the lo
 
 ### Native-grid aggregation
 
-The pipeline thresholds source pixels at the recorded probability threshold (default 0.50), then area-averages the binary crop indicator onto each native SME2 cell using Resampling.average in the SME2 EPSG:6933 equal-area grid. It independently area-averages a valid-source indicator. These two outputs must not be conflated:
+The pipeline thresholds source pixels at the recorded probability threshold (default 0.50), then area-averages the binary crop indicator onto each native SME2 cell using Resampling.average in the SME2 EPSG:6933 equal-area grid. It independently area-averages a valid-source indicator. The workbench exposes this as a separate Mask QA map layer, so a mapped non-crop cell is not visually indistinguishable from missing or incomplete source data. These outputs must not be conflated:
 
 - **Source coverage** is the share of a target cell for which a valid source value exists. A target cell is eligible only when this reaches the configured within-cell floor (default 0.80).
 - **Crop fraction** is the crop-classified share of the *complete* SME2 target cell. It remains fractional at field boundaries; missing source data are not re-normalized into crop or non-crop.
 - The sum of eligible crop fractions is reported as crop-area-equivalent SME2 pixels. It is an area accounting unit, not a count of whole fields or a number of independent samples.
 
-The AOI footprint uses the same SME2 pixel-centre selection as the original moisture analysis. Cells outside the AOI, or with insufficient valid mask coverage, receive no crop weight. No coarse mask is upsampled to create finer detail. The selected source file's byte count, SHA-256, CRS, cell-area estimate, date/label, threshold and coverage policy are recorded in the study package.
+The AOI footprint uses the same SME2 pixel-centre selection as the original moisture analysis. Cells outside the AOI, or with insufficient valid mask coverage, receive no crop weight. No coarse mask is upsampled to create finer detail. The selected source file's byte count, SHA-256, CRS, cell-area estimate, date/label, threshold and coverage policy are recorded in the study package. The Mask QA preview colours each AOI cell as meeting the source-coverage floor, partially covered, or having no valid source coverage; it is generated from the uncollapsed per-cell coverage array, independently of the crop-fraction preview.
 
 ### Date-specific and fixed crop support
 
@@ -91,7 +91,7 @@ No missing SME2 pixels are filled, no flagged pixels are accepted, and the surfa
 
 - `COMPARABLE`: mask coverage meets the 20% AOI policy floor and valid crop support/common support covers at least 20% of mapped crop area.
 - `INCONCLUSIVE_COVERAGE`: some common crop support exists, but it covers less than 20% of mapped crop area.
-- `INSUFFICIENT_MASK_COVERAGE`: less than 20% of AOI native cells meet the within-cell source-coverage floor.
+- `NO_CROP_SUPPORT`: no eligible crop area remains in the AOI.
 - `NO_COMMON_CROP_SUPPORT`: crop area exists, but no mapped crop cell passed SME2 quality on every date.
 - `NO_CROP_SUPPORT`: no eligible crop area remains in the AOI.
 - Per-date `NO_VALID_CROP_SUPPORT`: no crop-weighted SME2 pixel is valid on that acquisition.
