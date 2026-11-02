@@ -83,9 +83,13 @@ def main() -> int:
                 body=json.dumps(payload),
             )
 
-        # Intercept every request to the CMR host so the fixture handles both
-        # CORS preflight and GET consistently across browser/network versions.
-        page.route("https://cmr.earthdata.nasa.gov/**", mock_cmr)
+        # Intercept only the versioned UMM granule endpoint used by this
+        # inspector. A host-wide route would also mock unrelated CMR resources
+        # used elsewhere in the Wetland drawer.
+        page.route(
+            "https://cmr.earthdata.nasa.gov/search/granules.umm_json_v1_18_6*",
+            mock_cmr,
+        )
 
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
         page.wait_for_selector(".wx-obs", timeout=20_000)
