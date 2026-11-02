@@ -122,6 +122,7 @@ test("validates an independently sourced, area-weighted crop-support audit", () 
       preview: "previews/crop-common-support.png",
     },
     preview: "previews/crop-support.png",
+    source_coverage_preview: "previews/crop-source-coverage.png",
   };
   assert.equal(isAgricultureStudy(changed), true);
 
@@ -183,6 +184,7 @@ test("does not mistake an under-covered mask with zero mapped crop area for a no
       preview: null,
     },
     preview: null,
+    source_coverage_preview: "previews/crop-source-coverage.png",
   };
   assert.equal(isAgricultureStudy(changed), true);
 });
