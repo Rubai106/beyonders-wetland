@@ -18,8 +18,15 @@ const observation = (date: string) => ({
   frame: "120", bandwidth: "20MHz", polarization: "HH+HV", frequency: "A",
   ...summary,
 });
+const matchedSummary = {
+  valid_fraction: 0.6, valid_pixels: 60, total_pixels: 100,
+  median: 0.23, p05: 0.15, p95: 0.31, uncertainty_median: 0.04,
+};
+const matchedObservation = (date: string) => ({
+  date, preview: "previews/matched-moisture-" + date + ".png", ...matchedSummary,
+});
 const study = {
-  schema_version: 1, study_id: "test-study", run_id: "test-run",
+  schema_version: 2, study_id: "test-study", run_id: "test-run",
   product: "NISAR_L3_SME2_PROVISIONAL_V1", product_maturity: "PROVISIONAL",
   release: "P05023", track: "034", direction: "A", frame: "120",
   bandwidth: "20MHz", polarization: "HH+HV", frequency: "A",
@@ -30,11 +37,71 @@ const study = {
   target_date: "2026-07-01",
   observations: ["2026-06-20", "2026-06-25", "2026-06-28", "2026-07-01"].map(observation),
   change_preview: "previews/change-latest-minus-baseline.png",
-  change_summary: summary, evidence_status: "EXPLORATORY",
+  change_summary: summary,
+  matched_support: {
+    method: "ALL_DATE_VALID_PIXEL_INTERSECTION",
+    status: "COMPARABLE",
+    valid_fraction: 0.6, valid_pixels: 60, total_pixels: 100,
+    observations: ["2026-06-20", "2026-06-25", "2026-06-28", "2026-07-01"].map(matchedObservation),
+  },
+  evidence_status: "EXPLORATORY",
   sources: [{ title: "ASF NISAR SME2 Guide", url: "https://nisar-docs.asf.alaska.edu/sme2/" }],
 };
 
 test("accepts a structurally valid exploratory study", () => assert.equal(isAgricultureStudy(study), true));
+
+test("accepts a zero-common-pixel audit without inventing matched observations", () => {
+  const changed = structuredClone(study);
+  changed.matched_support = {
+    method: "ALL_DATE_VALID_PIXEL_INTERSECTION",
+    status: "NO_COMMON_PIXELS",
+    valid_fraction: 0, valid_pixels: 0, total_pixels: 100,
+    observations: [],
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+});
+
+test("accepts a non-empty matched cohort below the fixed coverage floor as inconclusive", () => {
+  const changed = structuredClone(study);
+  const lowSummary = {
+    valid_fraction: 0.01, valid_pixels: 1, total_pixels: 100,
+    median: 0.23, p05: 0.23, p95: 0.23, uncertainty_median: 0.04,
+  };
+  changed.matched_support = {
+    method: "ALL_DATE_VALID_PIXEL_INTERSECTION",
+    status: "INCONCLUSIVE_COVERAGE",
+    valid_fraction: 0.01, valid_pixels: 1, total_pixels: 100,
+    observations: ["2026-06-20", "2026-06-25", "2026-06-28", "2026-07-01"].map((date) => ({
+      date, preview: "previews/matched-moisture-" + date + ".png", ...lowSummary,
+    })),
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+});
+
+test("rejects matched observations that do not follow the study dates", () => {
+  const changed = structuredClone(study);
+  changed.matched_support.observations[1].date = "2026-06-24";
+  assert.equal(isAgricultureStudy(changed), false);
+});
+
+test("rejects a matched observation with inconsistent cohort pixel counts", () => {
+  const changed = structuredClone(study);
+  changed.matched_support.observations[1].valid_pixels = 59;
+  changed.matched_support.observations[1].valid_fraction = 0.59;
+  assert.equal(isAgricultureStudy(changed), false);
+});
+
+test("rejects a matched-support status that hides inadequate coverage", () => {
+  const changed = structuredClone(study);
+  changed.matched_support.status = "COMPARABLE";
+  changed.matched_support.valid_fraction = 0.1;
+  changed.matched_support.valid_pixels = 10;
+  changed.matched_support.observations.forEach((item) => {
+    item.valid_fraction = 0.1;
+    item.valid_pixels = 10;
+  });
+  assert.equal(isAgricultureStudy(changed), false);
+});
 test("rejects mixed release observations", () => {
   const bad = structuredClone(study);
   bad.observations[2].release = "P05024";
