@@ -1069,6 +1069,8 @@ def _crop_support_audit(
     )
     result = {
         **mask_metadata,
+        "crop_supported_cells": int(np.sum(first_aoi & (weights > 0))),
+        "crop_area_equivalent_pixels": total_crop_area,
         "observations": observations,
         "common_support": {
             "method": "ALL_DATE_VALID_CROP_AREA_INTERSECTION",
