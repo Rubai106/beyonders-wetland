@@ -39,6 +39,16 @@ def main() -> int:
         page.get_by_role("button", name="Challenge this detection").click()
         panel = page.locator(".wx-scattering")
         panel.wait_for(state="visible", timeout=10_000)
+        print(
+            "DEBUG ledger mount:",
+            {
+                "panel_count": panel.count(),
+                "panel_text": panel.inner_text()[:1_200],
+                "panel_html": panel.inner_html()[:1_800],
+                "page_errors": browser_errors,
+            },
+            flush=True,
+        )
 
         ledger_heading = panel.locator("#wx-scattering-title")
         ledger_heading.wait_for(state="visible", timeout=10_000)
