@@ -106,11 +106,15 @@ def main() -> int:
 
         soil = panel.locator('.wx-scattering__choice[data-hypothesis-id="soil-moisture"]')
         soil.evaluate("(button) => button.click()")
+        soil.wait_for(state="attached", timeout=10_000)
+        page.wait_for_function(
+            """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="soil-moisture"][aria-pressed="true"]') !== null""",
+            timeout=10_000,
+        )
         soil_detail_locator = panel.locator('.wx-scattering__detail[aria-label="Soil-moisture variation"]')
         soil_detail_locator.wait_for(state="visible", timeout=10_000)
-        active_soil = panel.locator(".wx-scattering__choice[aria-pressed='true']")
         require(
-            "Soil-moisture variation" in active_soil.inner_text(),
+            panel.locator('.wx-scattering__choice[data-hypothesis-id="soil-moisture"][aria-pressed="true"]').count() == 1,
             "soil-moisture hypothesis becomes the active choice",
         )
         soil_detail = soil_detail_locator.inner_text()
@@ -122,13 +126,16 @@ def main() -> int:
 
         vegetation = panel.locator('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"]')
         vegetation.evaluate("(button) => button.click()")
+        page.wait_for_function(
+            """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"][aria-pressed="true"]') !== null""",
+            timeout=10_000,
+        )
         vegetation_detail_locator = panel.locator(
             '.wx-scattering__detail[aria-label="Vegetation, roughness or intercepted water"]'
         )
         vegetation_detail_locator.wait_for(state="visible", timeout=10_000)
-        active_vegetation = panel.locator(".wx-scattering__choice[aria-pressed='true']")
         require(
-            "Vegetation, roughness or intercepted water" in active_vegetation.inner_text(),
+            panel.locator('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"][aria-pressed="true"]').count() == 1,
             "vegetation and surface hypothesis becomes the active choice",
         )
         vegetation_detail = vegetation_detail_locator.inner_text()
@@ -147,9 +154,16 @@ def main() -> int:
         # Step 2: build a real, selected-hypothesis CMR request and export its manifest.
         open_water = panel.locator('.wx-scattering__choice[data-hypothesis-id="open-water"]')
         open_water.evaluate("(button) => button.click()")
+        page.wait_for_function(
+            """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="open-water"][aria-pressed="true"]') !== null""",
+            timeout=10_000,
+        )
         open_water_detail = panel.locator('.wx-scattering__detail[aria-label="Open-water surface scattering"]')
         open_water_detail.wait_for(state="visible", timeout=10_000)
-        require(open_water.get_attribute("aria-pressed") == "true", "open-water hypothesis becomes selected")
+        require(
+            panel.locator('.wx-scattering__choice[data-hypothesis-id="open-water"][aria-pressed="true"]').count() == 1,
+            "open-water hypothesis becomes selected",
+        )
         request_panel = panel.locator(".wx-evidence-request")
         require(
             request_panel.get_by_role("heading", name="Hypothesis-to-evidence request").count() == 1,
