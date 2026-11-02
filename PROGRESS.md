@@ -38,9 +38,12 @@
 - No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and local Earthdata processing remain not run in this connected session.
 
 
-## Agriculture observability gate — first slice
+## Agriculture observability gate — Steps 1A and 1B
 
-- Added a per-date decoded SME2 surface-quality flag audit for the eight documented surfaceQualityFlag bits.
-- Counts are AOI-bounded and explicitly non-exclusive; fill, invalid and unsupported encodings remain separate.
-- The strict surfaceQualityFlag == 0 screen is unchanged. This is not yet crop-mask coverage or a crop-health conclusion.
-- Next: independently sourced crop-mask alignment and crop-area common-support accounting.
+- Added a per-date decoded SME2 surface-quality flag audit for the eight documented surfaceQualityFlag bits. Counts are AOI-bounded and explicitly non-exclusive; fill, invalid and unsupported encodings remain separate.
+- Added an optional independently sourced single-band probability/binary GeoTIFF input. It must have a declared CRS, values in [0, 1], finer cell area than SME2 and buffered coverage of the complete target grid; coarse, invalid or incomplete masks fail closed.
+- Added separate area-averaging of the thresholded crop indicator and source-data coverage onto the native SME2 EPSG:6933 grid. Fractional crop area is retained at native-cell boundaries; source gaps do not become non-crop.
+- Added provenance (date/source/filename/SHA-256/CRS/areas/thresholds), per-date crop-area-weighted moisture summaries, and an exact fixed all-date intersection using the unchanged SME2 valid masks.
+- Added interactive crop-area and all-date crop-cohort map layers, clickable date coverage bars, common-support status, source provenance and crop-support columns in CSV export. Published assets remain display-only previews and summaries; source GeoTIFFs/HDF5/native rasters stay local.
+- Historical packages without crop observability remain valid. Missing masks display NOT ASSESSED; no AOI is assumed cropland.
+- The strict surfaceQualityFlag == 0 and all other existing SME2 quality checks are unchanged. No real crop mask or Earthdata pilot has yet been processed/published; synthetic raster fixtures are test-only.
