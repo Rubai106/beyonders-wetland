@@ -55,9 +55,15 @@ def main() -> int:
             page.locator(".agri-cohort-audit").count() == 0,
             "the matched-pixel feature is introduced without fabricated coverage or moisture statistics",
         )
+        agriculture_map = page.locator(".agri-map")
         require(
-            page.locator(".agri-map-empty").is_visible(),
-            "the map continues to show basemap context only until genuine SME2 data are published",
+            agriculture_map.count() == 1 and agriculture_map.is_visible(),
+            "the Agriculture map renders while no study is published",
+        )
+        require(
+            agriculture_map.locator(".leaflet-image-layer").count() == 0
+            and agriculture_map.locator(".agri-map-legend").count() == 0,
+            "the unpublished map contains no SME2 image overlay or data legend",
         )
 
         tabs = page.locator(".wx-tabs [role='tab']")
