@@ -100,11 +100,12 @@ class AgricultureSME2Tests(unittest.TestCase):
             ) as dataset:
                 dataset.write(values, 1)
 
-            weights, metadata = _align_crop_probability_mask(
+            weights, source_coverage, metadata = _align_crop_probability_mask(
                 path, self._crop_reference_scene(), "Dynamic World crops probability",
                 "2026-10-20", probability_threshold=0.5, minimum_cell_coverage=0.8,
             )
             np.testing.assert_allclose(weights, np.full((2, 2), 0.5), atol=0.01)
+            np.testing.assert_allclose(source_coverage, np.ones((2, 2)), atol=0.01)
             self.assertEqual(metadata["method"], "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1")
             self.assertEqual(metadata["mask_covered_cells"], 4)
             self.assertAlmostEqual(metadata["mask_coverage_fraction"], 1.0)
@@ -124,11 +125,14 @@ class AgricultureSME2Tests(unittest.TestCase):
             ) as dataset:
                 dataset.write(values, 1)
 
-            weights, metadata = _align_crop_probability_mask(
+            weights, source_coverage, metadata = _align_crop_probability_mask(
                 path, self._crop_reference_scene(), "Independent crop mask",
             )
             self.assertEqual(metadata["mask_covered_cells"], 3)
             self.assertAlmostEqual(metadata["mask_coverage_fraction"], 0.75)
+            self.assertAlmostEqual(source_coverage[0, 0], 0.0)
+            np.testing.assert_allclose(source_coverage[1, :], 1.0, atol=0.01)
+            np.testing.assert_allclose(source_coverage[0, 1], 1.0, atol=0.01)
             self.assertEqual(weights[0, 0], 0)
             np.testing.assert_allclose(weights[0, 1:], 1.0, atol=0.01)
             np.testing.assert_allclose(weights[1, :], 1.0, atol=0.01)
