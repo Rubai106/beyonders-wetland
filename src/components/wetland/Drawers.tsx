@@ -7,6 +7,7 @@ import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/sho
 import { downloadFile, patchesCSV } from "@/lib/real-export";
 import { challenge, changeStory, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
+import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
 
 const STATUS_WORD: Record<StackStatus, string> = { PASS: "Passed", PARTIAL: "Partial", FAIL: "Not shown", UNAVAILABLE: "Unavailable" };
 const pct1 = (v: number | null | undefined) => (v == null ? "n/a" : `${(v * 100).toFixed(1)}%`);
@@ -72,6 +73,7 @@ export function InvestigationDrawer() {
           <ul className="wx-checks">{ch.items.map((i) => <li key={i.text} data-tone={i.tone}><i className="wx-dot" aria-hidden="true" /><div><strong>{i.text}</strong>{i.detail && <small>{i.detail}</small>}</div></li>)}</ul>
           <p className="wx-micro">Other explanations that remain plausible</p>
           <ul className="wx-plain">{ch.alternatives.map((a) => <li key={a}>{a}</li>)}</ul>
+          <ScatteringHypothesisPanel key={p.id} patch={p} />
           <dl className="wx-status">
             <div><dt>Status</dt><dd>{ch.status}</dd></div><div><dt>Interpretation</dt><dd>{ch.interpretation}</dd></div>
             <div><dt>Independent support</dt><dd>{ch.independent}</dd></div><div><dt>Validation</dt><dd>{ch.validation}</dd></div><div><dt>Recommendation</dt><dd>{ch.recommendation}</dd></div>
