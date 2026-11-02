@@ -208,9 +208,19 @@ def main() -> int:
         require(first_shortlist.is_checked(), "analyst can shortlist a granule for further review")
         first_shortlist.evaluate("(checkbox) => checkbox.click()")
         require(not first_shortlist.is_checked(), "analyst can remove a granule from the shortlist")
+
+        with page.expect_download() as empty_download_info:
+            request_panel.get_by_role("button", name="Download evidence request JSON").click()
+        empty_download = empty_download_info.value
+        with open(empty_download.path(), encoding="utf-8") as empty_file:
+            empty_export = json.load(empty_file)
+        require(
+            empty_export.get("discovery", {}).get("shortlistedGranules") == [],
+            "unchecking a granule removes it from the exported shortlist",
+        )
+
         first_shortlist.evaluate("(checkbox) => checkbox.click()")
         require(first_shortlist.is_checked(), "analyst can restore a granule to the review shortlist")
-
         with page.expect_download() as download_info:
             request_panel.get_by_role("button", name="Download evidence request JSON").click()
         download = download_info.value
