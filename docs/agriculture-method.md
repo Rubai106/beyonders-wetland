@@ -165,6 +165,21 @@ The UI can display the ordinary date-specific trajectory or the same-pixel traje
 
 The all-date intersection is intentionally strict. A low or empty cohort can be spatially unrepresentative, especially where SME2 flags or acquisition gaps move across dates. The app reports that limitation instead of expanding the cohort or interpolating missing values. A matched cohort is a comparability diagnostic, not proof that the remaining pixels represent every crop, soil type or part of the AOI.
 
+## Event-aligned rainfall context (optional)
+
+The study package may include a separate NASA GPM IMERG Final daily precipitation context. This is a supporting environmental time series, not an SME2 measurement and not an independent validation reference.
+
+- Product: GPM IMERG Final daily precipitation V07 (GPM_3IMERGDF_V07), DOI [10.5067/GPM/IMERGDF/DAY/07](https://doi.org/10.5067/GPM/IMERGDF/DAY/07).
+- Native grid: 0.1°; do not resample or label it as SME2's approximately 200 m grid.
+- Units: daily accumulated precipitation in mm. Do not multiply daily totals by 0.5. For half-hourly IMERG rate fields expressed in mm/hour, each rate contributes rate × 0.5 hours to the half-hour estimate; that is a different product and aggregation path.
+- Alignment: because the SME2 package records an acquisition calendar date but not a validated exact observation time in this viewer contract, 1-, 3-, 7- and 12-day windows use complete UTC days strictly before the acquisition date. The acquisition date itself is excluded.
+- Completeness: a window is numeric only when every expected daily value is present. Partial windows carry a null total and an explicit valid-day count. Missing data must never be rendered as 0 mm.
+- Spatial support: the precipitation summary is an AOI mean over available native IMERG grid cells. It is coarse-scale context and must not be interpreted as a field-level or SME2-pixel rainfall estimate.
+- Interpretation: temporal proximity is not causation. Rainfall and soil-moisture co-variation does not establish a causal response, calibration, crop stress or irrigation need.
+- Provenance: the rainfall sidecar records product identity, DOI, grid resolution, temporal convention, source byte count and SHA-256 digest. If it is absent or fails schema validation, the UI must show rainfall as unpublished/unavailable.
+
+The current browser contract intentionally accepts only fully aligned, checksummed rainfall summaries. It does not fabricate a rainfall series when no IMERG source files have been processed.
+
 ## Verification
 
 From the repository root:
