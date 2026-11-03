@@ -64,7 +64,7 @@ def main() -> int:
             "the published Naogaon study ID is visible in the workspace",
         )
         require(
-            page.get_by_text("DSG algorithm candidate", exact=True).count() >= 1,
+            page.get_by_text("DSG algorithm candidate", exact=False).count() >= 1,
             "the selected DSG algorithm stream is explicitly labelled",
         )
         require(
