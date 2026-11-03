@@ -160,8 +160,9 @@ def main() -> int:
         )
 
         soil = panel.locator('.wx-scattering__choice[data-hypothesis-id="soil-moisture"]')
-        soil.click(force=True, timeout=10_000)
-        soil.wait_for(state="attached", timeout=10_000)
+        soil.scroll_into_view_if_needed()
+        soil.focus()
+        soil.press("Enter")
         page.wait_for_function(
             """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="soil-moisture"][aria-pressed="true"]') !== null""",
             timeout=10_000,
@@ -180,11 +181,24 @@ def main() -> int:
         )
 
         vegetation = panel.locator('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"]')
-        vegetation.click(force=True, timeout=10_000)
-        page.wait_for_function(
-            """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"][aria-pressed="true"]') !== null""",
-            timeout=10_000,
-        )
+        vegetation.scroll_into_view_if_needed()
+        vegetation.focus()
+        vegetation.press("Enter")
+        try:
+            page.wait_for_function(
+                """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"][aria-pressed="true"]') !== null""",
+                timeout=10_000,
+            )
+        except Exception:
+            print(
+                "DEBUG hypothesis pressed states:",
+                page.locator(".wx-scattering__choice").evaluate_all(
+                    "(buttons) => buttons.map((button) => ({id: button.getAttribute('data-hypothesis-id'), pressed: button.getAttribute('aria-pressed')}))"
+                ),
+                flush=True,
+            )
+            print("DEBUG browser errors:", json.dumps(browser_errors), flush=True)
+            raise
         vegetation_detail_locator = panel.locator(
             '.wx-scattering__detail[aria-label="Vegetation, roughness or intercepted water"]'
         )
@@ -208,7 +222,9 @@ def main() -> int:
 
         # Step 2: build a real, selected-hypothesis CMR request and export its manifest.
         open_water = panel.locator('.wx-scattering__choice[data-hypothesis-id="open-water"]')
-        open_water.click(force=True, timeout=10_000)
+        open_water.scroll_into_view_if_needed()
+        open_water.focus()
+        open_water.press("Enter")
         page.wait_for_function(
             """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="open-water"][aria-pressed="true"]') !== null""",
             timeout=10_000,
