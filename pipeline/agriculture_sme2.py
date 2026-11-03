@@ -1315,6 +1315,9 @@ def publish(run_id: str, public_root: Path | None = None) -> Path:
         raise AgricultureError("Study identity/product maturity validation failed.")
     if study.get("evidence_status") not in {"EXPLORATORY", "INCONCLUSIVE_COVERAGE"}:
         raise AgricultureError("Unsupported evidence status.")
+    if study.get("rainfall_context") is not None:
+        from agriculture_imerg import validate_imerg_publication
+        validate_imerg_publication(study, folder)
     assets = [
         study_path,
         *(output / item["preview"] for item in study["observations"]),
