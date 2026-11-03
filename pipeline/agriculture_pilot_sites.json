@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "study_intent": "Baniachong rice-area SME2 pilot preflight",
+  "collection": "NISAR_L3_SME2_PROVISIONAL_V1",
+  "default_date_range": {
+    "start": "2026-01-01",
+    "end": "2026-10-31"
+  },
+  "minimum_series_gate": {
+    "unique_acquisitions": 6,
+    "temporal_span_days": 60,
+    "reason": "A four-date series can support the existing baseline-plus-target workflow, but is too thin for the planned event-response investigation. Six dates across at least 60 days is a preflight threshold, not a science-validation threshold."
+  },
+  "sites": [
+    {
+      "id": "baniachong_brri_core",
+      "name": "Baniachong BRRI experimental-site vicinity",
+      "priority": 1,
+      "center": {
+        "longitude": 91.4166944,
+        "latitude": 24.3833056
+      },
+      "aoi": {
+        "west": 91.3867,
+        "south": 24.3533,
+        "east": 91.4467,
+        "north": 24.4133
+      },
+      "context": "A published Bangladesh rice-field study identifies an irrigated rice experimental site at 24°22′59.9″N, 91°25′00.1″E in Baniachong. This is a location anchor, not a current field boundary or crop map.",
+      "crop_mask_requirement": "Use a dated, independently generated fine-resolution crop-probability mask (for example, Dynamic World crops probability) and inspect the actual 2026 scene dates. Do not assume the full rectangle is cropland.",
+      "references": [
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC11219493/",
+        "https://www.bamis.gov.bd/en/agro-climate/crop-weather-calendar/"
+      ]
+    },
+    {
+      "id": "baniachong_boro_mosaic",
+      "name": "Baniachong documented Boro-rice mosaic",
+      "priority": 2,
+      "center": {
+        "longitude": 91.38,
+        "latitude": 24.49
+      },
+      "aoi": {
+        "west": 91.35,
+        "south": 24.46,
+        "east": 91.41,
+        "north": 24.52
+      },
+      "context": "NASA's Landsat feature documents irrigated Boro rice fields surrounding Baniachong. The imagery is from 17 March 2021 and is historical agricultural context only.",
+      "crop_mask_requirement": "This is a secondary candidate. Reject or shrink it if the current independent crop mask shows substantial settlement, water or non-crop area.",
+      "references": [
+        "https://science.nasa.gov/missions/landsat/south-asian-farmers-fine-tune-when-to-water/"
+      ]
+    }
+  ],
+  "interpretation_limits": [
+    "A CMR granule footprint intersection does not guarantee adequate valid SME2 pixels inside the AOI.",
+    "Catalogue coverage does not establish data quality, crop identity, field-scale representativeness or scientific validation.",
+    "A crop-probability product is not a verified field boundary or crop-species label.",
+    "The SME2 PROVISIONAL product remains exploratory and must retain its quality flags and native spatial support.",
+    "Do not download, analyze or publish a study until the operator reviews the compatible track/frame series and the independent crop mask."
+  ]
+}
