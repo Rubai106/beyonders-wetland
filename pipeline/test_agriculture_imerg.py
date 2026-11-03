@@ -2,6 +2,7 @@
 import json
 import tempfile
 import unittest
+from urllib.parse import parse_qs, urlparse
 from unittest.mock import patch
 from datetime import date, timedelta
 from pathlib import Path
@@ -17,6 +18,7 @@ from agriculture_imerg import (
     parse_imerg_granule_date,
     read_imerg_daily,
     required_imerg_dates,
+    search_imerg_daily,
     select_imerg_granules,
 )
 from agriculture_sme2 import AgricultureError
@@ -212,6 +214,54 @@ class AgricultureIMERGTests(unittest.TestCase):
             self.assertTrue((run / "imerg" / "receipt.json").is_file())
             self.assertTrue((run / "imerg" / "daily-diagnostics.json").is_file())
             self.assertFalse((root / "public").exists())
+
+
+
+    def test_cmr_discovery_queries_the_v07_daily_collection_and_checks_hit_count(self):
+        class FakeResponse:
+            headers = {"CMR-Hits": "1"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return json.dumps({"feed": {"entry": [{
+                    "id": "G123-PROV",
+                    "title": "GPM_3IMERGDF_20260619.nc4",
+                    "time_start": "2026-06-19T00:00:00Z",
+                    "updated": "2026-06-20T00:00:00Z",
+                }]}}).encode("utf-8")
+
+        with patch("urllib.request.urlopen", return_value=FakeResponse()) as mocked:
+            manifest = search_imerg_daily(self.aoi, ["2026-06-19"])
+
+        request = mocked.call_args.args[0]
+        query = parse_qs(urlparse(request.full_url).query)
+        self.assertEqual(query["short_name"], ["GPM_3IMERGDF"])
+        self.assertEqual(query["version"], ["07"])
+        self.assertEqual(query["provider"], ["GES_DISC"])
+        self.assertEqual(manifest["selected_granules"][0]["concept_id"], "G123-PROV")
+        self.assertEqual(manifest["missing_dates"], [])
+
+    def test_cmr_discovery_rejects_truncated_results_instead_of_silently_dropping_days(self):
+        class TruncatedResponse:
+            headers = {"CMR-Hits": "2010"}
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return json.dumps({"feed": {"entry": []}}).encode("utf-8")
+
+        with patch("urllib.request.urlopen", return_value=TruncatedResponse()):
+            with self.assertRaisesRegex(AgricultureError, "truncated daily series"):
+                search_imerg_daily(self.aoi, ["2026-06-19"])
 
 
 
