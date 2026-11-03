@@ -144,8 +144,9 @@ def main() -> int:
             "unpublished crop-mask layers explain their unavailable state instead of implying a failed control",
         )
         require(
-            page.locator(".agri-date-rail button").count() == EXPECTED_DATES,
-            "the elapsed-time acquisition rail contains all six valid observation dates",
+            page.locator(".agri-date-rail").count() == 0
+            and page.locator(".agri-chart .agri-chart-point button").count() == EXPECTED_DATES,
+            "one elapsed-time moisture chart exposes all six selectable acquisition dates without a duplicate rail",
         )
         require(
             page.locator(".agri-chart .agri-chart-point button").count() == EXPECTED_DATES,
