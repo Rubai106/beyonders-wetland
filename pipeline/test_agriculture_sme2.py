@@ -93,7 +93,7 @@ class AgricultureSME2Tests(unittest.TestCase):
             )
             self.assertEqual(result["algorithms"]["DSG"]["status"], "GRID_COORDINATE_MISMATCH")
 
-    def test_dsg_candidate_retrieval_flag_uses_zero_clear_semantics_only(self):
+    def test_root_and_dsg_candidate_retrieval_flags_both_use_zero_clear_semantics(self):
         moisture = np.full((1, 4), 0.24)
         uncertainty = np.full((1, 4), 0.02)
         retrieval = np.array([[0, 1, 77, -9999]], dtype="int16")
@@ -104,8 +104,11 @@ class AgricultureSME2Tests(unittest.TestCase):
         )
         np.testing.assert_array_equal(candidate_valid, [[True, False, False, False]])
 
-        baseline_valid = quality_mask(moisture, uncertainty, retrieval, surface)
-        self.assertFalse(np.array_equal(candidate_valid, baseline_valid))
+        root_valid = quality_mask(
+            moisture, uncertainty, retrieval, surface,
+            retrieval_mode="root-zero-clear",
+        )
+        np.testing.assert_array_equal(root_valid, candidate_valid)
 
     def test_dsg_algorithm_selector_reads_candidate_layers_and_requires_grid_alignment(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -144,7 +147,7 @@ class AgricultureSME2Tests(unittest.TestCase):
                     handle, "baseline", baseline_layers, x, y,
                 )
                 self.assertEqual(baseline_selected["soilMoisture"].name, "/science/LSAR/SME2/grids/soilMoisture")
-                self.assertEqual(baseline_mode, "baseline-bitmask")
+                self.assertEqual(baseline_mode, "root-zero-clear")
 
     def test_dsg_quality_diagnostics_report_zero_clear_retrieval_intersection(self):
         moisture = np.full((1, 4), 0.24)
@@ -177,7 +180,7 @@ class AgricultureSME2Tests(unittest.TestCase):
     def test_quality_screen_diagnostics_count_each_strict_gate_without_changing_mask(self):
         moisture = np.array([[.20, .01, .20, .20, .20, .20]], dtype="float64")
         uncertainty = np.array([[.02, .02, np.nan, .02, .02, .02]], dtype="float64")
-        retrieval = np.array([[15, 15, 15, 14, 15, 15]], dtype="uint8")
+        retrieval = np.array([[0, 1, 0, 1, 0, 0]], dtype="uint8")
         surface = np.array([[0, 0, 0, 0, 1, 0]], dtype="uint8")
         fill_ok = np.array([[True, True, True, True, True, False]])
         aoi = np.ones((1, 6), dtype=bool)
@@ -187,19 +190,19 @@ class AgricultureSME2Tests(unittest.TestCase):
         )
         valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
         self.assertEqual(diagnostics, {
-            "retrieval_interpretation": "baseline-bitmask",
+            "retrieval_interpretation": "root-zero-clear",
             "aoi_pixels": 6,
             "moisture_range_pass_pixels": 5,
             "uncertainty_pass_pixels": 5,
-            "retrieval_flag_pass_pixels": 5,
+            "retrieval_flag_pass_pixels": 4,
             "surface_flag_clear_pixels": 5,
             "fill_pass_pixels": 5,
             "moisture_uncertainty_fill_intersection": 3,
             "after_retrieval_flag_intersection": 2,
             "after_surface_flag_intersection": 1,
-            "retrieval_flag_exact_zero_pixels": 0,
-            "moisture_uncertainty_fill_retrieval_zero_intersection": 0,
-            "retrieval_zero_and_surface_zero_intersection": 0,
+            "retrieval_flag_exact_zero_pixels": 4,
+            "moisture_uncertainty_fill_retrieval_zero_intersection": 2,
+            "retrieval_zero_and_surface_zero_intersection": 1,
             "all_screen_pass_pixels": int(np.sum(valid & aoi)),
         })
         self.assertEqual(diagnostics["all_screen_pass_pixels"], 1)
@@ -207,10 +210,10 @@ class AgricultureSME2Tests(unittest.TestCase):
     def test_uint8_retrieval_bitfield_is_numpy2_safe(self):
         moisture = np.full((2, 3), 0.25)
         uncertainty = np.full((2, 3), 0.03)
-        retrieval = np.array([[15, 14, 31], [255, 15, 15]], dtype=np.uint8)
+        retrieval = np.array([[0, 1, 0], [255, 0, 0]], dtype=np.uint8)
         surface = np.array([[0, 0, 0], [0, 1, 0]], dtype=np.uint8)
         result = quality_mask(moisture, uncertainty, retrieval, surface)
-        np.testing.assert_array_equal(result, [[True, False, False], [False, False, True]])
+        np.testing.assert_array_equal(result, [[True, False, True], [False, False, True]])
 
     def test_fractional_and_nonfinite_flags_are_not_accepted(self):
         moisture = np.full((1, 4), 0.25)
@@ -218,12 +221,12 @@ class AgricultureSME2Tests(unittest.TestCase):
         retrieval = np.array([[15.0, 15.5, np.nan, 271.0]])
         surface = np.array([[0.0, 0.0, 0.0, 0.0]])
         result = quality_mask(moisture, uncertainty, retrieval, surface)
-        np.testing.assert_array_equal(result, [[True, False, False, False]])
+        np.testing.assert_array_equal(result, [[False, False, False, False]])
 
     def test_surface_quality_must_be_zero(self):
         shape = (1, 4)
         result = quality_mask(np.full(shape, .2), np.full(shape, .01),
-                              np.full(shape, 15, dtype=np.uint8),
+                              np.zeros(shape, dtype=np.uint8),
                               np.array([[0, 1, 2, 255]], dtype=np.uint8))
         np.testing.assert_array_equal(result, [[True, False, False, False]])
 
@@ -548,7 +551,7 @@ class AgricultureSME2Tests(unittest.TestCase):
             moisture.attrs["units"] = "m^3/m^3"
             uncertainty = grids.create_dataset("soilMoistureUncertainty", data=np.full((4, 5), 0.03, dtype="float32"))
             uncertainty.attrs["units"] = "m^3 m^-3"
-            grids.create_dataset("retrievalQualityFlag", data=np.full((4, 5), 15, dtype="int16"))
+            grids.create_dataset("retrievalQualityFlag", data=np.zeros((4, 5), dtype="int16"))
             if surface_in_ancillary:
                 surface_group = grids.create_group("ancillaryData")
                 surface_group.create_dataset("surfaceQualityFlag", data=np.zeros((4, 5), dtype="int16"))
