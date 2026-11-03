@@ -30,7 +30,7 @@ const matchedObservation = (date: string) => ({
 });
 const study = {
   schema_version: 2, study_id: "test-study", run_id: "test-run",
-  algorithm: "BASELINE" as const, algorithm_label: "Root baseline product", quality_exclusions: [],
+  algorithm: "BASELINE" as const, algorithm_label: "Root baseline product",
   product: "NISAR_L3_SME2_PROVISIONAL_V1", product_maturity: "PROVISIONAL",
   release: "P05023", track: "034", direction: "A", frame: "120",
   bandwidth: "20MHz", polarization: "HH+HV", frequency: "A",
@@ -55,20 +55,22 @@ const study = {
 test("accepts a structurally valid exploratory study", () => assert.equal(isAgricultureStudy(study), true));
 
 test("accepts an explicitly labelled DSG study with dated algorithm-quality exclusions", () => {
-  const changed = structuredClone(study);
-  changed.algorithm = "DSG";
-  changed.algorithm_label = "DSG algorithm candidate";
-  changed.quality_exclusions = [{
-    date: "2026-06-23",
-    granule_name: "NISAR_L3_PR_SME2_023_170_A_014_4005_DHDH_A_20260623T232955_20260623T233029_P05023_N_F_J_001.h5",
-    reason: "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN",
-    valid_pixels: 0,
-    total_pixels: 100,
-    retrieval_interpretation: "candidate-zero-clear",
-  }];
+  const changed = {
+    ...structuredClone(study),
+    algorithm: "DSG" as const,
+    algorithm_label: "DSG algorithm candidate",
+    quality_exclusions: [{
+      date: "2026-06-23",
+      granule_name: "NISAR_L3_PR_SME2_023_170_A_014_4005_DHDH_A_20260623T232955_20260623T233029_P05023_N_F_J_001.h5",
+      reason: "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN" as const,
+      valid_pixels: 0 as const,
+      total_pixels: 100,
+      retrieval_interpretation: "candidate-zero-clear" as const,
+    }],
+  };
   assert.equal(isAgricultureStudy(changed), true);
 
-  const wrongRule = structuredClone(changed);
+  const wrongRule: any = structuredClone(changed);
   wrongRule.quality_exclusions[0].retrieval_interpretation = "baseline-bitmask";
   assert.equal(isAgricultureStudy(wrongRule), false);
 
@@ -80,7 +82,7 @@ test("accepts an explicitly labelled DSG study with dated algorithm-quality excl
   outOfRange.quality_exclusions[0].date = "2026-07-02";
   assert.equal(isAgricultureStudy(outOfRange), false);
 
-  const missingAudit = structuredClone(changed);
+  const missingAudit: Record<string, unknown> = structuredClone(changed);
   delete missingAudit.quality_exclusions;
   assert.equal(isAgricultureStudy(missingAudit), false);
 });
