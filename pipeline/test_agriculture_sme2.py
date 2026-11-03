@@ -19,6 +19,7 @@ from agriculture_sme2 import (
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
     _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
+    quality_screen_diagnostics,
 )
 
 
@@ -39,6 +40,29 @@ class AgricultureSME2Tests(unittest.TestCase):
         with patch("agriculture_sme2.urllib.request.urlopen", return_value=response):
             with self.assertRaisesRegex(AgricultureError, "Narrow the AOI or date range"):
                 _cmr_search({"west": 90, "south": 24, "east": 91, "north": 25}, "2026-06-17", "2026-10-29")
+
+    def test_quality_screen_diagnostics_count_each_strict_gate_without_changing_mask(self):
+        moisture = np.array([[.20, .01, .20, .20, .20, .20]], dtype="float64")
+        uncertainty = np.array([[.02, .02, np.nan, .02, .02, .02]], dtype="float64")
+        retrieval = np.array([[15, 15, 15, 14, 15, 15]], dtype="uint8")
+        surface = np.array([[0, 0, 0, 0, 1, 0]], dtype="uint8")
+        fill_ok = np.array([[True, True, True, True, True, False]])
+        aoi = np.ones((1, 6), dtype=bool)
+
+        diagnostics = quality_screen_diagnostics(
+            moisture, uncertainty, retrieval, surface, aoi, fill_ok,
+        )
+        valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
+        self.assertEqual(diagnostics, {
+            "aoi_pixels": 6,
+            "moisture_range_pass_pixels": 5,
+            "uncertainty_pass_pixels": 5,
+            "retrieval_flag_pass_pixels": 5,
+            "surface_flag_clear_pixels": 5,
+            "fill_pass_pixels": 5,
+            "all_screen_pass_pixels": int(np.sum(valid & aoi)),
+        })
+        self.assertEqual(diagnostics["all_screen_pass_pixels"], 1)
 
     def test_uint8_retrieval_bitfield_is_numpy2_safe(self):
         moisture = np.full((2, 3), 0.25)
