@@ -196,6 +196,12 @@ jobs:
       - name: Verify and publish the web-ready Agriculture package
         run: python pipeline/agriculture_sme2.py publish --run-id "$RUN_ID"
 
+      - name: Build the public website with the new Agriculture study
+        run: npm ci && npm run build
+        env:
+          BEYONDERS_MODE: public
+          NEXT_PUBLIC_BEYONDERS_MODE: public
+
       - name: Commit the publication package to Rubai-dev
         shell: bash
         run: |
