@@ -10,7 +10,7 @@ import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
 
 const STATUS_WORD: Record<StackStatus, string> = { PASS: "Passed", PARTIAL: "Partial", FAIL: "Not shown", UNAVAILABLE: "Unavailable" };
-const pct1 = (v: number | null | undefined) => (v == null ? "n/a" : `${(v * 100).toFixed(1)}%`);
+const pct1 = (v: number | null | undefined) => (v == null ? "n/a" : v > 0 && v * 100 < 0.1 ? "<0.1%" : `${(v * 100).toFixed(1)}%`);
 
 /* ── Evidence stack: which evidence exists. A test outcome, never a confidence score. ── */
 export function EvidenceStack() {
