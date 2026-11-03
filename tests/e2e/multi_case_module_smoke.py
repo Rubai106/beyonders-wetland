@@ -68,7 +68,7 @@ def main() -> int:
             and page.locator("path.wx-patch").count() == 213,
             "Hakaluki's 17 July peak shows the published 2.57 km² and 213 candidates",
         )
-        page.locator(".wx-tab", has_text="Check it").click()
+        page.get_by_role("tab", name="Check it").click()
         page.locator(".wx-callout").wait_for(state="visible", timeout=10_000)
         require(
             "Inconclusive" in page.locator(".wx-callout").inner_text()
