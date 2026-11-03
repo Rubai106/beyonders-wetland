@@ -876,6 +876,13 @@ def quality_screen_diagnostics(
     after_moisture_uncertainty_fill = moisture_pass & uncertainty_pass & fill
     after_retrieval = after_moisture_uncertainty_fill & retrieval_pass
     final = after_retrieval & surface_pass & aoi
+    retrieval_clear = (
+        np.isfinite(retrieval_values)
+        & np.isclose(retrieval_values, np.round(retrieval_values))
+        & (retrieval_values == 0)
+    )
+    after_zero_retrieval = after_moisture_uncertainty_fill & retrieval_clear
+    after_zero_retrieval_and_surface = after_zero_retrieval & surface_pass & aoi
     return {
         "aoi_pixels": int(np.sum(aoi)),
         "moisture_range_pass_pixels": int(np.sum(aoi & moisture_pass)),
@@ -886,6 +893,9 @@ def quality_screen_diagnostics(
         "moisture_uncertainty_fill_intersection": int(np.sum(aoi & after_moisture_uncertainty_fill)),
         "after_retrieval_flag_intersection": int(np.sum(aoi & after_retrieval)),
         "after_surface_flag_intersection": int(np.sum(final)),
+        "retrieval_flag_exact_zero_pixels": int(np.sum(aoi & retrieval_clear)),
+        "moisture_uncertainty_fill_retrieval_zero_intersection": int(np.sum(aoi & after_zero_retrieval)),
+        "retrieval_zero_and_surface_zero_intersection": int(np.sum(after_zero_retrieval_and_surface)),
         "all_screen_pass_pixels": int(np.sum(final)),
     }
 
