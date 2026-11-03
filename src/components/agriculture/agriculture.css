@@ -131,6 +131,9 @@
   display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #24333a;
   background: #10191e; color: #9db0b7; font-size: .65rem; line-height: 1.4;
 }
+.agriculture-workspace .agri-drawer-status > span {
+  flex: 1; min-width: 0; overflow-wrap: anywhere;
+}
 .agriculture-workspace .agri-drawer-panel { display: grid; gap: 14px; padding: 14px; color: #dce5e8; }
 .agriculture-workspace .agri-intro { color: #a6b5ba; font-size: .73rem; line-height: 1.6; }
 .agriculture-workspace .agri-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
