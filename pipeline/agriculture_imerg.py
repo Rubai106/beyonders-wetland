@@ -512,3 +512,67 @@ def attach_imerg_rainfall(run_id: str) -> dict[str, Any]:
     study["rainfall_context"] = context
     json_write(study_path, study)
     return context
+
+
+def validate_imerg_publication(study: dict[str, Any], run_directory: Path) -> None:
+    """Re-verify every local IMERG source before its summary can be published."""
+    context = study.get("rainfall_context")
+    if context is None:
+        return
+    if not isinstance(context, dict):
+        raise AgricultureError("IMERG rainfall context is not a valid object.")
+    if (
+        context.get("method") != "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1"
+        or context.get("product") != IMERG_PRODUCT
+        or context.get("source_doi") != IMERG_DOI
+        or context.get("units") != "mm"
+        or context.get("time_basis") != "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION"
+        or context.get("spatial_coverage_floor") != IMERG_SPATIAL_COVERAGE_FLOOR
+    ):
+        raise AgricultureError("IMERG publication metadata does not match the supported daily V07 method.")
+    observations = study.get("observations")
+    if not isinstance(observations, list):
+        raise AgricultureError("IMERG publication has no SME2 observation timeline.")
+    required = set(required_imerg_dates([str(item.get("date", "")) for item in observations]))
+    granules = context.get("granules")
+    if not isinstance(granules, list) or not granules:
+        raise AgricultureError("IMERG publication has no source granule receipts.")
+    dates: set[str] = set()
+    total_bytes = 0
+    for item in granules:
+        if not isinstance(item, dict):
+            raise AgricultureError("IMERG source receipt contains an invalid granule entry.")
+        day = item.get("date")
+        filename = item.get("filename")
+        concept_id = item.get("concept_id")
+        expected_bytes = item.get("bytes")
+        expected_sha = item.get("sha256")
+        if (
+            not isinstance(day, str) or day not in required or day in dates
+            or not isinstance(filename, str) or Path(filename).name != filename
+            or not isinstance(concept_id, str) or not concept_id
+            or not isinstance(expected_bytes, int) or expected_bytes <= 0
+            or not isinstance(expected_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha)
+        ):
+            raise AgricultureError("IMERG source receipt has an invalid date, identity, filename, size or digest.")
+        dates.add(day)
+        source = run_directory / "imerg" / "granules" / filename
+        if not source.is_file() or source.stat().st_size != expected_bytes:
+            raise AgricultureError(f"IMERG source granule is missing or has changed size: {filename}")
+        if sha256_file(source) != expected_sha:
+            raise AgricultureError(f"IMERG source granule checksum no longer matches its receipt: {filename}")
+        total_bytes += expected_bytes
+    canonical = json.dumps(granules, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    digest = hashlib.sha256(canonical).hexdigest()
+    if total_bytes != context.get("source_bytes") or digest != context.get("source_sha256"):
+        raise AgricultureError("IMERG aggregate source receipt digest/byte count does not match the study summary.")
+    receipt_path = run_directory / "imerg" / "receipt.json"
+    receipt = json_read(receipt_path)
+    if (
+        receipt.get("run_id") != study.get("run_id")
+        or receipt.get("product") != IMERG_PRODUCT
+        or receipt.get("source_sha256") != digest
+        or receipt.get("source_bytes") != total_bytes
+        or receipt.get("granules") != granules
+    ):
+        raise AgricultureError("Local IMERG receipt.json does not match the rainfall context being published.")
