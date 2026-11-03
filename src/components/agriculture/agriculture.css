@@ -1141,3 +1141,189 @@
   .agriculture-workspace .agri-flag-atlas__detail-flags { grid-template-columns: 1fr; }
 }
 
+
+
+/* Website-first Agriculture catalogue discovery */
+.agri-online-results {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid rgba(105, 163, 184, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(155deg, rgba(13, 35, 49, 0.92), rgba(7, 19, 29, 0.96));
+}
+.agri-online-results__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.agri-online-results__header > div {
+  display: grid;
+  gap: 4px;
+}
+.agri-online-results__header strong {
+  color: #e9f4f8;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+}
+.agri-online-results__status,
+.agri-online-series__top > span {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 5px 8px;
+  border: 1px solid rgba(231, 180, 91, 0.32);
+  border-radius: 999px;
+  color: #e8c47e;
+  background: rgba(160, 105, 26, 0.12);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.agri-online-results__status.is-ready {
+  border-color: rgba(92, 190, 161, 0.34);
+  color: #8bd7bd;
+  background: rgba(34, 128, 99, 0.13);
+}
+.agri-online-results > p,
+.agri-online-next > p {
+  margin: 0;
+  color: #a9bdc8;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.agri-online-series-list {
+  display: grid;
+  gap: 9px;
+}
+.agri-online-series {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid rgba(129, 166, 183, 0.22);
+  border-radius: 12px;
+  color: #cbdbe3;
+  background: rgba(9, 23, 33, 0.82);
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+.agri-online-series:hover {
+  border-color: rgba(107, 196, 207, 0.58);
+  background: rgba(16, 42, 54, 0.94);
+  transform: translateY(-1px);
+}
+.agri-online-series.is-selected {
+  border-color: #52c3d0;
+  box-shadow: inset 0 0 0 1px rgba(82, 195, 208, 0.32);
+  background: linear-gradient(115deg, rgba(25, 83, 91, 0.42), rgba(10, 28, 40, 0.96));
+}
+.agri-online-series__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.agri-online-series__top strong {
+  color: #f1f7f8;
+  font-size: 13px;
+}
+.agri-online-series__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+.agri-online-series__metrics > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: 8px;
+  background: rgba(125, 166, 184, 0.08);
+}
+.agri-online-series__metrics strong {
+  color: #eaf7fa;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.agri-online-series__metrics small {
+  color: #8ba6b3;
+  font-size: 9px;
+  line-height: 1.25;
+}
+.agri-online-series__identity {
+  display: grid;
+  gap: 4px;
+  color: #a6bfca;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.agri-online-series__identity span {
+  color: #67c6d2;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+}
+.agri-online-series__dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.agri-online-series__dates span {
+  padding: 4px 6px;
+  border: 1px solid rgba(126, 164, 181, 0.14);
+  border-radius: 6px;
+  color: #b4cbd5;
+  background: rgba(120, 158, 175, 0.07);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.agri-online-results__note {
+  display: block;
+  color: #829da9;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.agri-online-empty {
+  padding: 12px;
+  border: 1px dashed rgba(151, 173, 184, 0.28);
+  border-radius: 10px;
+  color: #a9bec8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.agri-online-next {
+  display: grid;
+  gap: 9px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(115, 152, 169, 0.18);
+}
+.agri-online-next > strong {
+  color: #edf6f8;
+  font-size: 13px;
+}
+.agri-online-next__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e5c17b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.agri-online-next__status i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: #d4a653;
+  box-shadow: 0 0 0 4px rgba(212, 166, 83, 0.12);
+}
+@media (max-width: 520px) {
+  .agri-online-results { padding: 11px; }
+  .agri-online-series { padding: 10px; }
+  .agri-online-series__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .agri-online-results__header { align-items: flex-start; flex-direction: column; }
+}
