@@ -89,7 +89,6 @@
 .agriculture-workspace .agri-map-integrity > span { color: #e49b90; font: 650 .55rem var(--font-mono, monospace); letter-spacing: .1em; }
 .agriculture-workspace .agri-map-integrity > strong { color: #fff0ed; font-size: .84rem; }
 .agriculture-workspace .agri-map-integrity p { color: #ddbdb8; font-size: .64rem; line-height: 1.45; overflow-wrap: anywhere; }
-.agriculture-workspace .agri-map-integrity button { justify-self: start; min-height: 30px; padding: 5px 9px; border: 1px solid #9a615a; border-radius: 3px; background: #402321; color: #ffe0da; cursor: pointer; font: 600 .58rem var(--font-mono, monospace); }
 .agriculture-workspace .agri-map-empty {
   position: absolute; z-index: 700; top: 18px; left: 18px; width: min(300px, calc(100% - 36px));
   padding: 14px 16px; border: 1px solid #30434b; border-radius: 5px;
