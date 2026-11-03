@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}
       RUN_ID: agri-${{ github.run_id }}
 
     steps:
@@ -156,7 +156,7 @@ jobs:
         shell: bash
         run: |
           if [ -z "${EARTHDATA_TOKEN}" ]; then
-            echo "::error::Add an Actions secret named EARTHDATA_TOKEN before running this workflow."
+            echo "::error::Add an Actions secret named EARTH_DATA before running this workflow."
             exit 1
           fi
           echo "Cloud runner is configured for non-interactive Earthdata authentication."
