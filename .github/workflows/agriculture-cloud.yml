@@ -1,0 +1,166 @@
+name: Cloud Agriculture SME2 publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      west:
+        description: AOI west longitude (WGS84)
+        required: true
+        type: string
+      south:
+        description: AOI south latitude (WGS84)
+        required: true
+        type: string
+      east:
+        description: AOI east longitude (WGS84)
+        required: true
+        type: string
+      north:
+        description: AOI north latitude (WGS84)
+        required: true
+        type: string
+      start:
+        description: First SME2 search date (YYYY-MM-DD; not before 2026-06-17)
+        required: true
+        type: string
+      end:
+        description: Last SME2 search date (YYYY-MM-DD)
+        required: true
+        type: string
+      series_id:
+        description: Optional compatible SME2 series ID from a previous search (leave blank for unique best series)
+        required: false
+        type: string
+      allow_missing_imerg:
+        description: Publish valid SME2 evidence if Final IMERG windows are not yet available
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agriculture-cloud-publication
+  cancel-in-progress: false
+
+jobs:
+  process-and-publish:
+    if: github.ref_name == 'Rubai-dev'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      RUN_ID: agri-${{ github.run_id }}
+      SERIES_ID: ${{ inputs.series_id }}
+      ALLOW_MISSING_IMERG: ${{ inputs.allow_missing_imerg }}
+    steps:
+      - name: Check out Rubai-dev
+        uses: actions/checkout@v4
+        with:
+          ref: Rubai-dev
+
+      - name: Validate secure Earthdata configuration
+        shell: bash
+        run: |
+          if [ -z "${EARTHDATA_TOKEN}" ]; then
+            echo "::error::Add an Actions secret named EARTHDATA_TOKEN before running this workflow."
+            exit 1
+          fi
+          echo "Cloud runner is configured for non-interactive Earthdata authentication."
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install Agriculture pipeline dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r pipeline/requirements.txt
+
+      - name: Discover compatible NISAR SME2 acquisitions
+        env:
+          WEST: ${{ inputs.west }}
+          SOUTH: ${{ inputs.south }}
+          EAST: ${{ inputs.east }}
+          NORTH: ${{ inputs.north }}
+          START_DATE: ${{ inputs.start }}
+          END_DATE: ${{ inputs.end }}
+        run: |
+          python pipeline/agriculture_sme2.py search \
+            --run-id "$RUN_ID" \
+            --west "$WEST" --south "$SOUTH" --east "$EAST" --north "$NORTH" \
+            --start "$START_DATE" --end "$END_DATE"
+
+      - name: Download the exact selected SME2 series
+        shell: bash
+        run: |
+          if [ -n "$SERIES_ID" ]; then
+            python pipeline/agriculture_sme2.py download --run-id "$RUN_ID" --series-id "$SERIES_ID"
+          else
+            python pipeline/agriculture_sme2.py download --run-id "$RUN_ID"
+          fi
+
+      - name: Analyze real SME2 observations
+        run: python pipeline/agriculture_sme2.py analyze --run-id "$RUN_ID"
+
+      - name: Attach NASA GPM IMERG Final rainfall context
+        shell: bash
+        run: |
+          set +e
+          python pipeline/agriculture_sme2.py rainfall --run-id "$RUN_ID" 2>&1 | tee "$RUNNER_TEMP/imerg.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo "IMERG rainfall context attached." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$ALLOW_MISSING_IMERG" = "true" ] && grep -Eq "no GPM IMERG Final daily V07 granules|no complete rainfall window met the 90% native-cell spatial coverage rule" "$RUNNER_TEMP/imerg.log"; then
+            echo "### IMERG not yet available" >> "$GITHUB_STEP_SUMMARY"
+            echo "SME2 evidence will be published without rainfall context. No missing rainfall values were fabricated." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          exit "$status"
+
+      - name: Verify and publish the web-ready Agriculture package
+        run: python pipeline/agriculture_sme2.py publish --run-id "$RUN_ID"
+
+      - name: Commit the publication package to Rubai-dev
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/agriculture/current
+          if git diff --cached --quiet; then
+            echo "No publication changes to commit."
+          else
+            git commit -m "Publish cloud-verified Agriculture study ($RUN_ID)"
+            git push origin HEAD:Rubai-dev
+          fi
+
+      - name: Save non-sensitive processing receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agriculture-cloud-receipts-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            pipeline/output/agriculture/${{ env.RUN_ID }}/search.json
+            pipeline/output/agriculture/${{ env.RUN_ID }}/download.json
+            pipeline/output/agriculture/${{ env.RUN_ID }}/result/study.json
+            pipeline/output/agriculture/${{ env.RUN_ID }}/result/web-checksums.json
+            pipeline/output/agriculture/${{ env.RUN_ID }}/imerg/receipt.json
+            pipeline/output/agriculture/${{ env.RUN_ID }}/imerg/daily-diagnostics.json
+
+      - name: Summarize publication
+        if: success()
+        run: |
+          {
+            echo "## Agriculture cloud publication complete"
+            echo "- Run: `$RUN_ID`"
+            echo "- Branch: `Rubai-dev`"
+            echo "- Website package: `public/agriculture/current`"
+            echo "- Raw SME2 and IMERG granules were not committed."
+          } >> "$GITHUB_STEP_SUMMARY"
