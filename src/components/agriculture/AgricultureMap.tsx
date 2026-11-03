@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import {
   ImageOverlay,
   MapContainer,
+  Rectangle,
   ScaleControl,
   TileLayer,
   useMap,
@@ -70,6 +71,10 @@ export default function AgricultureMap({
         )}
         <ScaleControl position="bottomleft" />
         <FitStudyBounds bounds={bounds} />
+        {bounds && noStudy && <Rectangle
+          bounds={bounds}
+          pathOptions={{ color: "#57c7d0", weight: 2, dashArray: "7 6", fillColor: "#57c7d0", fillOpacity: 0.045 }}
+        />}
         {bounds && previewUrl && <ImageOverlay url={previewUrl} bounds={bounds} opacity={0.86} />}
       </MapContainer>
       {noStudy && (
