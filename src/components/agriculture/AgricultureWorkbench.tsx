@@ -326,7 +326,7 @@ export default function AgricultureWorkbench() {
   const exportCsv = useCallback(() => {
     if (!study) return;
     const columns = [
-      "date", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "date_valid_fraction",
+      "date", "algorithm", "quality_exclusion_count", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "date_valid_fraction",
       "date_valid_pixels", "total_pixels", "uncertainty_median", "same_pixel_median_m3_m3",
       "same_pixel_valid_fraction", "same_pixel_count", "support_composition_gap_m3_m3",
       "surface_flag_total_aoi_pixels", "surface_flag_encoded_pixels", "surface_flag_unflagged_pixels",
@@ -350,7 +350,8 @@ export default function AgricultureWorkbench() {
       const cropCommon = crop?.common_support.observations[index];
       const surface = item.surface_flag_diagnostics;
       return [
-        item.date, item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
+        item.date, study.algorithm ?? "BASELINE", study.quality_exclusions?.length ?? 0,
+        item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
         item.total_pixels, item.uncertainty_median, matched?.median ?? "",
         matched?.valid_fraction ?? "", matched?.valid_pixels ?? "",
         matched ? item.median - matched.median : "",
@@ -919,7 +920,9 @@ export default function AgricultureWorkbench() {
               <ul>
                 <li>Soil moisture must be finite and within 0.02–0.60 m³/m³.</li>
                 <li>Uncertainty must be finite and non-negative.</li>
-                <li>retrievalQualityFlag bits 0–3 must all be set; anomaly bits 4–7 must be clear.</li>
+                {study.algorithm === "DSG"
+                  ? <li>DSG candidate only: NASA/JPL D-107677 Rev C defines retrievalQualityFlag = 0 as clear and non-zero as anomaly. This rule is not applied to the root baseline layer.</li>
+                  : <li>Root baseline only: retrievalQualityFlag bits 0–3 must all be set; anomaly bits 4–7 must be clear.</li>}
                 <li>surfaceQualityFlag must equal zero. This excludes water, urban, precipitation, snow/ice, frozen-ground, terrain and dense-vegetation flags; it can reduce coverage over crop areas. Fractional flags and NoData remain unassessed.</li>
                 <li>All observations must share the same release and native grid; no resampling is performed.</li>
               </ul>
@@ -929,6 +932,7 @@ export default function AgricultureWorkbench() {
               <dl className="agri-provenance">
                 <div><dt>Collection</dt><dd>{study.product}</dd></div>
                 <div><dt>Maturity</dt><dd>{study.product_maturity}</dd></div>
+                <div><dt>Algorithm</dt><dd>{study.algorithm_label ?? "Root baseline product"}</dd></div>
                 <div><dt>Release</dt><dd>{study.release}</dd></div>
                 <div><dt>Track / frame</dt><dd>{study.track} / {study.frame}</dd></div>
                 <div><dt>Direction / frequency</dt><dd>{study.direction} / {study.frequency}</dd></div>
@@ -945,6 +949,19 @@ export default function AgricultureWorkbench() {
                 </li>)}
               </ul>
             </details>
+            {(study.quality_exclusions?.length ?? 0) > 0 && (
+              <details className="agri-details">
+                <summary>Excluded acquisition dates ({study.quality_exclusions?.length ?? 0})</summary>
+                <p className="agri-details-copy">These dates are not part of the plotted time series because the selected algorithm produced no valid pixels after its documented quality screen. They were excluded—not interpolated, filled, or interpreted as dry soil.</p>
+                <ul className="agri-granule-list">
+                  {study.quality_exclusions?.map((item) => <li key={item.date}>
+                    <strong>{dateLabel(item.date)} · 0 valid pixels</strong>
+                    <span>{item.granule_name}</span>
+                    <code>{item.reason} · {item.retrieval_interpretation}</code>
+                  </li>)}
+                </ul>
+              </details>
+            )}
           </> : <div className="agri-no-study"><strong>No study provenance loaded</strong><p>Source metadata and statistics will appear only after a real publication passes schema and checksum verification.</p></div>}
           {study?.crop_observability && (
             <div className="agri-verdict">
@@ -1024,7 +1041,7 @@ export default function AgricultureWorkbench() {
           <div className="agri-reading">
             <span className="agri-eyebrow">QUALITY IS NOT GROUND TRUTH</span>
             <strong>Flags control what is assessed</strong>
-            <p>The conservative surface-quality screen accepts only zero-valued surface flags. It can exclude dense vegetation in crop areas. Excluded pixels are unassessed—not evidence of dry soil or healthy crops. A 20% coverage floor marks a study inconclusive when target or change coverage falls below it.</p>
+            <p>The surface-quality screen accepts only zero-valued surface flags. It can exclude dense vegetation in crop areas. Excluded pixels are unassessed—not evidence of dry soil or healthy crops. The root baseline and DSG candidate have distinct retrievalQualityFlag rules: the baseline uses its documented status-bit test, while the DSG candidate uses the NASA/JPL zero-clear rule. A 20% coverage floor marks a study inconclusive when target or change coverage falls below it.</p>
           </div>
           <div className="agri-reading">
             <span className="agri-eyebrow">WHY SAME-PIXEL COMPARISON MATTERS</span>
@@ -1066,7 +1083,7 @@ export default function AgricultureWorkbench() {
         />
         <span className="agri-eyebrow">MEASUREMENT WORKSPACE</span>
         <strong>{study ? study.study_id : "No study published"}</strong>
-        <p>{study ? study.observations.length + " dated observations · " + study.release : "Configure an area and run the local SME2 workflow to publish a real result."}</p>
+        <p>{study ? study.observations.length + " valid dates · " + (study.algorithm_label ?? "Root baseline product") + " · " + study.release : "Configure an area and run the cloud SME2 workflow to publish a real result."}</p>
         <div className="agri-rail-divider" />
         <span className="agri-eyebrow">PRODUCT MATURITY</span>
         <strong className="agri-rail-maturity">NISAR L3 · PROVISIONAL</strong>
