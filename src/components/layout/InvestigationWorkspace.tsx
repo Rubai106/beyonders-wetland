@@ -10,10 +10,10 @@ import { TierBadge } from "../wetland/ui";
 type Hazard = "wetland" | "volcano" | "forest" | "agriculture";
 
 const sections: Array<{ id: Hazard; label: string; href: string }> = [
-  { id: "wetland", label: "Wetlands", href: "/wetland/global" },
+  { id: "wetland", label: "Wetlands", href: "/wetland" },
   { id: "agriculture", label: "Agriculture", href: "/agriculture" },
-  { id: "forest", label: "Forests", href: "/forest/global" },
-  { id: "volcano", label: "Volcanoes", href: "/volcano/global" },
+  { id: "forest", label: "Forests", href: "/forest/rondonia" },
+  { id: "volcano", label: "Volcanoes", href: "/volcano/hayli-gubbi" },
 ];
 
 const sourceLabel: Record<Hazard, string> = {
@@ -179,7 +179,8 @@ export default function InvestigationWorkspace({
           <span className="wx-tier__short">NISAR</span>
         </span>}
         <nav className="wx-nav" aria-label="Earth change topics">
-          <Link href="/wetland/global" aria-label="Wetlands: worldwide observations and change studies" title="Worldwide observations and processed wetland studies"><span>Wetlands</span></Link>
+          <Link href="/wetland" aria-label="Open the published wetland investigations" title="Tanguar Haor and Hakaluki Haor studies"><span>Wetlands</span></Link>
+          <Link href="/wetland/global?story=chokwe" aria-label="Open the Chókwè flood event investigation" title="Chókwè · January 2026 event investigation">Chókwè</Link>
           {sections.map((section) => (
             section.id !== "wetland" && <Link key={section.id} href={section.href} aria-current={hazard === section.id ? "page" : undefined}>{section.label}</Link>
           ))}
