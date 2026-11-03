@@ -2,7 +2,7 @@ name: Agriculture and project QA
 
 on:
   push:
-    branches: [Rubai-dev]
+    branches: [master, Rubai-dev]
     paths:
       - '.github/workflows/agriculture-qa.yml'
       - '.github/workflows/agriculture-cloud.yml'
