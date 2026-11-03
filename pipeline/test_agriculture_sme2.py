@@ -122,7 +122,7 @@ class AgricultureSME2Tests(unittest.TestCase):
                 baseline.attrs["units"] = "m^3/m^3"
                 baseline_unc = grids.create_dataset("soilMoistureUncertainty", data=np.full((2, 2), 0.02, dtype="float32"))
                 baseline_unc.attrs["units"] = "m^3/m^3"
-                grids.create_dataset("retrievalQualityFlag", data=np.full((2, 2), 15, dtype="int16"))
+                grids.create_dataset("retrievalQualityFlag", data=np.zeros((2, 2), dtype="int16"))
                 grids.create_dataset("surfaceQualityFlag", data=np.zeros((2, 2), dtype="int16"))
 
                 candidate = grids.create_group("algorithmCandidates").create_group("DSG")
@@ -494,7 +494,7 @@ class AgricultureSME2Tests(unittest.TestCase):
 
     def test_fill_mask_is_applied(self):
         mask = quality_mask(np.full((1, 2), .2), np.full((1, 2), .01),
-                            np.full((1, 2), 15), np.zeros((1, 2)),
+                            np.zeros((1, 2), dtype=np.uint8), np.zeros((1, 2)),
                             np.array([[True, False]]))
         np.testing.assert_array_equal(mask, [[True, False]])
 
