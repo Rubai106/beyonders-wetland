@@ -1176,6 +1176,7 @@ export default function AgricultureWorkbench() {
         <span>{layer === "change" ? "Latest − baseline" : layer === "matched" ? "All dates · fixed cohort" : layer === "crop" ? "Independent crop-area mask" : layer === "crop-common" ? "Quality-valid crop area · all dates" : layer === "crop-source" ? "Independent mask source coverage" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
       </div>}
       drawerTabs={drawerTabs}
+      drawerTabsPlacement="drawer"
       drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" /><span>{loadState === "error" ? loadError + " The release is withheld; this page will not display unverified measurements." : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</span></div>}
       drawer={<div className="agri-drawer-panel"><p>Choose Explore, Operator, Evidence, Check it or Learn.</p></div>}
       footer={<div className="agri-footer">
