@@ -14,6 +14,20 @@
       ],
       "observation_count": 7,
       "exported_at": "2026-10-09T07:22:11.751917+00:00"
+    },
+    {
+      "id": "hakaluki",
+      "label": "REAL NISAR-PROVISIONAL SHOWCASE",
+      "site_name": "Hakaluki Haor",
+      "site_display_name": "Hakaluki Haor",
+      "site_bounds": [
+        91.95680997300008,
+        24.579922022000062,
+        92.12511599400005,
+        24.73396591200003
+      ],
+      "observation_count": 7,
+      "exported_at": "2026-10-04T18:02:22.061034+00:00"
     }
   ]
 }
