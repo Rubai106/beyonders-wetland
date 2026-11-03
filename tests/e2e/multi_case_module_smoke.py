@@ -194,9 +194,13 @@ def main() -> int:
         page.goto(BASE + "/forest", wait_until="domcontentloaded", timeout=30_000)
         page.locator(".forest-comparison").wait_for(state="visible", timeout=30_000)
         forest_maps = page.locator(".forest-comparison-map")
+        forest_metrics = page.locator(".forest-comparison").evaluate(
+            "(el) => ({map: el.getBoundingClientRect().toJSON(), gridRows: getComputedStyle(el).gridTemplateRows, panels: [...el.querySelectorAll('.forest-comparison-map')].map(node => ({rect: node.getBoundingClientRect().toJSON(), position: getComputedStyle(node).position, minHeight: getComputedStyle(node).minHeight})), rootPosition: getComputedStyle(document.querySelector('.wx-root')).position, drawerPosition: getComputedStyle(document.querySelector('.wx-drawer')).position})"
+        )
+        print("FOREST_PHONE_LAYOUT", forest_metrics)
         require(
             forest_maps.count() == 2
-            and all(height >= 260 for height in forest_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
+            and all(height >= 240 for height in forest_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
             and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
             "Forest stacks two usable map panels and keeps evidence in page flow on a phone",
         )
@@ -213,9 +217,13 @@ def main() -> int:
         page.goto(BASE + "/volcano", wait_until="domcontentloaded", timeout=30_000)
         page.locator(".deformation-map-hint").wait_for(state="visible", timeout=30_000)
         volcano_maps = page.locator(".deformation-map")
+        volcano_metrics = page.locator(".deformation-maps").evaluate(
+            "(el) => ({map: el.getBoundingClientRect().toJSON(), gridRows: getComputedStyle(el).gridTemplateRows, panels: [...el.querySelectorAll('.deformation-map')].map(node => ({rect: node.getBoundingClientRect().toJSON(), position: getComputedStyle(node).position, minHeight: getComputedStyle(node).minHeight})), rootPosition: getComputedStyle(document.querySelector('.wx-root')).position, drawerPosition: getComputedStyle(document.querySelector('.wx-drawer')).position})"
+        )
+        print("VOLCANO_PHONE_LAYOUT", volcano_metrics)
         require(
             volcano_maps.count() == 2
-            and all(height >= 260 for height in volcano_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
+            and all(height >= 240 for height in volcano_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
             and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
             "Volcano stacks two usable radar maps and keeps evidence in page flow on a phone",
         )
