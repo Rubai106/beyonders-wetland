@@ -5,7 +5,7 @@
    Test hooks preserved: .wx-obs .wx-play .wx-now .wx-modes .wx-rail
    ═══════════════════════════════════════════════════════════════════ */
 .wx-root { position: fixed; inset: 0; z-index: 1; background: #070A0D; color: var(--ws-text); font-family: var(--font-sans); font-size: var(--fs-small); line-height: var(--lh-body); overflow: hidden;
-  display: grid; grid-template-rows: 52px auto minmax(0, 1fr) auto; grid-template-columns: 304px minmax(0, 1fr) 0; grid-template-areas: "mast mast mast" "quest quest quest" "rail map drawer" "time time time"; }
+  display: grid; grid-template-rows: 52px auto minmax(0, 1fr) auto; grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) 0; grid-template-areas: "mast mast mast" "quest quest quest" "rail map drawer" "time time time"; }
 .wx-root[data-drawer="open"] { grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) clamp(320px, 23.5vw, 360px); }
 .wx-root *, .wx-root *::before, .wx-root *::after { box-sizing: border-box; }
 .wx-root button, .wx-root select, .wx-root input { font: inherit; color: inherit; }
@@ -305,7 +305,16 @@
   .wx-root[data-drawer="closed"] .wx-map { grid-column: auto; }
   .wx-rail { border-right: 0; border-bottom: 1px solid #1E2A33; padding: var(--s2) var(--s3); display: grid; grid-template-columns: 1fr auto; column-gap: var(--s3); max-height: 148px; overflow: hidden; }
   .wx-rail h1 { font-size: 1.25rem; grid-column: 1; } .wx-rail > .wx-micro, .wx-sub, .wx-read, .wx-hint, .wx-src, .wx-bigcap { display: none; } .wx-meta { grid-column: 1; } .wx-obsbox { grid-column: 2; grid-row: 1 / 4; margin: 0; padding: 0; border: 0; text-align: right; background: none; } .wx-big strong { font-size: 1.75rem; }
-  .wx-mast { gap: var(--s2); padding: 0 var(--s2); } .wx-case, .wx-nav__long { display: none; } .wx-brand { padding-right: var(--s2); font-size: 1.1rem; } .wx-tier { font-size: 0.6875rem; padding: 3px 6px; } .wx-nav a span, .wx-nav button span { display: none; }
+  .wx-mast { gap: 6px; padding: 0 8px; }
+  .wx-case { display: flex; flex: 0 1 150px; max-width: 150px; gap: 0; }
+  .wx-case .wx-micro, .wx-case__date { display: none; }
+  .wx-casepick { max-width: 150px; min-width: 0; padding: 4px 6px; font-size: .68rem; }
+  .wx-brand { padding-right: 8px; font-size: 1.05rem; }
+  .wx-tier { gap: 5px; padding: 3px 6px; font-size: .64rem; }
+  .wx-nav { flex: 1 1 0; max-width: calc(100vw - 230px); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .wx-nav::-webkit-scrollbar { display: none; }
+  .wx-nav a, .wx-nav button { flex: 0 0 auto; padding: 5px 7px; font-size: .64rem; }
+  .wx-nav__long, .wx-nav a span, .wx-nav button span { display: none; }
   .wx-modes button span { display: none; } .wx-modecap { display: none; } .wx-legend { display: none; }
   .wx-map-controls { left: 8px; right: 8px; transform: none; width: auto; max-width: none; }
   .wx-quest { flex-wrap: wrap; gap: var(--s1) var(--s2); } .wx-quest__chips { margin-left: 0; }
