@@ -57,6 +57,14 @@ The browser has an acquisition-aligned rainfall timeline with four accumulation 
 
 This integration is code-complete on Rubai-dev, but a real Earthdata-authenticated run has not been completed here. The CMR/download/NetCDF4 integration, new Python regression tests, updated TypeScript schema tests, lint, production build and browser smoke test must pass before this milestone is considered QA-complete. No actual Agriculture rainfall values or SME2 study are claimed by the implementation itself.
 
+## Explicit SME2 algorithm stream and zero-clear DSG semantics
+
+The cloud workflow and local analysis CLI expose \`algorithm=baseline|DSG\`, defaulting to \`baseline\`. The baseline continues to read the root SME2 measurement/quality layers. The opt-in DSG mode reads the separate \`algorithmCandidates/DSG\` soil-moisture, uncertainty and retrieval layers and verifies its own coordinate vectors against the root native grid before use.
+
+NASA/JPL D-107677 Revision C explicitly defines \`algorithmCandidates/DSG/retrievalQualityFlag\` as zero=clear and non-zero=anomaly. This rule is scoped to the DSG candidate path only; it is not used for the root baseline retrievalQualityFlag. Both paths continue to require valid moisture, finite non-negative uncertainty, fill screening, the shared surface-quality screen and AOI membership. The product specification is linked from the [ASF NISAR product-specification index](https://nisar-docs.asf.alaska.edu/product-specification/).
+
+For DSG, dates with no valid AOI pixels are excluded from the plotted and statistical series and recorded in the study's \`quality_exclusions\` field. Each exclusion retains its acquisition date, granule filename, AOI pixel denominator and flag interpretation. No gaps are imputed. A DSG study requires at least four remaining dates; the baseline mode retains its existing fail-closed empty-date behavior. The website labels the selected algorithm and exposes the excluded dates, and its schema validator rejects a DSG package if the quality interpretation or exclusion audit is missing or inconsistent.
+
 ## Scientific boundaries
 
 - Product: `NISAR_L3_SME2_PROVISIONAL_V1`, PROVISIONAL maturity.
