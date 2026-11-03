@@ -23,14 +23,17 @@ The browser verifies the byte count and SHA-256 of study.json and the active pre
 
 This fallback is for maintainers validating or reprocessing a study from a trusted workstation. It is not the intended website-user workflow. End users should be able to submit a selected series from the website once the authenticated hosted worker has been deployed. Never place Earthdata credentials in the browser UI or commit them.
 
-Example search:
+Example SME2 processing, optional IMERG context, then publication:
 
 ~~~powershell
 python pipeline/agriculture_sme2.py search --run-id agri-pilot-01 --west 90.20 --south 23.80 --east 90.60 --north 24.20 --start 2026-06-17 --end 2026-10-29
 python pipeline/agriculture_sme2.py download --run-id agri-pilot-01
 python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01
+python pipeline/agriculture_sme2.py rainfall --run-id agri-pilot-01
 python pipeline/agriculture_sme2.py publish --run-id agri-pilot-01
 ~~~
+
+The optional rainfall command reads the analyzed SME2 dates/AOI, discovers the exact daily GPM IMERG Final V07 granule dates needed for preceding windows, and downloads selected CMR concept IDs with Earthdata authentication through earthaccess. It uses CMR/Earthdata Cloud discovery and does not construct legacy on-premises GES DISC URLs. Earthdata credentials remain local to the operator process.
 
 The search command writes `pipeline/output/agriculture/<run-id>/search.json`. It groups CMR granules by their standardized product identity, deduplicates acquisition dates using the most recently updated CMR record, and requires at least four dates. The current discovery query reads at most 2,000 CMR results; if NASA reports more matches, it fails instead of silently using a truncated catalogue. Narrow the AOI or date range and search again. If multiple compatible series are returned, pass the selected `series_id` explicitly to `download --series-id`.
 
@@ -167,26 +170,27 @@ The all-date intersection is intentionally strict. A low or empty cohort can be 
 
 ## Event-aligned rainfall context (optional)
 
-The study package may include a separate NASA GPM IMERG Final daily precipitation context. This is a supporting environmental time series, not an SME2 measurement and not an independent validation reference.
+The Agriculture pipeline can attach NASA GPM IMERG Final daily precipitation as coarse-scale temporal context. It is not an SME2 measurement, independent field validation or proof that rainfall caused a soil-moisture change.
 
-- Product: GPM IMERG Final daily precipitation V07 (GPM_3IMERGDF_V07), DOI [10.5067/GPM/IMERGDF/DAY/07](https://doi.org/10.5067/GPM/IMERGDF/DAY/07).
-- Native grid: 0.1°; do not resample or label it as SME2's approximately 200 m grid.
-- Units: daily accumulated precipitation in mm. Do not multiply daily totals by 0.5. For half-hourly IMERG rate fields expressed in mm/hour, each rate contributes rate × 0.5 hours to the half-hour estimate; that is a different product and aggregation path.
-- Alignment: because the SME2 package records an acquisition calendar date but not a validated exact observation time in this viewer contract, 1-, 3-, 7- and 12-day windows use complete UTC days strictly before the acquisition date. The acquisition date itself is excluded.
-- Completeness: a window is numeric only when every expected daily value is present. Partial windows carry a null total and an explicit valid-day count. Missing data must never be rendered as 0 mm.
-- Spatial support: the precipitation summary is an AOI mean over available native IMERG grid cells. It is coarse-scale context and must not be interpreted as a field-level or SME2-pixel rainfall estimate.
-- Interpretation: temporal proximity is not causation. Rainfall and soil-moisture co-variation does not establish a causal response, calibration, crop stress or irrigation need.
-- Provenance: the rainfall sidecar records product identity, DOI, grid resolution, temporal convention, source byte count and SHA-256 digest. If it is absent or fails schema validation, the UI must show rainfall as unpublished/unavailable.
+- Product: GPM IMERG Final Precipitation L3 1-day, 0.1° × 0.1°, Version 07 (collection GPM_3IMERGDF; product GPM_3IMERGDF_V07), DOI [10.5067/GPM/IMERGDF/DAY/07](https://doi.org/10.5067/GPM/IMERGDF/DAY/07).
+- Daily field: the V07 daily NetCDF4 precipitation field is expressed as a daily mean rate in mm/day. NASA defines it from the mean valid half-hourly rate (mm/hour) multiplied by 24. The daily file also provides precipitation_cnt, the number of contributing half-hourly inputs (0–48). The pipeline reads both fields; it does not apply the half-hourly ×0.5 conversion to a daily product.
+- Windows: for each SME2 acquisition date, the 1-, 3-, 7- and 12-day windows sum daily IMERG estimates for complete UTC days strictly before the SME2 calendar date. The acquisition day is excluded because this browser contract does not carry a validated exact SME2 observation time.
+- Spatial support: keep IMERG at its native 0.1° grid. Each intersecting cell is weighted by the spherical area of its overlap with the WGS84 AOI rectangle. This produces an AOI-area-weighted context summary; it does not create field-scale or 200 m precipitation data.
+- Spatial completeness: a daily AOI mean is numeric only when cells covering at least 90% of the AOI-overlap grid-cell area have valid precipitation and a valid, non-zero half-hourly sample count. This is a conservative implementation gate, not a NASA-certified universal threshold. The window reports its minimum daily spatial coverage; no-data is never converted to zero rainfall.
+- Temporal completeness: a window is numeric only when every expected daily granule has a usable AOI summary. Otherwise its total is null and its valid/expected day counts remain visible. The UI also exposes minimum AOI grid coverage and mean half-hourly samples per day.
+- Provenance: the study records each CMR concept ID, UTC date, original filename, byte count and SHA-256. source_sha256 is the digest of the canonical sorted granule-receipt list; the published study checksum protects that provenance block. Original NetCDF4 granules and per-day diagnostics stay in ignored local operator storage.
+- Access: discovery uses NASA CMR; downloads use Earthdata authentication through earthaccess. NASA's migration guidance directs users to Earthdata Cloud and CMR-based granule discovery rather than constructing URLs for retired on-premises GES DISC hosts.
+- Interpretation: rainfall/moisture co-variation is descriptive temporal context only. It does not establish causality, calibration, crop stress, drought status or irrigation need.
 
-The current browser contract intentionally accepts only fully aligned, checksummed rainfall summaries. It does not fabricate a rainfall series when no IMERG source files have been processed.
+If CMR finds no files, a granule fails validation, or no complete window meets the spatial-support gate, the rainfall command fails without adding partial or synthetic rainfall context to the SME2 study. The rainfall panel remains unpublished until a real checksummed context is attached and the subsequent publish command completes.
 
 ## Verification
 
 From the repository root:
 
 ~~~powershell
-python -m unittest pipeline.test_agriculture_sme2 -v
-python -m py_compile pipeline/agriculture_sme2.py pipeline/test_agriculture_sme2.py
+python -m unittest pipeline.test_agriculture_sme2 pipeline.test_agriculture_imerg -v
+python -m py_compile pipeline/agriculture_sme2.py pipeline/agriculture_imerg.py pipeline/test_agriculture_sme2.py pipeline/test_agriculture_imerg.py
 node --experimental-strip-types --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/agriculture-study.test.ts
 npm run lint
 npx tsc --noEmit
