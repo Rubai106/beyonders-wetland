@@ -134,15 +134,36 @@ def main() -> int:
         # nested scroll container settles. A DOM evaluate can lose its element
         # handle during a React re-render; a forced locator click retries the
         # live element while bypassing only the flaky pointer hit-test.
-        challenge_button.click(force=True, timeout=10_000)
-        # Wait for the parent disclosure to commit before inspecting its
-        # conditionally rendered content. The challenge sits above the action
-        # button, so opening it also changes the drawer's scroll geometry.
-        page.wait_for_function(
-            """() => Array.from(document.querySelectorAll(".wx-tool__action button[aria-expanded]"))
-              .some((button) => button.getAttribute("aria-expanded") === "true")""",
-            timeout=20_000,
-        )
+        # The action button lives inside a nested, animated drawer. Dispatch
+        # the native button click on the live element, then assert the actual
+        # disclosure content is mounted; this avoids a flaky pointer hit-test
+        # and does not treat the click itself as proof that React updated.
+        challenge_button.evaluate("(button) => button.click()")
+        try:
+            page.wait_for_function(
+                """() => {
+                  const button = document.querySelector(".wx-tool__action button[aria-expanded]");
+                  const panel = document.querySelector(".wx-drawer .wx-challenge");
+                  return button?.getAttribute("aria-expanded") === "true" &&
+                    panel !== null && panel.getClientRects().length > 0;
+                }""",
+                timeout=20_000,
+            )
+        except Exception:
+            print(
+                "DEBUG challenge button state:",
+                page.locator(".wx-tool__action button[aria-expanded]").evaluate_all(
+                    "(buttons) => buttons.map((button) => ({text: button.innerText, expanded: button.getAttribute('aria-expanded')}))"
+                ),
+                flush=True,
+            )
+            print(
+                "DEBUG challenge panel count:",
+                page.locator(".wx-drawer .wx-challenge").count(),
+                flush=True,
+            )
+            print("DEBUG browser errors:", json.dumps(browser_errors), flush=True)
+            raise
         panel = page.locator(".wx-drawer .wx-challenge .wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
         ledger_heading = panel.locator("#wx-scattering-title")
