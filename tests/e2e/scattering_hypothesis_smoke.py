@@ -105,10 +105,12 @@ def main() -> int:
         play_button.wait_for(state="visible", timeout=10_000)
         if play_button.get_attribute("aria-pressed") == "true":
             play_button.evaluate("(button) => button.click()")
-        page.wait_for_function(
-            """() => document.querySelector(".wx-play")?.getAttribute("aria-pressed") === "false""",
-            timeout=10_000,
-        )
+        for _ in range(30):
+            if play_button.get_attribute("aria-pressed") == "false":
+                break
+            page.wait_for_timeout(100)
+        else:
+            raise AssertionError("The Wetland showcase autoplay did not pause before candidate selection.")
 
         # Open a real candidate from the packaged Tanguar Haor showcase.
         page.locator("path.wx-patch").nth(40).click(force=True)
@@ -139,31 +141,14 @@ def main() -> int:
         # disclosure content is mounted; this avoids a flaky pointer hit-test
         # and does not treat the click itself as proof that React updated.
         challenge_button.evaluate("(button) => button.click()")
-        try:
-            page.wait_for_function(
-                """() => {
-                  const button = document.querySelector(".wx-tool__action button[aria-expanded]");
-                  const panel = document.querySelector(".wx-drawer .wx-challenge");
-                  return button?.getAttribute("aria-expanded") === "true" &&
-                    panel !== null && panel.getClientRects().length > 0;
-                }""",
-                timeout=20_000,
-            )
-        except Exception:
-            print(
-                "DEBUG challenge button state:",
-                page.locator(".wx-tool__action button[aria-expanded]").evaluate_all(
-                    "(buttons) => buttons.map((button) => ({text: button.innerText, expanded: button.getAttribute('aria-expanded')}))"
-                ),
-                flush=True,
-            )
-            print(
-                "DEBUG challenge panel count:",
-                page.locator(".wx-drawer .wx-challenge").count(),
-                flush=True,
-            )
-            print("DEBUG browser errors:", json.dumps(browser_errors), flush=True)
-            raise
+        challenge_panel = page.locator(".wx-drawer .wx-challenge")
+        challenge_panel.wait_for(state="visible", timeout=20_000)
+        for _ in range(30):
+            if challenge_button.get_attribute("aria-expanded") == "true":
+                break
+            page.wait_for_timeout(100)
+        else:
+            raise AssertionError("The Challenge this detection disclosure did not remain expanded.")
         panel = page.locator(".wx-drawer .wx-challenge .wx-scattering")
         panel.wait_for(state="visible", timeout=20_000)
         ledger_heading = panel.locator("#wx-scattering-title")
