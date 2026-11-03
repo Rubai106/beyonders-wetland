@@ -505,6 +505,12 @@ def attach_imerg_rainfall(run_id: str) -> dict[str, Any]:
         "missing_dates": search_manifest["missing_dates"],
         "attached_at": datetime.now(timezone.utc).isoformat(),
     })
+    study.setdefault("sources", [])
+    if not any(isinstance(source, dict) and source.get("url") == "https://doi.org/10.5067/GPM/IMERGDF/DAY/07" for source in study["sources"]):
+        study["sources"].append({
+            "title": "NASA GPM IMERG Final daily precipitation V07",
+            "url": "https://doi.org/10.5067/GPM/IMERGDF/DAY/07",
+        })
     study["rainfall_context"] = context
     json_write(study_path, study)
     return context
