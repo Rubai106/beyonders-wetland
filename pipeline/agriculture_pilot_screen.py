@@ -137,7 +137,7 @@ def screen_sites(
                 "name": site.get("name"),
                 "priority": site.get("priority"),
                 "aoi": aoi,
-                "catalogue_granules": len(entries),
+                "compatible_granules": len(entries),
                 "status": (
                     "ELIGIBLE_FOR_OPERATOR_REVIEW" if eligible
                     else "INSUFFICIENT_TEMPORAL_COVERAGE" if series
@@ -145,7 +145,7 @@ def screen_sites(
                 ),
                 "series": series,
             })
-        except (AgricultureError, OSError, TimeoutError, ValueError) as exc:
+        except Exception as exc:
             results.append({
                 "site_id": site_id,
                 "name": site.get("name"),
