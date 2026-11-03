@@ -128,15 +128,6 @@ jobs:
             echo "allow_missing_imerg=$ALLOW_MISSING"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Validate secure Earthdata configuration
-        shell: bash
-        run: |
-          if [ -z "${EARTHDATA_TOKEN}" ]; then
-            echo "::error::Add an Actions secret named EARTHDATA_TOKEN before running this workflow."
-            exit 1
-          fi
-          echo "Cloud runner is configured for non-interactive Earthdata authentication."
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -160,6 +151,15 @@ jobs:
             --run-id "$RUN_ID" \
             --west "$WEST" --south "$SOUTH" --east "$EAST" --north "$NORTH" \
             --start "$START_DATE" --end "$END_DATE"
+
+      - name: Validate secure Earthdata configuration
+        shell: bash
+        run: |
+          if [ -z "${EARTHDATA_TOKEN}" ]; then
+            echo "::error::Add an Actions secret named EARTHDATA_TOKEN before running this workflow."
+            exit 1
+          fi
+          echo "Cloud runner is configured for non-interactive Earthdata authentication."
 
       - name: Download the exact selected SME2 series
         shell: bash
