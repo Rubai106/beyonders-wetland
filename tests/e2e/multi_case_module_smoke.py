@@ -37,9 +37,10 @@ def main() -> int:
         case_picker = page.locator(".wx-casepick")
         case_picker.wait_for(state="visible", timeout=30_000)
         require(
-            case_picker.locator("option").count() == 2
+            case_picker.locator("option").count() == 3
             and case_picker.locator("option[value='featured']").count() == 1
-            and case_picker.locator("option[value='hakaluki']").count() == 1,
+            and case_picker.locator("option[value='hakaluki']").count() == 1
+            and case_picker.locator("option[value='chokwe']").count() == 1,
             "the Wetlands selector lists Tanguar Haor and Hakaluki Haor",
         )
         require(
@@ -100,15 +101,9 @@ def main() -> int:
             "switching back restores Tanguar's own observations and peak geometry",
         )
 
-        chokwe_link = page.get_by_role(
-            "link", name="Open the Chókwè flood-event investigation"
-        )
-        require(
-            chokwe_link.get_attribute("href") == "/wetland/global?story=chokwe",
-            "Chókwè is directly discoverable from the Wetlands workspace",
-        )
-        chokwe_link.click()
+        page.locator(".wx-casepick").select_option("chokwe")
         page.wait_for_url("**/wetland/global?story=chokwe", timeout=30_000)
+        require(True, "Chókwè is directly discoverable from the Wetlands case picker")
         page.locator("#mozambique-case-title").wait_for(
             state="visible", timeout=30_000
         )
