@@ -42,7 +42,7 @@ def summarize_series(
         signature = item.get("signature")
         if not isinstance(signature, dict):
             continue
-        key = json.dumps(signature, sort_keys=True, separators=(",", ":"))
+        key = json.dumps(signature, sort_keys=True)
         grouped.setdefault(key, []).append(item)
 
     output: list[dict[str, Any]] = []
