@@ -73,7 +73,7 @@ Passing the build and catalogue preflight is not a real-data agricultural valida
 
 ## Live CMR preflight result — 3 November 2026
 
-The automatic [Agriculture pilot preflight run #3](https://github.com/Rubai106/beyonders-wetland/actions/runs/41578135246) completed successfully on `Rubai-dev`. It queried the public NASA CMR catalogue for `NISAR_L3_SME2_PROVISIONAL_V1` over 2026-01-01 through 2026-10-31. Both configured Baniachong AOIs returned the same 30 compatible granules and the same four product-identity series. The primary AOI is therefore a workflow priority, not a catalogue-coverage winner.
+The automatic [Agriculture pilot preflight run #3](https://github.com/Rubai106/beyonders-wetland/actions/runs/41578135246) completed successfully on `Rubai-dev`. The same catalogue search is now being exposed in the website Operator tab through `/api/agriculture/catalogue`; users no longer need Python to discover the series. It queried the public NASA CMR catalogue for `NISAR_L3_SME2_PROVISIONAL_V1` over 2026-01-01 through 2026-10-31. Both configured Baniachong AOIs returned the same 30 compatible granules and the same four product-identity series. The primary AOI is therefore a workflow priority, not a catalogue-coverage winner.
 
 Two series pass the six-date / 60-day preflight:
 
@@ -93,9 +93,9 @@ Two additional descending-track 091 series each have five observations and do no
 
 **Still unverified:** the CMR result is catalogue/footprint evidence only. No SME2 granule was downloaded in this preflight; no HDF5 hierarchy, native grid, fill values, retrieval/surface flags, moisture values, uncertainty, or valid-pixel fraction has been inspected. No crop mask has been aligned and no Agriculture study has been published.
 
-### Operator handoff after local Earthdata Login
+### Website-first handoff and maintainer fallback
 
-From the repository root, run the existing search for the primary AOI and inspect the generated `search.json` before downloading. The following two commands are intentionally separate because tracks must not be mixed:
+In the website, open `/agriculture` → **Operator**, keep or adjust the Baniachong AOI and date window, then choose **Discover SME2 observations**. Compare the track cards and select one compatible series. Online discovery reads public NASA metadata only. The hosted processor is not yet connected, so there is no website download action at this stage. The commands below are retained only as a maintainer fallback for testing the current local processing pipeline; they are not required for website catalogue search.
 
 ```powershell
 python pipeline/agriculture_sme2.py search --run-id baniachong-2026 --west 91.3867 --south 24.3533 --east 91.4467 --north 24.4133 --start 2026-01-01 --end 2026-10-31
