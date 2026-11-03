@@ -600,9 +600,26 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         fill_ok &= uncertainty != fill
     valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
     valid &= in_aoi
-    quality_audit = quality_screen_diagnostics(
-        moisture, uncertainty, retrieval, surface, in_aoi, fill_ok,
-    )
+    quality_audit = {
+        "aoi": quality_screen_diagnostics(
+            moisture, uncertainty, retrieval, surface, in_aoi, fill_ok,
+        ),
+        "native_grid": quality_screen_diagnostics(
+            moisture, uncertainty, retrieval, surface,
+            np.ones(moisture.shape, dtype=bool), fill_ok,
+        ),
+        "layers": {
+            "soilMoisture": _masked_array_diagnostics(moisture, in_aoi),
+            "soilMoistureUncertainty": _masked_array_diagnostics(uncertainty, in_aoi),
+            "retrievalQualityFlag": _masked_array_diagnostics(retrieval, in_aoi, histogram=True),
+            "surfaceQualityFlag": _masked_array_diagnostics(surface, in_aoi, histogram=True),
+        },
+        "fill_values": {
+            "soilMoisture": fill_values,
+            "soilMoistureUncertainty": uncertainty_fill_values,
+            "surfaceQualityFlag": surface_fill_values,
+        },
+    }
     rows, cols = np.where(in_aoi)
     if rows.size == 0 or cols.size == 0:
         raise AgricultureError("The selected AOI does not intersect this SME2 native grid.")
@@ -667,6 +684,31 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     if fill_ok is not None:
         valid &= np.asarray(fill_ok, dtype=bool)
     return valid
+
+
+def _masked_array_diagnostics(values: np.ndarray, mask: np.ndarray, histogram: bool = False) -> dict[str, Any]:
+    """Compact finite/range diagnostics for one source layer within a mask."""
+    array = np.asarray(values, dtype="float64")
+    selected_mask = np.asarray(mask, dtype=bool)
+    if array.shape != selected_mask.shape or array.ndim != 2:
+        raise AgricultureError("Array diagnostics require matching two-dimensional data and mask.")
+    selected = array[selected_mask]
+    finite = selected[np.isfinite(selected)]
+    result: dict[str, Any] = {
+        "selected_pixels": int(selected.size),
+        "finite_pixels": int(finite.size),
+        "nonfinite_pixels": int(selected.size - finite.size),
+        "minimum": float(np.min(finite)) if finite.size else None,
+        "maximum": float(np.max(finite)) if finite.size else None,
+    }
+    if histogram:
+        unique, counts = np.unique(selected, return_counts=True)
+        result["value_counts"] = {
+            str(value.item() if hasattr(value, "item") else value): int(count)
+            for value, count in zip(unique[:512], counts[:512])
+        }
+        result["histogram_truncated"] = bool(unique.size > 512)
+    return result
 
 
 def quality_screen_diagnostics(
@@ -1262,6 +1304,47 @@ def analyze(
         raise AgricultureError("Multiple selected granules resolve to the same acquisition date.")
     for scene in scenes[1:]:
         _validate_grid(scenes[0], scene)
+
+    empty_scenes = [
+        scene for scene in scenes
+        if scene["quality_diagnostics"]["aoi"]["all_screen_pass_pixels"] == 0
+    ]
+    if empty_scenes:
+        diagnostic_path = folder / "result" / "quality-diagnostics.json"
+        json_write(diagnostic_path, {
+            "schema_version": 1,
+            "run_id": run_id,
+            "product": PRODUCT,
+            "product_maturity": "PROVISIONAL",
+            "aoi": search_manifest["aoi"],
+            "series_id": receipt.get("series_id"),
+            "observation_count": len(scenes),
+            "observations": [
+                {
+                    "date": scene["date"],
+                    "granule_name": scene["file"].name,
+                    "aoi_quality": scene["quality_diagnostics"]["aoi"],
+                    "native_grid_quality": scene["quality_diagnostics"]["native_grid"],
+                    "layers": scene["quality_diagnostics"]["layers"],
+                    "fill_values": scene["quality_diagnostics"]["fill_values"],
+                    "surface_flags": scene["surface_flag_diagnostics"],
+                }
+                for scene in scenes
+            ],
+            "empty_aoi_dates": [scene["date"] for scene in empty_scenes],
+            "interpretation": (
+                "Diagnostic only. The unchanged SME2 quality screen found no usable AOI pixels "
+                "on at least one selected date. This file is not an agricultural measurement "
+                "and must not be published as a soil-moisture study."
+            ),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        })
+        dates = ", ".join(scene["date"] for scene in empty_scenes)
+        raise AgricultureError(
+            f"No usable AOI retrievals on {dates}; full-scene and per-layer diagnostics saved to "
+            f"{diagnostic_path.relative_to(folder)}. No study was published."
+        )
+
     first = scenes[0]
     baseline = scenes[:3]
     target = scenes[-1]
