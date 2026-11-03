@@ -18,6 +18,22 @@
 .agriculture-workspace .agri-rail {
   display: grid; gap: 8px; padding: 13px; color: #d8e2e5;
 }
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch {
+  gap: 9px;
+  margin: 0 0 5px;
+  padding: 10px 11px;
+}
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch strong { font-size: .76rem; }
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch p {
+  font-size: .64rem;
+  line-height: 1.4;
+}
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch button {
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: .67rem;
+  white-space: nowrap;
+}
 .agriculture-workspace .agri-eyebrow {
   color: #80a5ac; font: 650 .58rem/1.3 var(--font-mono, monospace);
   letter-spacing: .11em; text-transform: uppercase;
