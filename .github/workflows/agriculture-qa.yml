@@ -5,6 +5,7 @@ on:
     branches: [Rubai-dev]
     paths:
       - '.github/workflows/agriculture-qa.yml'
+      - '.github/workflows/agriculture-cloud.yml'
       - 'pipeline/**'
       - 'src/**'
       - 'tests/**'
