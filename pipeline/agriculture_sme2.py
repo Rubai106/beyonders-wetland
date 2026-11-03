@@ -1389,6 +1389,8 @@ def build_parser() -> argparse.ArgumentParser:
     process.add_argument("--crop-mask-date", help="Optional source date, YYYY-MM-DD")
     process.add_argument("--crop-probability-threshold", type=float, default=0.5)
     process.add_argument("--crop-mask-coverage-floor", type=float, default=0.8)
+    rainfall = sub.add_parser("rainfall", help="Attach NASA GPM IMERG Final daily precipitation context")
+    rainfall.add_argument("--run-id", required=True)
     release = sub.add_parser("publish", help="Publish checksum-verified display previews only")
     release.add_argument("--run-id", required=True)
     return parser
@@ -1412,9 +1414,17 @@ def main(argv: list[str] | None = None) -> int:
             if study.get("crop_observability"):
                 crop = study["crop_observability"]["common_support"]
                 print(f"Crop observability: {crop['status']} · {crop['valid_crop_area_fraction']:.1%} of mapped crop area valid across all dates.")
+        elif args.command == "rainfall":
+            from agriculture_imerg import attach_imerg_rainfall
+            context = attach_imerg_rainfall(args.run_id)
+            numeric_windows = sum(
+                item["windows"][f"{length}d"]["rainfall_mm"] is not None
+                for item in context["observations"] for length in (1, 3, 7, 12)
+            )
+            print(f"Attached IMERG V07 daily context: {len(context['granules'])} granules; {numeric_windows} complete rainfall windows.")
         elif args.command == "publish":
             target = publish(args.run_id)
-            print(f"Published display-only SME2 previews to {target}.")
+            print(f"Published checksum-verified SME2 and optional IMERG summaries to {target}.")
         return 0
     except AgricultureError as exc:
         print(f"AGRICULTURE ERROR: {exc}", file=sys.stderr)
