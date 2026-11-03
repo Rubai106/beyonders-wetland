@@ -349,7 +349,10 @@
   overflow-wrap: anywhere;
 }
 .agriculture-workspace .agri-support-drift__plot {
+  position: relative;
   overflow: hidden;
+  min-width: 0;
+  min-height: 145px;
   border: 1px solid #273c3d;
   border-radius: 3px;
   background: linear-gradient(180deg,#101d20,#0b1518);
@@ -357,9 +360,45 @@
 .agriculture-workspace .agri-support-drift__plot svg {
   display: block;
   width: 100%;
-  height: auto;
-  min-height: 125px;
+  height: 145px;
+  pointer-events: none;
 }
+.agriculture-workspace .agri-support-drift__hit-targets {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+}
+.agriculture-workspace .agri-support-drift__point-hit {
+  position: absolute;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+}
+.agriculture-workspace .agri-support-drift__point-hit span {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #0b1518;
+  border-radius: 50%;
+  transition: width .12s ease, height .12s ease, box-shadow .12s ease;
+}
+.agriculture-workspace .agri-support-drift__point-hit--valid span { background: #72c4b4; box-shadow: 0 0 0 1px #72c4b4; }
+.agriculture-workspace .agri-support-drift__point-hit--fixed span { background: #e0c17d; box-shadow: 0 0 0 1px #e0c17d; }
+.agriculture-workspace .agri-support-drift__point-hit[aria-pressed="true"] span { width: 14px; height: 14px; box-shadow: 0 0 0 2px currentColor; }
+.agriculture-workspace .agri-support-drift__point-hit:focus-visible {
+  outline: 2px solid #f7f5e9;
+  outline-offset: -2px;
+  background: rgb(255 255 255 / 9%);
+}
+.agriculture-workspace .agri-support-drift__point-hit:hover span { width: 13px; height: 13px; }
 .agriculture-workspace .agri-support-drift__grid {
   stroke: #314345;
   stroke-width: 1;
