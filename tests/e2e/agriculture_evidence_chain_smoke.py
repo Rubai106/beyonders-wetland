@@ -59,6 +59,10 @@ def main() -> int:
             page.locator(".agri-flag-atlas").count() == 0,
             "the new flag-overlap atlas is withheld when no real SME2 publication exists",
         )
+        require(
+            page.locator(".agri-chart").count() == 0,
+            "the acquisition timeline and moisture trajectory are withheld when no real SME2 observations exist",
+        )
         agriculture_map = page.locator(".agri-map")
         require(
             agriculture_map.count() == 1 and agriculture_map.is_visible(),

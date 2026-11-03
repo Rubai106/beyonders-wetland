@@ -500,7 +500,39 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
  * estimate. Return no profile when the fixed cohort is unavailable or the
  * date alignment is inconsistent.
  */
-export function buildAgricultureSupportDrift(study: AgricultureStudy): AgricultureSupportDriftPoint[] {
+/**
+ * Place acquisition dates on a true elapsed-time axis.
+ *
+ * position is a 0..100 percentage over the first-to-last acquisition span;
+ * gap_days is the elapsed calendar-day interval from the preceding acquisition.
+ * Invalid, duplicate or out-of-order dates fail closed.
+ */
+export interface AgricultureDateAxisPoint {
+  date: string;
+  position: number;
+  gap_days: number | null;
+}
+
+export function buildAgricultureDateAxis(dates: string[]): AgricultureDateAxisPoint[] {
+  if (!Array.isArray(dates) || dates.length === 0) return [];
+  const timestamps = dates.map((date) =>
+    isoDay(date) ? Date.parse(date + "T00:00:00Z") : Number.NaN,
+  );
+  if (timestamps.some((value) => !Number.isFinite(value)) ||
+      timestamps.some((value, index) => index > 0 && value <= timestamps[index - 1])) return [];
+
+  const start = timestamps[0];
+  const duration = timestamps[timestamps.length - 1] - start;
+  return dates.map((date, index) => ({
+    date,
+    position: duration === 0 ? 50 : ((timestamps[index] - start) / duration) * 100,
+    gap_days: index === 0 ? null : (timestamps[index] - timestamps[index - 1]) / 86_400_000,
+  }));
+}
+
+/**
+ * Build a date-by-date spatial-support audit.
+
   const matched = study.matched_support;
   if (matched.valid_pixels <= 0 || matched.observations.length !== study.observations.length) return [];
 

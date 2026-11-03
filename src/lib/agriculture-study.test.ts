@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildAgricultureDateAxis,
   buildAgricultureSupportDrift,
   isAgricultureChecksumManifest,
   isAgricultureIndex,
@@ -344,4 +345,28 @@ test("accepts negative and positive soil-moisture differences", () => {
     median: -0.03, p05: -0.12, p95: 0.08, uncertainty_median: 0.02,
   };
   assert.equal(isAgricultureStudy(changed), true);
+});
+
+test("positions irregular SME2 acquisitions by actual elapsed calendar time", () => {
+  const axis = buildAgricultureDateAxis([
+    "2026-06-20", "2026-07-02", "2026-07-26", "2026-08-07",
+  ]);
+  assert.deepEqual(axis.map((item) => item.date), [
+    "2026-06-20", "2026-07-02", "2026-07-26", "2026-08-07",
+  ]);
+  assert.deepEqual(axis.map((item) => item.position), [0, 25, 75, 100]);
+  assert.deepEqual(axis.map((item) => item.gap_days), [null, 12, 24, 12]);
+});
+
+test("rejects invalid, duplicate and out-of-order acquisition dates for chart positioning", () => {
+  assert.deepEqual(buildAgricultureDateAxis([]), []);
+  assert.deepEqual(buildAgricultureDateAxis(["2026-02-30"]), []);
+  assert.deepEqual(buildAgricultureDateAxis(["2026-06-20", "2026-06-20"]), []);
+  assert.deepEqual(buildAgricultureDateAxis(["2026-07-02", "2026-06-20"]), []);
+});
+
+test("centres a single acquisition on the elapsed-time axis", () => {
+  assert.deepEqual(buildAgricultureDateAxis(["2026-06-20"]), [
+    { date: "2026-06-20", position: 50, gap_days: null },
+  ]);
 });

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 import type { InvestigationDrawerTab } from "@/components/layout/InvestigationWorkspace";
 import {
+  buildAgricultureDateAxis,
   buildAgricultureSupportDrift,
   isAgricultureChecksumManifest,
   isAgricultureIndex,
@@ -31,6 +32,8 @@ const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
 
 const MIN_DATE = "2026-01-01";
 const MAX_DATE = new Date().toISOString().slice(0, 10);
+// NISAR repeats the same orbit geometry every 12 days; >18 days is a visual extended-gap cue only.
+const LONG_ACQUISITION_GAP_DAYS = 18;
 
 type LoadState = "loading" | "not-published" | "ready" | "error";
 type MapLayer = "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
@@ -58,6 +61,11 @@ function formatDifference(value: number) {
 function dateLabel(value: string) {
   return new Date(value + "T00:00:00Z").toLocaleDateString("en", {
     day: "2-digit", month: "short", year: "numeric", timeZone: "UTC",
+  });
+}
+function shortDateLabel(value: string) {
+  return new Date(value + "T00:00:00Z").toLocaleDateString("en", {
+    day: "2-digit", month: "short", timeZone: "UTC",
   });
 }
 type AgricultureSearchValues = {
@@ -218,6 +226,36 @@ export default function AgricultureWorkbench() {
     return { min: min - (max - min || 0.02) * 0.12, max: max + (max - min || 0.02) * 0.12 };
   }, [chartObservations]);
 
+  const chartDateAxis = useMemo(
+    () => buildAgricultureDateAxis(chartObservations.map((item) => item.date)),
+    [chartObservations],
+  );
+  const chartPoints = useMemo(() => chartObservations.flatMap((item, index) => {
+    const dateAxisPoint = chartDateAxis[index];
+    if (!dateAxisPoint || dateAxisPoint.date !== item.date) return [];
+    const span = chartRange.max - chartRange.min;
+    const y = (value: number) => 100 - ((value - chartRange.min) / span) * 100;
+    return [{
+      ...item,
+      x: dateAxisPoint.position,
+      medianY: y(item.median),
+      lowY: y(item.p05),
+      highY: y(item.p95),
+      gapDays: dateAxisPoint.gap_days,
+    }];
+  }), [chartObservations, chartDateAxis, chartRange]);
+  const chartDateTicks = useMemo(() => {
+    if (chartObservations.length === 0) return [];
+    const first = Date.parse(chartObservations[0].date + "T00:00:00Z");
+    const last = Date.parse(chartObservations[chartObservations.length - 1].date + "T00:00:00Z");
+    if (!Number.isFinite(first) || !Number.isFinite(last)) return [];
+    const fractions = first === last ? [0.5] : [0, 0.5, 1];
+    return fractions.map((fraction) => ({
+      position: fraction * 100,
+      date: new Date(first + (last - first) * fraction).toISOString().slice(0, 10),
+    }));
+  }, [chartObservations]);
+
   const supportDrift = useMemo(
     () => study ? buildAgricultureSupportDrift(study) : [],
     [study],
@@ -253,10 +291,10 @@ export default function AgricultureWorkbench() {
     const max = Math.min(0.60, rawMax + padding);
     const range = max > min ? max - min : 0.02;
     const left = 42, right = 678, top = 18, bottom = 140;
+    const dateAxis = buildAgricultureDateAxis(supportDrift.map((item) => item.date));
+    if (dateAxis.length !== supportDrift.length) return null;
     const points = supportDrift.map((item, index) => {
-      const x = supportDrift.length === 1
-        ? (left + right) / 2
-        : left + (index / (supportDrift.length - 1)) * (right - left);
+      const x = left + (dateAxis[index].position / 100) * (right - left);
       const y = (value: number) => bottom - ((value - min) / range) * (bottom - top);
       return {
         ...item,
@@ -1027,24 +1065,42 @@ export default function AgricultureWorkbench() {
               </button>;
             })}
           </div>
-          <div className="agri-chart" role="group" aria-label={"Median soil moisture with fifth to ninety-fifth percentile range using " + (seriesSupportMode === "same-pixels" ? "the same pixels across all dates" : "each date's quality-valid pixels") + "; select a point to inspect a date"}>
+          <div className="agri-chart" role="group" aria-label={"Median soil moisture with fifth to ninety-fifth percentile range using " + (seriesSupportMode === "same-pixels" ? "the same pixels across all dates" : "each date's quality-valid pixels") + "; the horizontal axis is proportional to elapsed calendar time; select a point to inspect a date"}>
             <div className="agri-chart-axis"><span>m³/m³</span><span>{chartRange.max.toFixed(2)}</span><span>{chartRange.min.toFixed(2)}</span></div>
             <div className="agri-chart-plot">
               <div className="agri-chart-grid agri-chart-grid--top" />
               <div className="agri-chart-grid agri-chart-grid--middle" />
               <div className="agri-chart-grid agri-chart-grid--bottom" />
-              {chartObservations.map((item, index) => {
-                const left = chartObservations.length === 1 ? 50 : (index / (chartObservations.length - 1)) * 100;
-                const top = 100 - ((item.median - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
-                const low = 100 - ((item.p05 - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
-                const high = 100 - ((item.p95 - chartRange.min) / (chartRange.max - chartRange.min)) * 100;
-                return <div key={item.date} className={"agri-chart-point " + (index === selectedIndex ? "is-active" : "")} style={{ left: left + "%", top: top + "%" }}>
-                  <span className="agri-chart-range" style={{ height: Math.max(3, low - high) + "%", top: (high - top) + "%" }} />
-                  <button type="button" aria-label={"Select " + dateLabel(item.date) + "; median " + formatMoisture(item.median) + ", P05 " + formatMoisture(item.p05) + ", P95 " + formatMoisture(item.p95)} aria-pressed={index === selectedIndex} onClick={() => { setSelectedIndex(index); setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}><span /></button>
-                </div>;
-              })}
+              <svg className="agri-chart-series" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                {chartPoints.slice(1).map((point, index) => {
+                  const previous = chartPoints[index];
+                  const extendedGap = point.gapDays !== null && point.gapDays > LONG_ACQUISITION_GAP_DAYS;
+                  return <line key={point.date} x1={previous.x} y1={previous.medianY} x2={point.x} y2={point.medianY}
+                    className={extendedGap ? "agri-chart-segment is-extended-gap" : "agri-chart-segment"} />;
+                })}
+              </svg>
+              {chartPoints.map((point, index) => (
+                <div key={point.date} className={"agri-chart-point " + (index === selectedIndex ? "is-active" : "")} style={{ left: point.x + "%", top: point.medianY + "%" }}>
+                  <span className="agri-chart-range" style={{ height: Math.max(3, point.lowY - point.highY) + "%", top: (point.highY - point.medianY) + "%" }} />
+                  <button type="button"
+                    aria-label={"Select " + dateLabel(point.date) + "; median " + formatMoisture(point.median) + ", P05 " + formatMoisture(point.p05) + ", P95 " + formatMoisture(point.p95) + (point.gapDays === null ? "; first acquisition" : "; " + point.gapDays + " days since previous acquisition")}
+                    aria-pressed={index === selectedIndex}
+                    title={point.gapDays === null ? "First acquisition" : point.gapDays + " days since previous acquisition"}
+                    onClick={() => { setSelectedIndex(index); setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}><span /></button>
+                </div>
+              ))}
             </div>
-            <div className="agri-chart-legend"><span><i className="median" />{seriesSupportMode === "same-pixels" ? "Same-pixel median" : "Date-valid median"}</span><span><i className="range" />P05–P95 range</span></div>
+            <div className="agri-chart-time-axis" aria-hidden="true">
+              {chartDateTicks.map((tick, index) => (
+                <span key={tick.position} className={index === 0 ? "is-start" : index === chartDateTicks.length - 1 ? "is-end" : ""}
+                  style={{ left: tick.position + "%" }}>{shortDateLabel(tick.date)}</span>
+              ))}
+            </div>
+            <div className="agri-chart-legend">
+              <span><i className="median" />{seriesSupportMode === "same-pixels" ? "Same-pixel median" : "Date-valid median"}</span>
+              <span><i className="range" />P05–P95 range</span>
+              <span><i className="extended-gap" />Extended gap (&gt;{LONG_ACQUISITION_GAP_DAYS} days)</span>
+            </div>
           </div>
         </> : <div className="agri-footer-empty">Dated observations will appear here after genuine SME2 granules are processed and a checksum-verified study is published.</div>}
       </div>}
