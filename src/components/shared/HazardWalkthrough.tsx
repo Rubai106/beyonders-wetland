@@ -23,6 +23,7 @@ export default function HazardWalkthrough({
   const wasOpen = useRef(false);
   const currentStepIndex = Math.min(stepIndex, Math.max(0, steps.length - 1));
   const current = steps[currentStepIndex];
+  const currentTarget = current?.target;
 
   useEffect(() => {
     if (open) headingRef.current?.focus();
@@ -31,9 +32,9 @@ export default function HazardWalkthrough({
   }, [open, stepIndex]);
 
   useEffect(() => {
-    if (!open || !current) return;
-    window.dispatchEvent(new CustomEvent("geonexsar:open-panel", { detail: current.target }));
-  }, [current?.target, open]);
+    if (!open || !currentTarget) return;
+    window.dispatchEvent(new CustomEvent("geonexsar:open-panel", { detail: currentTarget }));
+  }, [currentTarget, open]);
 
   function move(direction: -1 | 1) {
     if (direction === 1 && currentStepIndex === steps.length - 1) {

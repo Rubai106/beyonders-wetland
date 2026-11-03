@@ -1,6 +1,6 @@
 /* GeoNexSAR phenomena registry — separate, evidence-labelled Earth-change modules. */
 export type PhenomenonStatus = "AVAILABLE" | "PLANNED";
-export type PhenomenonId = "wetland" | "forest" | "volcano";
+export type PhenomenonId = "wetland" | "forest" | "volcano" | "agriculture";
 export interface PhenomenonBriefing {
   lede: string;
   radarSees: { title: string; text: string }[];
@@ -10,6 +10,8 @@ export interface Phenomenon {
   id: PhenomenonId;
   name: string;
   tagline: string;
+  /** Current evidence maturity shown on the landing page. */
+  evidenceSummary: string;
   status: PhenomenonStatus;
   href?: string;
   caseHref: string;
@@ -23,7 +25,9 @@ export interface Phenomenon {
 const CONTRACT = ["time", "change", "evidence", "investigation", "uncertainty"] as const;
 export const PHENOMENA: Phenomenon[] = [
   {
-    id: "wetland", name: "Wetlands", tagline: "Water moves.", status: "AVAILABLE", href: "/wetland/global",
+    id: "wetland", name: "Wetlands", tagline: "Water moves.",
+    evidenceSummary: "Published maps show radar-change candidates, not confirmed floods. Hakaluki agreement is weak, Tanguar checks are inconclusive, and Chókwè candidates remain unverified.",
+    status: "AVAILABLE", href: "/wetland/global",
     caseHref: "/wetland", caseLabel: "Open the Tanguar Haor study",
     featureHighlights: [
       "NISAR HH/HV views with a date-by-date pulse timeline",
@@ -33,7 +37,35 @@ export const PHENOMENA: Phenomenon[] = [
     contract: CONTRACT,
   },
   {
-    id: "forest", name: "Forests", tagline: "Vegetation changes.", status: "AVAILABLE", href: "/forest/global",
+    id: "agriculture", name: "Agriculture", tagline: "Soil moisture changes.",
+    evidenceSummary: "No genuine SME2 study is published yet. This is a PROVISIONAL soil-moisture workspace, not a crop-stress or drought classifier.",
+    status: "AVAILABLE", href: "/agriculture",
+    caseHref: "/agriculture", caseLabel: "Open the SME2 soil-moisture workspace",
+    featureHighlights: [
+      "NISAR SME2 PROVISIONAL soil-moisture observations",
+      "Dated moisture layers, uncertainty ranges, and baseline comparison",
+      "Traceable granules, quality flags, coverage gates, and provenance",
+    ],
+    contract: CONTRACT,
+    briefing: {
+      lede: "The Agriculture workspace explores the NISAR Level-3 SME2 soilMoisture variable as an exploratory measurement series. It does not classify crops or diagnose agricultural stress.",
+      radarSees: [
+        { title: "Soil-moisture estimates", text: "SME2 provides a gridded estimate of near-surface soil moisture with uncertainty and retrieval-quality information. Product maturity and quality flags remain visible." },
+        { title: "Changes through time", text: "A later observation can be compared with the median of an explicitly selected baseline series, but moisture differences can have several causes." },
+        { title: "Coverage before interpretation", text: "Only pixels that pass the retrieval and surface-quality screen count as assessed. Low coverage remains inconclusive rather than being filled or hidden." },
+      ],
+      needs: [
+        "A compatible set of genuine SME2 PROVISIONAL granules and Earthdata authentication",
+        "Consistent native grid, product release, track, direction, frame and frequency",
+        "Field or independent agricultural references before making crop-related claims",
+        "Documented limits: this workflow does not detect crop stress, drought, irrigation need, crop type, field boundaries or yield impacts",
+      ],
+    },
+  },
+  {
+    id: "forest", name: "Forests", tagline: "Vegetation changes.",
+    evidenceSummary: "Rondônia has one 0.0128 km² radar candidate; an exploratory HLS index signal overlaps 71.1%. No labelled forest-loss reference or accuracy score is available.",
+    status: "AVAILABLE", href: "/forest/global",
     caseHref: "/forest/rondonia", caseLabel: "Open the Rondônia study",
     featureHighlights: [
       "WorldCover 2021 context beside worldwide NISAR coverage",
@@ -57,7 +89,9 @@ export const PHENOMENA: Phenomenon[] = [
     },
   },
   {
-    id: "volcano", name: "Volcanoes", tagline: "The surface transforms.", status: "AVAILABLE", href: "/volcano/global",
+    id: "volcano", name: "Volcanoes", tagline: "The surface transforms.",
+    evidenceSummary: "Hayli Gubbi shows screened apparent line-of-sight phase candidates. Sentinel-1 is a separate comparison; the measured signals are not causally attributed to the eruption.",
+    status: "AVAILABLE", href: "/volcano/global",
     caseHref: "/volcano/hayli-gubbi", caseLabel: "Open the Hayli Gubbi study",
     featureHighlights: [
       "NISAR line-of-sight motion, phase fringes, and coherence change",

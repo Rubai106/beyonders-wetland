@@ -194,8 +194,18 @@ class RealLocalLegacyOutput(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
-    def test_exports_without_rasters_or_local_paths(self):
+    def test_legacy_export_respects_current_product_gate(self):
         if legacy.is_legacy_run(self.run):
+            try:
+                legacy.validate_manifest(self.manifest, self.run_id)
+            except legacy.LegacyRunError as exc:
+                # The repository's saved 2026-01 Chókwè fixture is genuine BETA
+                # GCOV, while this public legacy adapter intentionally accepts
+                # only PROVISIONAL. Keep the historical file private; do not
+                # weaken the product gate merely to make this test pass.
+                self.assertIn("product is", str(exc))
+                self.assertFalse(any(self.out.iterdir()))
+                return
             legacy.export_legacy(self.run, self.out, self.run_id, ROOT, write_json)
             self.assertNotIn(".tif", [p.suffix.lower() for p in self.out.rglob("*") if p.is_file()])
             self.assertNotIn(str(self.tmp), " ".join(p.read_text() for p in self.out.rglob("*.json")))

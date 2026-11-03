@@ -287,9 +287,10 @@ function GlobalTimeMachine({ dates, activeDate, stats, loading, onSelect }: {
   </>;
 }
 
-export default function GlobalDetectionsExplorer({ initialLocation, initialRunId }: {
+export default function GlobalDetectionsExplorer({ initialLocation, initialRunId, initialAnchorId }: {
   initialLocation?: { latitude: string; longitude: string; site: string };
   initialRunId?: string;
+  initialAnchorId?: string;
 }) {
   const queryLatitude = initialLocation?.latitude ?? "";
   const queryLongitude = initialLocation?.longitude ?? "";
@@ -324,6 +325,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
   const [showNisarMosaic, setShowNisarMosaic] = useState(false);
   const [showLocalRadar, setShowLocalRadar] = useState(false);
   const [mapComparisonOpen, setMapComparisonOpen] = useState(false);
+  const [comparisonSession, setComparisonSession] = useState(0);
   const [comparisonPosition, setComparisonPosition] = useState(50);
   const comparisonTriggerRef = useRef<HTMLButtonElement>(null);
   const [radarChannel, setRadarChannel] = useState<RadarChannel>("hh");
@@ -706,6 +708,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
     selectedDate: activeObservationDate || null,
     channel: radarChannel,
     refreshKey,
+    session: comparisonSession,
   });
   const comparisonMapLayer = mapComparisonOpen && opticalRadarComparison.layer
     ? { ...opticalRadarComparison.layer, position: comparisonPosition }
@@ -784,7 +787,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
             : "";
 
   return (
-      <InvestigationWorkspace hazard="wetland" className="wetland-global-workspace" caseName={headerCaseName} caseControl={caseControl} dataTier={dataTier} satelliteBasemap={satelliteBasemap} onToggleBasemap={() => setSatelliteBasemap((value) => !value)} onReturnToOverview={returnToOverview} title="Explore NISAR across the world" subtitle="Track observations through time, then inspect candidates only where a real study has been processed." questContent={questContent} mapToolbar={<div className="wx-map-controls" aria-label="Map view and HH/HV radar layers">
+      <InvestigationWorkspace hazard="wetland" initialAnchorId={initialAnchorId} className="wetland-global-workspace" caseName={headerCaseName} caseControl={caseControl} dataTier={dataTier} satelliteBasemap={satelliteBasemap} onToggleBasemap={() => setSatelliteBasemap((value) => !value)} onReturnToOverview={returnToOverview} title="Explore NISAR across the world" subtitle="Track observations through time, then inspect candidates only where a real study has been processed." questContent={questContent} mapToolbar={<div className="wx-map-controls" aria-label="Map view and HH/HV radar layers">
         <ModeSwitch value={mapMode} onChange={handleMapModeChange} />
         <GlobalRadarLayerControls dateLabel={radarStageDateLabel} channel={radarChannel} stage={radarStage} disabled={radarControlsDisabled}
           showing={Boolean(localRadarLayer && radarImageStatus === "ready")} notice={radarControlNotice} onSelect={handleLocalRadarSelection} />
@@ -793,7 +796,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
           title={`${mapComparisonOpen ? "Hide" : "Compare"} optical and radar images over the map`}
           onClick={() => {
             if (mapComparisonOpen) closeMapComparison();
-            else { setComparisonPosition(50); setFocusStudyArea(true); setMapComparisonOpen(true); }
+            else { setComparisonSession((value) => value + 1); setComparisonPosition(50); setFocusStudyArea(true); setMapComparisonOpen(true); }
           }}>
           {Icon.compare}<span>Optical ↔ radar</span>
         </button>

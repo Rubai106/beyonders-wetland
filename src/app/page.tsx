@@ -13,6 +13,15 @@ import { listGlobeStudies } from "@/lib/globe-studies";
 import type { WetlandPulseData } from "@/lib/types";
 import "./landing.css";
 
+function isGlobeHazard(id: (typeof PHENOMENA)[number]["id"]): id is GlobeHazard {
+  return id === "wetland" || id === "forest" || id === "volcano";
+}
+
+// Agriculture has its own SME2 workspace, but no globe case-marker layer.
+const GLOBE_PHENOMENA = PHENOMENA.filter(
+  (phenomenon): phenomenon is (typeof PHENOMENA)[number] & { id: GlobeHazard } => isGlobeHazard(phenomenon.id),
+);
+
 const Globe3D = dynamic(() => import("@/components/landing/Globe3D"), {
   ssr: false,
   loading: () => <div className="globe-loading" aria-label="Loading 3D globe"><span className="radar-sweep" /></div>,
@@ -261,7 +270,7 @@ export default function Home() {
         <section className="g3-map-filter" aria-label="Choose the study type shown on the globe">
           <p className="g3-map-filter__eyebrow">Globe focus · published studies</p>
           <div className="g3-map-filter__choices" role="group" aria-label="Filter study locations by topic">
-            {PHENOMENA.map((phenomenon) => {
+            {GLOBE_PHENOMENA.map((phenomenon) => {
               const count = caseMarkers.filter((marker) => marker.hazard === phenomenon.id).length;
               return (
                 <button
@@ -312,7 +321,8 @@ export default function Home() {
           <h1>Watch Earth<br /><span>breathe.</span></h1>
           <p className="g3-lede">NISAR is a NASA–ISRO radar satellite that watches Earth&rsquo;s surface breathe — through cloud, through darkness. Spin the planet. Open a case measured for real, or drop a pin to check NISAR observation coverage and start a real study.</p>
           <div className="g3-ctas">
-            <Link href="/wetland" className="g3-btn g3-btn--primary">Open the Tanguar Haor case</Link>
+            <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Inspect the Chókwè event case</Link>
+            <Link href="/wetland" className="g3-btn g3-btn--ghost">Open the Tanguar Haor case</Link>
             <button type="button" className={`g3-btn${pinMode ? " g3-btn--armed" : ""}`} onClick={() => { setPinMode((m) => !m); setPin(null); }}>
               {pinMode ? "Cancel pin mode" : "Drop a pin anywhere"}
             </button>
@@ -405,12 +415,16 @@ export default function Home() {
           {PHENOMENA.map((p, i) => (
             <Reveal key={p.id} delay={i * 90}>
               <Tilt className={`g3-phen-card${p.status === "AVAILABLE" ? " is-live" : ""}`}>
-                <p className="g3-eyebrow">{p.status === "AVAILABLE" ? "Live now" : "Signal incoming"}</p>
+                <p className="g3-eyebrow">{p.status === "AVAILABLE" ? "Workspace available" : "In development"}</p>
                 <h3>{p.name}</h3>
                 <p className="g3-tagline">{p.tagline}</p>
                 <ul className="g3-phen-features" aria-label={`${p.name} features`}>
                   {p.featureHighlights.map((feature) => <li key={feature}>{feature}</li>)}
                 </ul>
+                <p className="g3-phen-evidence">
+                  <strong>Current evidence state</strong>
+                  {p.evidenceSummary}
+                </p>
                 <div className="g3-phen-actions">
                   <Link className="g3-btn g3-btn--primary g3-btn--sm" href={p.caseHref}>{p.caseLabel} →</Link>
                   {p.href && <Link className="g3-phen-browse" href={p.href}>Browse global map</Link>}

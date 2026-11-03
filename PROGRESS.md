@@ -25,3 +25,25 @@
 - Global imagery and acquisition footprints show observations/context, not global change classifications.
 - Forest and Volcano pages and published studies are available; their outputs remain exploratory or publication-context evidence and are not global detection claims.
 - Synthetic raster data exist only as temporary unit-test fixtures. They are not exposed by the web app or the production CLI.
+
+
+## Step 7 — Agriculture / SME2 integration
+
+- Added Agriculture to the phenomenon registry and shared investigation navigation without replacing the current Wetland, Forest or Volcano workspaces.
+- Added /agriculture with interactive Leaflet map, basemap toggle, moisture/change layers, dated timeline, keyboard-operable percentile chart, Explore/Operator/Evidence drawers, CSV export and integrity-checked preview loading.
+- Added WGS84/date/run-ID validation and terminal command generation. Earthdata credentials remain in the terminal; the browser does not execute processing.
+- Added the isolated pipeline/agriculture_sme2.py search/download/analyze/publish workflow and unit fixtures. Quality screening handles uint8 bit fields safely under NumPy 2.x, and AOI coverage uses all pixels inside the AOI as its denominator.
+- Added study schema and checksum validators with TypeScript tests.
+- Added a date-by-date spatial-support drift profile that compares each acquisition's own valid-footprint median with the fixed all-date cohort median. The visual gap and first-to-last gap shift expose when changing valid-pixel composition could alter the apparent time series; low coverage remains inconclusive and no pixels are filled.
+- No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and local Earthdata processing remain not run in this connected session.
+
+
+## Agriculture observability gate — Steps 1A and 1B
+
+- Added a per-date decoded SME2 surface-quality flag audit for the eight documented surfaceQualityFlag bits. Counts are AOI-bounded and explicitly non-exclusive; fill, invalid and unsupported encodings remain separate.
+- Added an optional independently sourced single-band probability/binary GeoTIFF input. It must have a declared CRS, values in [0, 1], finer cell area than SME2 and buffered coverage of the complete target grid; coarse, invalid or incomplete masks fail closed.
+- Added separate area-averaging of the thresholded crop indicator and source-data coverage onto the native SME2 EPSG:6933 grid. Fractional crop area is retained at native-cell boundaries; source gaps do not become non-crop.
+- Added provenance (date/source/filename/SHA-256/CRS/areas/thresholds), per-date crop-area-weighted moisture summaries, and an exact fixed all-date intersection using the unchanged SME2 valid masks.
+- Added interactive crop-area, per-cell Mask QA and all-date crop-cohort map layers, clickable date coverage bars, common-support status, source provenance and crop-support columns in CSV export. The mask coverage preview distinctly shows adequate, partial and absent source pixels. Published assets remain display-only previews and summaries; source GeoTIFFs/HDF5/native rasters stay local.
+- Historical packages without crop observability remain valid. Missing masks display NOT ASSESSED; no AOI is assumed cropland.
+- The strict surfaceQualityFlag == 0 and all other existing SME2 quality checks are unchanged. No real crop mask or Earthdata pilot has yet been processed/published; synthetic raster fixtures are test-only.

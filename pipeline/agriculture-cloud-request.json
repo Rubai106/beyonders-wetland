@@ -1,0 +1,12 @@
+{
+  "west": 88.42,
+  "south": 24.97,
+  "east": 88.57,
+  "north": 25.12,
+  "start": "2026-06-17",
+  "end": "2026-11-02",
+  "allow_missing_imerg": true,
+  "request_note": "reprocess-naogaon-after-corrected-nasa-zero-clear-root-and-candidate-flags",
+  "series_id": "b42cefcd8c0e",
+  "algorithm": "DSG"
+}

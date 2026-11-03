@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type { DataTier } from "@/lib/store";
+import { findDrawerTabForAnchor } from "@/lib/workspace-navigation";
 import { Icon } from "../wetland/icons";
 import { TierBadge } from "../wetland/ui";
 
-type Hazard = "wetland" | "volcano" | "forest";
+type Hazard = "wetland" | "volcano" | "forest" | "agriculture";
 
 const sections: Array<{ id: Hazard; label: string; href: string }> = [
   { id: "wetland", label: "Wetlands", href: "/wetland/global" },
+  { id: "agriculture", label: "Agriculture", href: "/agriculture" },
   { id: "forest", label: "Forests", href: "/forest/global" },
   { id: "volcano", label: "Volcanoes", href: "/volcano/global" },
 ];
@@ -18,6 +20,7 @@ const sourceLabel: Record<Hazard, string> = {
   wetland: "NASA NISAR · L-band",
   forest: "NASA NISAR · L-band",
   volcano: "NASA NISAR · phase",
+  agriculture: "NASA NISAR · SME2 soil moisture",
 };
 
 export type InvestigationDrawerTab = {
@@ -41,6 +44,7 @@ export default function InvestigationWorkspace({
   mapToolbar,
   drawer,
   drawerTabs,
+  initialAnchorId,
   drawerTabsPlacement = "map",
   drawerPersistent,
   footer,
@@ -62,6 +66,7 @@ export default function InvestigationWorkspace({
   mapToolbar?: ReactNode;
   drawer: ReactNode;
   drawerTabs?: InvestigationDrawerTab[];
+  initialAnchorId?: string;
   drawerTabsPlacement?: "map" | "drawer";
   drawerPersistent?: ReactNode;
   footer: ReactNode;
@@ -73,8 +78,9 @@ export default function InvestigationWorkspace({
   onReturnToOverview?: () => void;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState(drawerTabs?.[0]?.id ?? "");
-  const pendingAnchor = useRef<string | null>(null);
+  const initialAnchorTab = findDrawerTabForAnchor(drawerTabs, initialAnchorId);
+  const [activeTab, setActiveTab] = useState(initialAnchorTab?.id ?? drawerTabs?.[0]?.id ?? "");
+  const pendingAnchor = useRef<string | null>(initialAnchorTab ? initialAnchorId ?? null : null);
   const anchorObserver = useRef<MutationObserver | null>(null);
   const anchorFrame = useRef<number | null>(null);
   const documentFlow = className.includes("volcano-case-workspace") || className.includes("detection-page-workspace");
@@ -116,7 +122,7 @@ export default function InvestigationWorkspace({
   }, [stopAnchorWait]);
 
   function openAnchor(targetId: string) {
-    const tab = drawerTabs?.find((item) => item.anchorIds?.includes(targetId));
+    const tab = findDrawerTabForAnchor(drawerTabs, targetId);
     if (!tab) return false;
     clearPendingAnchor();
     pendingAnchor.current = targetId;
@@ -128,6 +134,7 @@ export default function InvestigationWorkspace({
     setDrawerOpen(true);
     return true;
   }
+
 
   useEffect(() => {
     const targetId = pendingAnchor.current;
