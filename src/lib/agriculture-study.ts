@@ -132,6 +132,18 @@ export interface AgricultureRainfallWindowValue {
   rainfall_mm: number | null;
   valid_days: number;
   expected_days: number;
+  /** Minimum AOI-overlap area fraction with usable daily retrievals across this window. */
+  spatial_coverage_fraction: number;
+  /** Area-weighted mean number of valid half-hourly inputs per daily grid cell. */
+  mean_half_hourly_samples: number | null;
+}
+
+export interface AgricultureRainfallGranule {
+  date: string;
+  concept_id: string;
+  filename: string;
+  bytes: number;
+  sha256: string;
 }
 
 export interface AgricultureRainfallObservation {
@@ -150,6 +162,9 @@ export interface AgricultureRainfallContext {
   source_doi: string;
   source_sha256: string;
   source_bytes: number;
+  granules: AgricultureRainfallGranule[];
+  aoi_grid_cells: number;
+  spatial_coverage_floor: 0.9;
   observations: AgricultureRainfallObservation[];
 }
 
@@ -454,6 +469,15 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
       typeof value.source !== "string" || value.source.length < 1 || value.source.length > 240 ||
       value.source_doi !== "10.5067/GPM/IMERGDF/DAY/07" || !isSha256(value.source_sha256) ||
       !Number.isInteger(value.source_bytes) || Number(value.source_bytes) <= 0 ||
+      value.spatial_coverage_floor !== 0.9 ||
+      !Number.isInteger(value.aoi_grid_cells) || Number(value.aoi_grid_cells) < 1 ||
+      !Array.isArray(value.granules) || value.granules.length < 1 ||
+      !value.granules.every((item) => isRecord(item) && isoDay(item.date) &&
+        typeof item.concept_id === "string" && item.concept_id.length > 0 &&
+        typeof item.filename === "string" && /^[^/\\\\]+\\.nc4?$/.test(item.filename) &&
+        Number.isInteger(item.bytes) && Number(item.bytes) > 0 && isSha256(item.sha256)) ||
+      new Set(value.granules.map((item: Record<string, unknown>) => item.date)).size !== value.granules.length ||
+      Number(value.source_bytes) !== value.granules.reduce((sum: number, item: Record<string, unknown>) => sum + Number(item.bytes), 0) ||
       !Array.isArray(value.observations) || value.observations.length !== expectedDates.length) return false;
   const windows: AgricultureRainfallWindow[] = ["1d", "3d", "7d", "12d"];
   return value.observations.every((item, index) => {
@@ -463,9 +487,15 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
       const expected = Number(window.slice(0, -1));
       if (!isRecord(entry) || entry.expected_days !== expected ||
           !Number.isInteger(entry.valid_days) || Number(entry.valid_days) < 0 ||
-          Number(entry.valid_days) > expected) return false;
-      if (entry.valid_days !== expected) return entry.rainfall_mm === null;
-      return finiteRange(entry.rainfall_mm, 0, 10000);
+          Number(entry.valid_days) > expected ||
+          !finiteRange(entry.spatial_coverage_fraction, 0, 1) ||
+          (entry.mean_half_hourly_samples !== null &&
+            !finiteRange(entry.mean_half_hourly_samples, 1, 48))) return false;
+      if (entry.valid_days !== expected) return entry.rainfall_mm === null &&
+        entry.mean_half_hourly_samples === null || entry.rainfall_mm === null;
+      return finiteRange(entry.rainfall_mm, 0, 120000) &&
+        entry.spatial_coverage_fraction >= Number(value.spatial_coverage_floor) &&
+        entry.mean_half_hourly_samples !== null;
     });
   });
 }
