@@ -135,7 +135,7 @@ export default function AgricultureWorkbench() {
         if (!isAgricultureIndex(indexValue)) throw new Error("Agriculture publication index is malformed or contains an unsafe asset path.");
 
         const versionQuery = "?v=" + encodeURIComponent(indexValue.published_at);
-        const checksResponse = await fetch("/agriculture/" + indexValue.checksums_url, { signal: controller.signal, cache: "no-store" });
+        const checksResponse = await fetch("/agriculture/" + indexValue.checksums_url + versionQuery, { signal: controller.signal, cache: "no-store" });
         if (!checksResponse.ok) throw new Error("Checksum manifest unavailable (HTTP " + checksResponse.status + ").");
         const checksValue: unknown = await checksResponse.json();
         if (!isAgricultureChecksumManifest(checksValue)) throw new Error("The Agriculture checksum manifest is missing or invalid.");
