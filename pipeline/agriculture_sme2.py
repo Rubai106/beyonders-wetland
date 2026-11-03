@@ -958,6 +958,7 @@ def quality_screen_diagnostics(
     after_zero_retrieval = after_moisture_uncertainty_fill & retrieval_clear
     after_zero_retrieval_and_surface = after_zero_retrieval & surface_pass & aoi
     return {
+        "retrieval_interpretation": retrieval_mode,
         "aoi_pixels": int(np.sum(aoi)),
         "moisture_range_pass_pixels": int(np.sum(aoi & moisture_pass)),
         "uncertainty_pass_pixels": int(np.sum(aoi & uncertainty_pass)),
@@ -1571,7 +1572,8 @@ def analyze(
                 f"No usable baseline AOI retrievals on {dates}; full-scene and per-layer diagnostics saved to "
                 f"{diagnostic_path.relative_to(folder)}. No baseline study was published."
             )
-        scenes = [scene for scene in scenes if scene not in empty_scenes]
+        excluded_dates = {scene["date"] for scene in empty_scenes}
+        scenes = [scene for scene in scenes if scene["date"] not in excluded_dates]
         if len(scenes) < 4:
             raise AgricultureError(
                 f"Only {len(scenes)} DSG observations have valid AOI pixels after excluding {len(empty_scenes)} "
