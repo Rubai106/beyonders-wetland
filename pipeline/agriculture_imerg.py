@@ -177,7 +177,7 @@ def download_imerg_granules(run_id: str, search_manifest: dict[str, Any]) -> dic
     folder.mkdir(parents=True, exist_ok=True)
     try:
         import earthaccess
-        auth = earthaccess.login(strategy="interactive", persist=True)
+        auth = earthaccess.login(strategy="environment", persist=False)
         if not auth:
             raise AgricultureError("Earthdata Login was not established for IMERG download.")
         downloaded_by_date: dict[str, Path] = {}
