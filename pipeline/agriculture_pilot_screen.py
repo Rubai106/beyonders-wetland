@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
-from agriculture_sme2 import AgricultureError, _cmr_search
+from agriculture_sme2 import _cmr_search
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SITES = ROOT / "pipeline" / "agriculture_pilot_sites.json"
