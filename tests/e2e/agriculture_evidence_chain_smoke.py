@@ -138,10 +138,9 @@ def main() -> int:
         page.locator(".agri-map-toolbar").get_by_role("button", name="Soil moisture").click()
         crop_button = page.locator(".agri-map-toolbar").get_by_role("button", name="Crop area")
         require(
-            crop_button.is_disabled()
-            and "no independent crop-area mask" in (crop_button.get_attribute("title") or "")
+            crop_button.count() == 0
             and "no independent crop-area mask" in readout.inner_text().lower(),
-            "unpublished crop-mask layers explain their unavailable state instead of implying a failed control",
+            "unavailable crop-mask layers are kept out of the live toolbar and explained in the readout",
         )
         require(
             page.locator(".agri-date-rail").count() == 0
