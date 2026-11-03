@@ -1,10 +1,11 @@
-"""Production-browser smoke test for Agriculture's shared evidence workflow.
+"""Production-browser smoke test for the published Naogaon Agriculture study.
 
 Run against a built Next.js public viewer:
     python tests/e2e/agriculture_evidence_chain_smoke.py http://127.0.0.1:3140
 
-This checks the user interface and explicit no-publication state. It does not
-claim there are genuine Agriculture SME2 observations or field validation data.
+This verifies the checksum-gated study renders, its real acquisition and
+quality-exclusion evidence remains visible, and absent rainfall/field-reference
+evidence is not fabricated.
 """
 from __future__ import annotations
 
@@ -13,6 +14,9 @@ import sys
 from playwright.sync_api import sync_playwright
 
 BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://127.0.0.1:3140"
+EXPECTED_STUDY_ID = "agri-41647231453"
+EXPECTED_DATES = 6
+EXPECTED_EXCLUSIONS = 4
 
 
 def require(condition: bool, message: str) -> None:
@@ -45,41 +49,59 @@ def main() -> int:
         response = page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
         require(response is not None and response.ok, "Agriculture route responds successfully")
 
-        page.locator(".agri-drawer-status").wait_for(state="visible", timeout=20_000)
-        page.get_by_text("No real Agriculture publication is bundled.", exact=True).wait_for(
-            state="visible", timeout=20_000
-        )
-        require(True, "the workspace explicitly states that no genuine Agriculture publication is bundled")
-        page.get_by_text("Same-pixel time-series audit", exact=True).wait_for(state="visible", timeout=10_000)
-        require(
-            page.locator(".agri-cohort-audit").count() == 0,
-            "the matched-pixel feature is introduced without fabricated coverage or moisture statistics",
+        status = page.locator(".agri-drawer-status")
+        status.wait_for(state="visible", timeout=20_000)
+        page.wait_for_function(
+            """() => document.querySelector(".agri-drawer-status")?.textContent?.includes("SHA-256 checked")""",
+            timeout=20_000,
         )
         require(
-            page.locator(".agri-flag-atlas").count() == 0,
-            "the new flag-overlap atlas is withheld when no real SME2 publication exists",
+            "SHA-256 checked" in status.inner_text() and "EXPLORATORY" in status.inner_text(),
+            "the published SME2 study is checksum-verified and explicitly labelled exploratory",
         )
         require(
-            page.locator(".agri-chart").count() == 0,
-            "the acquisition timeline and moisture trajectory are withheld when no real SME2 observations exist",
+            page.get_by_text(EXPECTED_STUDY_ID, exact=True).count() >= 1,
+            "the published Naogaon study ID is visible in the workspace",
         )
         require(
-            page.locator(".agri-date-rail").count() == 0,
-            "the calendar-spaced acquisition rail is withheld when no real SME2 observations exist",
+            page.get_by_text("DSG algorithm candidate", exact=True).count() >= 1,
+            "the selected DSG algorithm stream is explicitly labelled",
         )
         require(
-            page.locator(".agri-rainfall").count() == 0,
-            "the IMERG rainfall visualization is withheld when no checksum-verified SME2 study exists",
+            page.locator(".agri-cohort-audit").count() == 1,
+            "the same-pixel comparability audit renders from the real study",
         )
+        require(
+            page.locator(".agri-flag-atlas").count() == 1,
+            "the surface-flag overlap atlas renders from the real study",
+        )
+
         agriculture_map = page.locator(".agri-map")
+        require(agriculture_map.count() == 1 and agriculture_map.is_visible(), "the Agriculture map renders")
         require(
-            agriculture_map.count() == 1 and agriculture_map.is_visible(),
-            "the Agriculture map renders while no study is published",
+            agriculture_map.locator(".leaflet-image-layer").count() == 1
+            and agriculture_map.locator(".agri-map-legend").count() == 1,
+            "the checksum-verified SME2 preview overlay and legend render on the map",
         )
         require(
-            agriculture_map.locator(".leaflet-image-layer").count() == 0
-            and agriculture_map.locator(".agri-map-legend").count() == 0,
-            "the unpublished map contains no SME2 image overlay or data legend",
+            page.locator(".agri-date-rail button").count() == EXPECTED_DATES,
+            "the elapsed-time acquisition rail contains all six valid observation dates",
+        )
+        require(
+            page.locator(".agri-chart .agri-chart-point button").count() == EXPECTED_DATES,
+            "the moisture trajectory contains six selectable real acquisition points",
+        )
+        require(
+            "6 / 6" in page.locator(".agri-footer-head").inner_text()
+            and "2026-10-23 target" in page.locator(".agri-footer-head").inner_text(),
+            "the latest 23 October 2026 acquisition is selected as the target",
+        )
+
+        rainfall_empty = page.locator(".agri-rainfall__empty")
+        require(
+            rainfall_empty.count() == 1 and rainfall_empty.is_visible()
+            and page.locator(".agri-rainfall__plot").count() == 0,
+            "rainfall is explicitly unavailable rather than fabricated when IMERG context is absent",
         )
 
         tabs = page.locator(".wx-tabs [role='tab']")
@@ -97,15 +119,40 @@ def main() -> int:
             "the standardized Agriculture evidence chain is rendered",
         )
         require(
-            page.locator(".evidence-chain__state").inner_text() == "No published study",
-            "the evidence chain does not manufacture a study result",
+            page.locator(".evidence-chain__state").inner_text() == "Exploratory",
+            "the evidence chain reports exploratory evidence, not independent validation",
         )
-        reference = page.locator(".evidence-chain__reference").inner_text().lower()
-        require("not recorded" in reference, "independent field reference remains explicitly not recorded")
         require(
-            "precision" in reference and "not recorded" in reference
-            and "recall" in reference and "f1" in reference,
-            "precision, recall and F1 remain unavailable without a reference dataset",
+            page.locator(".evidence-chain__observations li").count() == EXPECTED_DATES,
+            "the evidence chain lists all six valid source observations",
+        )
+
+        exclusions = page.get_by_text(
+            f"Excluded acquisition dates ({EXPECTED_EXCLUSIONS})", exact=True
+        )
+        require(exclusions.count() == 1, "the four quality-excluded acquisition dates are disclosed")
+        exclusions.click()
+        exclusion_details = page.locator(".agri-details").filter(
+            has=page.get_by_text(f"Excluded acquisition dates ({EXPECTED_EXCLUSIONS})", exact=True)
+        )
+        require(
+            exclusion_details.locator(".agri-granule-list li").count() == EXPECTED_EXCLUSIONS,
+            "each excluded acquisition has a dated, source-specific audit entry",
+        )
+
+        for metric in ("Precision", "Recall", "F1"):
+            row = page.locator(".evidence-chain__reference-metrics > div").filter(
+                has=page.get_by_text(metric, exact=True)
+            )
+            require(
+                row.count() >= 1 and row.first.locator("dd").inner_text() == "Not recorded",
+                f"{metric} remains unavailable without an independent field reference",
+            )
+
+        reference = page.locator(".evidence-chain__reference").inner_text().lower()
+        require(
+            "not recorded" in reference,
+            "independent field reference remains explicitly not recorded",
         )
 
         select_tab(
@@ -149,7 +196,7 @@ def main() -> int:
         browser.close()
 
     require(not errors, "Agriculture workflow produces no browser runtime errors")
-    print("All Agriculture evidence-chain production-browser checks passed.")
+    print("All published Agriculture production-browser checks passed.")
     return 0
 
 
