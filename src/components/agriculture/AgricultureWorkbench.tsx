@@ -921,8 +921,8 @@ export default function AgricultureWorkbench() {
                 <li>Soil moisture must be finite and within 0.02–0.60 m³/m³.</li>
                 <li>Uncertainty must be finite and non-negative.</li>
                 {study.algorithm === "DSG"
-                  ? <li>DSG candidate only: NASA/JPL D-107677 Rev C defines retrievalQualityFlag = 0 as clear and non-zero as anomaly. This rule is not applied to the root baseline layer.</li>
-                  : <li>Root baseline only: retrievalQualityFlag bits 0–3 must all be set; anomaly bits 4–7 must be clear.</li>}
+                  ? <li>DSG algorithm candidate: NASA/JPL D-107677 Rev C defines retrievalQualityFlag = 0 as clear and non-zero as anomaly. These candidate arrays are separate from the root baseline measurement layers.</li>
+                  : <li>Root baseline: NASA/JPL D-107677 Rev C also defines retrievalQualityFlag = 0 as clear and non-zero as anomaly for the root layer.</li>}
                 <li>surfaceQualityFlag must equal zero. This excludes water, urban, precipitation, snow/ice, frozen-ground, terrain and dense-vegetation flags; it can reduce coverage over crop areas. Fractional flags and NoData remain unassessed.</li>
                 <li>All observations must share the same release and native grid; no resampling is performed.</li>
               </ul>
@@ -1044,7 +1044,7 @@ export default function AgricultureWorkbench() {
           <div className="agri-reading">
             <span className="agri-eyebrow">QUALITY IS NOT GROUND TRUTH</span>
             <strong>Flags control what is assessed</strong>
-            <p>The surface-quality screen accepts only zero-valued surface flags. It can exclude dense vegetation in crop areas. Excluded pixels are unassessed—not evidence of dry soil or healthy crops. The root baseline and DSG candidate have distinct retrievalQualityFlag rules: the baseline uses its documented status-bit test, while the DSG candidate uses the NASA/JPL zero-clear rule. A 20% coverage floor marks a study inconclusive when target or change coverage falls below it.</p>
+            <p>The surface-quality screen accepts only zero-valued surface flags. It can exclude dense vegetation in crop areas. NASA/JPL D-107677 Rev C defines retrievalQualityFlag = 0 as clear and non-zero as anomaly for both the root baseline and DSG candidate layers. The algorithm choice selects a distinct measurement stream; it does not change the documented retrieval-flag meaning. A 20% coverage floor marks a study inconclusive when target or change coverage falls below it.</p>
           </div>
           <div className="agri-reading">
             <span className="agri-eyebrow">WHY SAME-PIXEL COMPARISON MATTERS</span>
