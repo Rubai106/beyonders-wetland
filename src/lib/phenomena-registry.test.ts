@@ -10,12 +10,14 @@ test("every landing-page module includes a current evidence summary", () => {
   }
 });
 
-test("module summaries preserve the project's main evidence limitations", () => {
+test("module summaries preserve the project's current evidence states and limitations", () => {
   const byId = Object.fromEntries(PHENOMENA.map((item) => [item.id, item.evidenceSummary]));
-  assert.match(byId.wetland, /not confirmed floods/i);
+  assert.match(byId.wetland, /not confirmed floods|candidates remain unverified/i);
   assert.match(byId.wetland, /inconclusive/i);
-  assert.match(byId.agriculture, /no genuine SME2 study is published/i);
-  assert.match(byId.agriculture, /PROVISIONAL/i);
+  assert.match(byId.wetland, /seven-date NISAR PROVISIONAL series/i);
+  assert.match(byId.wetland, /two-scene BETA event study/i);
+  assert.match(byId.agriculture, /six-date NISAR SME2 PROVISIONAL series/i);
+  assert.match(byId.agriculture, /not crop-stress validation/i);
   assert.match(byId.forest, /no labelled forest-loss reference or accuracy score/i);
   assert.match(byId.volcano, /not causally attributed to the eruption/i);
 });
