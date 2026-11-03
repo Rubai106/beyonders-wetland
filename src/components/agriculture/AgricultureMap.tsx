@@ -10,7 +10,7 @@ import {
   useMap,
 } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
-import type { AgricultureAOI, AgricultureObservation, AgricultureStudy } from "@/lib/agriculture-study";
+import type { AgricultureAOI, AgricultureObservation, AgricultureStudy, AgricultureSummary } from "@/lib/agriculture-study";
 
 function FitStudyBounds({ bounds }: { bounds: LatLngBoundsExpression | undefined }) {
   const map = useMap();
@@ -30,6 +30,8 @@ export default function AgricultureMap({
   publicationError,
   study,
   selectedObservation,
+  displayedSummary,
+  trendObservations,
   onLayerChange,
 }: {
   aoi: AgricultureAOI | null;
@@ -41,6 +43,8 @@ export default function AgricultureMap({
   publicationError: string;
   study: AgricultureStudy | null;
   selectedObservation: AgricultureObservation | null;
+  displayedSummary: AgricultureSummary | null;
+  trendObservations: Array<AgricultureSummary & { date: string }>;
   onLayerChange: (layer: "moisture" | "change" | "matched") => void;
 }) {
   const extent = displayBounds ?? aoi;
@@ -59,19 +63,33 @@ export default function AgricultureMap({
     : [12, 0];
 
   const trendPoints = useMemo(() => {
-    const observations = study?.observations ?? [];
-    if (observations.length === 0) return [];
-    const values = observations.map((item) => item.median);
+    if (trendObservations.length === 0 || layer === "change") return [];
+    const values = trendObservations.map((item) => item.median);
     const low = Math.min(...values);
     const high = Math.max(...values);
     const span = high - low || 0.01;
-    return observations.map((item, index) => ({
+    return trendObservations.map((item, index) => ({
       date: item.date,
-      x: observations.length === 1 ? 50 : (index / (observations.length - 1)) * 100,
+      median: item.median,
+      x: trendObservations.length === 1 ? 50 : (index / (trendObservations.length - 1)) * 100,
       y: 34 - ((item.median - low) / span) * 27,
     }));
-  }, [study]);
+  }, [trendObservations, layer]);
   const selectedTrendPoint = trendPoints.find((point) => point.date === selectedObservation?.date);
+  const readoutSummary = displayedSummary ?? selectedObservation;
+  const changeLayerActive = layer === "change";
+  const readoutDate = changeLayerActive ? study?.target_date : selectedObservation?.date;
+  const readoutLabel = changeLayerActive ? "MEDIAN SOIL-MOISTURE CHANGE"
+    : layer === "matched" ? "SAME-PIXEL MEDIAN SOIL MOISTURE"
+    : "MEDIAN SOIL MOISTURE";
+  const secondaryCoverage = layer === "matched" ? selectedObservation?.valid_fraction
+    : changeLayerActive ? study?.target_summary.valid_fraction
+    : study?.matched_support.valid_fraction;
+  const secondaryCoverageLabel = layer === "matched" ? "date-valid footprint"
+    : changeLayerActive ? "target-date footprint"
+    : "same pixels · all dates";
+  const contextMetric = changeLayerActive ? study?.target_summary.median : study?.change_summary.median;
+  const contextMetricLabel = changeLayerActive ? "target-date soil moisture" : "latest − baseline";
 
   return (
     <div className="agri-map" aria-label="Interactive soil-moisture map">
@@ -107,28 +125,35 @@ export default function AgricultureMap({
         />}
         {bounds && previewUrl && <ImageOverlay url={previewUrl} bounds={bounds} opacity={0.86} />}
       </MapContainer>
-      {study && selectedObservation && (
-        <aside className="agri-map-readout" aria-label="Current soil-moisture observation summary">
+      {study && selectedObservation && readoutSummary && (
+        <aside className="agri-map-readout" aria-label="Current Agriculture map layer summary">
           <div className="agri-map-readout__head">
-            <div><span>FIELD OBSERVABILITY</span><strong>{new Date(selectedObservation.date + "T00:00:00Z").toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}</strong></div>
-            <span className="agri-map-readout__tag">{study.algorithm_label ?? "Root baseline product"}</span>
+            <div><span>{changeLayerActive ? "TARGET-VERSUS-BASELINE CHANGE" : layer === "matched" ? "FIXED SPATIAL SUPPORT" : "FIELD OBSERVABILITY"}</span><strong>{readoutDate ? new Date(readoutDate + "T00:00:00Z").toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : ""}</strong></div>
+            <span className="agri-map-readout__tag">{changeLayerActive ? "Latest − baseline" : layer === "matched" ? "Same pixels · all dates" : study.algorithm_label ?? "Root baseline product"}</span>
           </div>
           <div className="agri-map-readout__signal">
             <div>
-              <span className="agri-map-readout__label">MEDIAN SOIL MOISTURE</span>
-              <strong>{selectedObservation.median.toFixed(3)}<small>m³/m³</small></strong>
-              <span className="agri-map-readout__range">P05 {selectedObservation.p05.toFixed(3)} · P95 {selectedObservation.p95.toFixed(3)}</span>
+              <span className="agri-map-readout__label">{readoutLabel}</span>
+              <strong>{readoutSummary.median.toFixed(3)}<small>m³/m³</small></strong>
+              <span className="agri-map-readout__range">P05 {readoutSummary.p05.toFixed(3)} · P95 {readoutSummary.p95.toFixed(3)}</span>
             </div>
-            <svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Median soil moisture across the six acquisition dates">
-              <polyline points={trendPoints.map((point) => point.x.toFixed(2) + "," + point.y.toFixed(2)).join(" ")} />
-              {selectedTrendPoint && <circle cx={selectedTrendPoint.x} cy={selectedTrendPoint.y} r="2.8" />}
-            </svg>
+            {changeLayerActive ? (
+              <div className="agri-map-readout__change-pair">
+                <span>BASELINE</span><strong>{study.baseline_dates.length} valid dates</strong>
+                <span>TARGET</span><strong>{study.target_date}</strong>
+              </div>
+            ) : (
+              <svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label={layer === "matched" ? "Same-pixel soil moisture across all acquisition dates" : "Date-valid soil moisture across all acquisition dates"}>
+                <polyline points={trendPoints.map((point) => point.x.toFixed(2) + "," + point.y.toFixed(2)).join(" ")} />
+                {selectedTrendPoint && <circle cx={selectedTrendPoint.x} cy={selectedTrendPoint.y} r="2.8" />}
+              </svg>
+            )}
           </div>
-          <div className="agri-map-readout__time"><span>{trendPoints[0]?.date ?? ""}</span><span>{trendPoints[trendPoints.length - 1]?.date ?? ""}</span></div>
+          {!changeLayerActive && <div className="agri-map-readout__time"><span>{trendPoints[0]?.date ?? ""}</span><span>{trendPoints[trendPoints.length - 1]?.date ?? ""}</span></div>}
           <div className="agri-map-readout__metrics">
-            <div><strong>{(selectedObservation.valid_fraction * 100).toFixed(1)}%</strong><span>date-valid footprint</span><small>{selectedObservation.valid_pixels.toLocaleString()} / {selectedObservation.total_pixels.toLocaleString()} cells</small></div>
-            <div><strong>{(study.matched_support.valid_fraction * 100).toFixed(1)}%</strong><span>same pixels · all dates</span><small>{study.matched_support.valid_pixels.toLocaleString()} fixed cells</small></div>
-            <div><strong>{study.change_summary.median > 0 ? "+" : ""}{study.change_summary.median.toFixed(3)}</strong><span>latest − baseline</span><small>m³/m³ · {study.target_date}</small></div>
+            <div><strong>{(readoutSummary.valid_fraction * 100).toFixed(1)}%</strong><span>{changeLayerActive ? "change-layer footprint" : layer === "matched" ? "fixed-cohort footprint" : "date-valid footprint"}</span><small>{readoutSummary.valid_pixels.toLocaleString()} / {readoutSummary.total_pixels.toLocaleString()} cells</small></div>
+            <div><strong>{((secondaryCoverage ?? 0) * 100).toFixed(1)}%</strong><span>{secondaryCoverageLabel}</span><small>{layer === "matched" ? selectedObservation.valid_pixels.toLocaleString() + " date-valid cells" : changeLayerActive ? study.target_summary.valid_pixels.toLocaleString() + " target-date cells" : study.matched_support.valid_pixels.toLocaleString() + " fixed cells"}</small></div>
+            <div><strong>{(contextMetric ?? 0) > 0 ? "+" : ""}{(contextMetric ?? 0).toFixed(3)}</strong><span>{contextMetricLabel}</span><small>m³/m³ · {study.target_date}</small></div>
           </div>
           <div className="agri-map-readout__actions">
             <button type="button" aria-pressed={layer === "change"} onClick={() => onLayerChange("change")}>View change layer</button>
