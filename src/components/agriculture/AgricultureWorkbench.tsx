@@ -17,6 +17,7 @@ import {
   type AgricultureSurfaceFlagId,
   type AgricultureCropObservability,
 } from "@/lib/agriculture-study";
+import type { AgricultureCatalogueResult } from "@/lib/agriculture-catalogue";
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
 import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
 import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
@@ -28,9 +29,8 @@ const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
   loading: () => <div className="agri-map-loading">Loading interactive map…</div>,
 });
 
-const MIN_DATE = "2026-06-17";
-const MAX_DATE = "2026-10-31";
-const RUN_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
+const MIN_DATE = "2026-01-01";
+const MAX_DATE = "2026-12-31";
 
 type LoadState = "loading" | "not-published" | "ready" | "error";
 type MapLayer = "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
@@ -60,46 +60,25 @@ function dateLabel(value: string) {
     day: "2-digit", month: "short", year: "numeric", timeZone: "UTC",
   });
 }
-type AgricultureOperatorValues = {
+type AgricultureSearchValues = {
   west: string; south: string; east: string; north: string;
-  start: string; end: string; runId: string;
-  cropMaskPath: string; cropMaskSource: string; cropMaskDate: string;
+  start: string; end: string;
 };
-function powerShellQuote(value: string) {
-  return "'" + value.replace(/'/g, "''") + "'";
-}
-function validForm(values: AgricultureOperatorValues) {
+type CatalogueSearchStatus = "idle" | "searching" | "complete" | "error";
+
+function validSearchForm(values: AgricultureSearchValues) {
   if (![values.west, values.south, values.east, values.north].every((item) => item.trim() !== "")) return false;
-  const west = Number(values.west), south = Number(values.south), east = Number(values.east), north = Number(values.north);
-  const cropFieldsUsed = Boolean(values.cropMaskPath.trim() || values.cropMaskSource.trim() || values.cropMaskDate.trim());
-  const cropMaskValid = !cropFieldsUsed || (
-    Boolean(values.cropMaskPath.trim()) && Boolean(values.cropMaskSource.trim()) &&
-    (!values.cropMaskDate.trim() || /^\d{4}-\d{2}-\d{2}$/.test(values.cropMaskDate.trim()))
-  );
-  return [west, south, east, north].every(Number.isFinite) &&
+  const west = Number(values.west), south = Number(values.south);
+  const east = Number(values.east), north = Number(values.north);
+  const start = Date.parse(values.start + "T00:00:00Z");
+  const end = Date.parse(values.end + "T00:00:00Z");
+  return [west, south, east, north, start, end].every(Number.isFinite) &&
     west >= -180 && east <= 180 && west < east &&
     south >= -90 && north <= 90 && south < north &&
+    east - west <= 2 && north - south <= 2 &&
     values.start >= MIN_DATE && values.start <= MAX_DATE &&
     values.end >= MIN_DATE && values.end <= MAX_DATE &&
-    values.start <= values.end && RUN_ID_RE.test(values.runId) && cropMaskValid;
-}
-function commandSet(values: AgricultureOperatorValues) {
-  const common = "--run-id " + values.runId;
-  let analyze = "python pipeline/agriculture_sme2.py analyze " + common;
-  if (values.cropMaskPath.trim()) {
-    analyze += " --crop-mask " + powerShellQuote(values.cropMaskPath.trim()) +
-      " --crop-mask-source " + powerShellQuote(values.cropMaskSource.trim()) +
-      " --crop-probability-threshold 0.5 --crop-mask-coverage-floor 0.8";
-    if (values.cropMaskDate.trim()) analyze += " --crop-mask-date " + values.cropMaskDate.trim();
-  }
-  return [
-    "python pipeline/agriculture_sme2.py search " + common + " --west " + Number(values.west) +
-      " --south " + Number(values.south) + " --east " + Number(values.east) +
-      " --north " + Number(values.north) + " --start " + values.start + " --end " + values.end,
-    "python pipeline/agriculture_sme2.py download " + common,
-    analyze,
-    "python pipeline/agriculture_sme2.py publish " + common,
-  ].join("\n");
+    values.start <= values.end;
 }
 function csvCell(value: string | number) {
   return "\"" + String(value).replace(/"/g, "\"\"") + "\"";
@@ -117,18 +96,16 @@ export default function AgricultureWorkbench() {
   const [showAllFlagCombinations, setShowAllFlagCombinations] = useState(false);
   const [previewState, setPreviewState] = useState<{ asset: string; url: string | null; error: string } | null>(null);
   const [satelliteBasemap, setSatelliteBasemap] = useState(false);
-  const [west, setWest] = useState("");
-  const [south, setSouth] = useState("");
-  const [east, setEast] = useState("");
-  const [north, setNorth] = useState("");
-  const [start, setStart] = useState(MIN_DATE);
-  const [end, setEnd] = useState("2026-10-29");
-  const [runId, setRunId] = useState("agriculture-pilot-01");
-  const [cropMaskPath, setCropMaskPath] = useState("");
-  const [cropMaskSource, setCropMaskSource] = useState("");
-  const [cropMaskDate, setCropMaskDate] = useState("");
-  const [commandsVisible, setCommandsVisible] = useState(false);
-  const [copyState, setCopyState] = useState("");
+  const [west, setWest] = useState("91.3867");
+  const [south, setSouth] = useState("24.3533");
+  const [east, setEast] = useState("91.4467");
+  const [north, setNorth] = useState("24.4133");
+  const [start, setStart] = useState("2026-01-01");
+  const [end, setEnd] = useState("2026-10-31");
+  const [catalogueStatus, setCatalogueStatus] = useState<CatalogueSearchStatus>("idle");
+  const [catalogueResult, setCatalogueResult] = useState<AgricultureCatalogueResult | null>(null);
+  const [catalogueError, setCatalogueError] = useState("");
+  const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -231,11 +208,8 @@ export default function AgricultureWorkbench() {
   const previewUrl = previewState?.asset === activeAsset ? previewState.url : null;
   const previewError = previewState?.asset === activeAsset ? previewState.error : "";
 
-  const form = useMemo(() => ({
-    west, south, east, north, start, end, runId, cropMaskPath, cropMaskSource, cropMaskDate,
-  }), [west, south, east, north, start, end, runId, cropMaskPath, cropMaskSource, cropMaskDate]);
-  const formValid = useMemo(() => validForm(form), [form]);
-  const generatedCommands = useMemo(() => formValid ? commandSet(form) : "", [form, formValid]);
+  const form = useMemo(() => ({ west, south, east, north, start, end }), [west, south, east, north, start, end]);
+  const formValid = useMemo(() => validSearchForm(form), [form]);
   const chartRange = useMemo(() => {
     if (!chartObservations.length) return { min: 0, max: 1 };
     const lows = chartObservations.map((item) => item.p05);
@@ -354,15 +328,34 @@ export default function AgricultureWorkbench() {
     URL.revokeObjectURL(url);
   }, [study]);
 
-  const copyCommands = useCallback(async () => {
-    if (!generatedCommands) return;
+  const searchAgricultureCatalogue = useCallback(async () => {
+    if (!formValid) return;
+    setCatalogueStatus("searching");
+    setCatalogueError("");
+    setCatalogueResult(null);
+    setSelectedSeriesId(null);
     try {
-      await navigator.clipboard.writeText(generatedCommands);
-      setCopyState("Commands copied. Run them in the repository terminal.");
-    } catch {
-      setCopyState("Clipboard access was denied. Select and copy the commands manually.");
+      const response = await fetch("/api/agriculture/catalogue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          west: Number(west), south: Number(south), east: Number(east), north: Number(north),
+          startDate: start, endDate: end,
+        }),
+      });
+      const payload = await response.json() as AgricultureCatalogueResult & { error?: string };
+      if (!response.ok) throw new Error(payload.error || "NASA catalogue search failed.");
+      if (!Array.isArray(payload.series) || typeof payload.catalogue_granules !== "number") {
+        throw new Error("NASA returned a catalogue response that did not match the expected SME2 schema.");
+      }
+      setCatalogueResult(payload);
+      setSelectedSeriesId(payload.recommended_series_id ?? payload.series[0]?.series_id ?? null);
+      setCatalogueStatus("complete");
+    } catch (error) {
+      setCatalogueError(error instanceof Error ? error.message : "Could not search NASA's catalogue.");
+      setCatalogueStatus("error");
     }
-  }, [generatedCommands]);
+  }, [formValid, west, south, east, north, start, end]);
 
   const aoi: AgricultureAOI | null = study?.aoi ?? null;
   const target = study?.observations[study.observations.length - 1] ?? null;
@@ -740,52 +733,85 @@ export default function AgricultureWorkbench() {
       ),
     },
     {
-      id: "operator", number: "02", label: "Operator", hint: "Configure an AOI and generate the local processing workflow",
+      id: "operator", number: "02", label: "Operator", hint: "Discover and select NISAR SME2 observations online",
       content: (
         <div className="agri-drawer-panel">
-          <p className="agri-intro">Configure a WGS84 area and date range. This browser creates terminal commands; NASA search, Earthdata login and processing run locally in your repository.</p>
+          <p className="agri-intro">Discover compatible NISAR SME2 observations directly from this website. Public catalogue discovery does not require Earthdata login, Python installation or terminal commands.</p>
           <div className="agri-form-section">
-            <div className="agri-section-heading"><span className="agri-eyebrow">01 / STUDY AREA</span><span>WGS84 · decimal degrees</span></div>
+            <div className="agri-section-heading"><span className="agri-eyebrow">01 / STUDY AREA</span><span>WGS84 · decimal degrees · max 2°</span></div>
             <div className="agri-coordinate-grid">
-              <label>West<input inputMode="decimal" value={west} onChange={(event) => setWest(event.target.value)} placeholder="e.g. 90.20" aria-label="AOI west longitude" /></label>
-              <label>South<input inputMode="decimal" value={south} onChange={(event) => setSouth(event.target.value)} placeholder="e.g. 23.80" aria-label="AOI south latitude" /></label>
-              <label>East<input inputMode="decimal" value={east} onChange={(event) => setEast(event.target.value)} placeholder="e.g. 90.60" aria-label="AOI east longitude" /></label>
-              <label>North<input inputMode="decimal" value={north} onChange={(event) => setNorth(event.target.value)} placeholder="e.g. 24.20" aria-label="AOI north latitude" /></label>
+              <label>West<input inputMode="decimal" value={west} onChange={(event) => setWest(event.target.value)} placeholder="e.g. 91.38" aria-label="AOI west longitude" /></label>
+              <label>South<input inputMode="decimal" value={south} onChange={(event) => setSouth(event.target.value)} placeholder="e.g. 24.35" aria-label="AOI south latitude" /></label>
+              <label>East<input inputMode="decimal" value={east} onChange={(event) => setEast(event.target.value)} placeholder="e.g. 91.44" aria-label="AOI east longitude" /></label>
+              <label>North<input inputMode="decimal" value={north} onChange={(event) => setNorth(event.target.value)} placeholder="e.g. 24.41" aria-label="AOI north latitude" /></label>
             </div>
+            <p className="agri-small-note">The current starting area is the documented Baniachong BRRI experimental-site vicinity. Adjust the rectangle or enter another WGS84 area.</p>
           </div>
           <div className="agri-form-section">
-            <div className="agri-section-heading"><span className="agri-eyebrow">02 / TIME WINDOW</span><span>SME2 gate: {MIN_DATE} onward</span></div>
+            <div className="agri-section-heading"><span className="agri-eyebrow">02 / TIME WINDOW</span><span>SME2 collection · maximum 366 days</span></div>
             <div className="agri-date-grid">
               <label>Start date<input type="date" min={MIN_DATE} max={MAX_DATE} value={start} onChange={(event) => setStart(event.target.value)} /></label>
               <label>End date<input type="date" min={MIN_DATE} max={MAX_DATE} value={end} onChange={(event) => setEnd(event.target.value)} /></label>
             </div>
           </div>
-          <div className="agri-form-section">
-            <div className="agri-section-heading"><span className="agri-eyebrow">03 / RUN ID</span><span>Safe lowercase identifier</span></div>
-            <label className="agri-run-label">Run ID<input value={runId} onChange={(event) => setRunId(event.target.value)} spellCheck={false} aria-label="Agriculture run ID" /></label>
-          </div>
-          <div className="agri-form-section agri-crop-input">
-            <div className="agri-section-heading"><span className="agri-eyebrow">04 / INDEPENDENT CROP MASK · OPTIONAL</span><span>Local GeoTIFF · never uploaded</span></div>
-            <label>Local GeoTIFF path<input value={cropMaskPath} onChange={(event) => setCropMaskPath(event.target.value)} spellCheck={false} placeholder="D:\data\crop-probability.tif" /></label>
-            <label>Source / product provenance<input value={cropMaskSource} onChange={(event) => setCropMaskSource(event.target.value)} placeholder="e.g. Dynamic World V1 · crops probability" /></label>
-            <label>Source observation date · optional<input type="date" value={cropMaskDate} onChange={(event) => setCropMaskDate(event.target.value)} /></label>
-            <p className="agri-small-note">Use one band with binary/probability values from 0 to 1 and a declared CRS. The raster must be finer than SME2 and buffered to cover the full SME2 grid extent. Default threshold: 0.50; minimum valid source coverage inside each native cell: 80%. Raw mask data stays local; only a display preview, source checksum and derived support audit are published.</p>
-            {Boolean(cropMaskPath.trim() || cropMaskSource.trim() || cropMaskDate.trim()) &&
-              <p className="agri-crop-input__hint">The mask path and source label are both required. A source date is optional.</p>}
-          </div>
           <div className={"agri-validation " + (formValid ? "is-valid" : "is-invalid")} role="status">
-            <i aria-hidden="true" />{formValid ? "AOI, dates and run ID are valid." : "Enter a valid non-crossing WGS84 AOI, ordered dates and safe run ID to enable commands."}
+            <i aria-hidden="true" />{formValid ? "WGS84 area and date range are valid for catalogue discovery." : "Enter a valid non-crossing WGS84 rectangle and ordered dates."}
           </div>
-          <button type="button" className="agri-primary-button" disabled={!formValid} onClick={() => { setCommandsVisible(true); setCopyState(""); }}>
-            Generate processing commands
+          <button type="button" className="agri-primary-button" disabled={!formValid || catalogueStatus === "searching"} onClick={() => void searchAgricultureCatalogue()}>
+            {catalogueStatus === "searching" ? "Searching NASA catalogue…" : "Discover SME2 observations"}
           </button>
-          {commandsVisible && generatedCommands && <div className="agri-commands">
-            <div className="agri-section-heading"><span className="agri-eyebrow">LOCAL TERMINAL WORKFLOW</span><button type="button" onClick={() => setCommandsVisible(false)}>Hide</button></div>
-            <pre><code>{generatedCommands}</code></pre>
-            <button type="button" className="agri-secondary-button" onClick={copyCommands}>Copy all commands</button>
-            {copyState && <p role="status" className="agri-copy-status">{copyState}</p>}
-          </div>}
-          <p className="agri-small-note">Generating commands does not mean NASA data are available. The CLI will stop if CMR has no compatible series, authentication fails, or the native SME2 data do not pass validation. When a crop mask is supplied, it is read from the local path in the terminal and never transmitted by the browser.</p>
+          {catalogueStatus === "error" && <p className="agri-alert" role="alert">{catalogueError}</p>}
+          {catalogueResult && <section className="agri-online-results" aria-label="NASA SME2 catalogue results">
+            <div className="agri-online-results__header">
+              <div><span className="agri-eyebrow">LIVE NASA CMR RESULT</span><strong>{catalogueResult.catalogue_granules.toLocaleString()} catalogue granules</strong></div>
+              <span className={"agri-online-results__status " + (catalogueResult.status === "ELIGIBLE_FOR_OPERATOR_REVIEW" ? "is-ready" : "is-warning")}>
+                {catalogueResult.status.replaceAll("_", " ")}
+              </span>
+            </div>
+            <p>{catalogueResult.series.length} separate compatible time series were found. Different tracks and acquisition geometries are kept separate.</p>
+            {catalogueResult.series.length === 0 ? (
+              <div className="agri-online-empty">No supported SME2 series matched this AOI and date range. This is not evidence of zero soil moisture or no agriculture.</div>
+            ) : (
+              <div className="agri-online-series-list">
+                {catalogueResult.series.map((series) => {
+                  const active = selectedSeriesId === series.series_id;
+                  return <button
+                    type="button"
+                    key={series.series_id}
+                    className={"agri-online-series" + (active ? " is-selected" : "")}
+                    aria-pressed={active}
+                    onClick={() => setSelectedSeriesId(series.series_id)}
+                  >
+                    <div className="agri-online-series__top">
+                      <strong>Track {series.signature.track} · Frame {series.signature.frame}</strong>
+                      <span>{series.meets_preflight_gate ? "PRE-FLIGHT PASS" : "BELOW PRE-FLIGHT GATE"}</span>
+                    </div>
+                    <div className="agri-online-series__metrics">
+                      <div><strong>{series.observation_count}</strong><small>acquisitions</small></div>
+                      <div><strong>{series.span_days}d</strong><small>time span</small></div>
+                      <div><strong>{series.median_revisit_days ?? "—"}d</strong><small>median revisit</small></div>
+                      <div><strong>{series.maximum_gap_days ?? "—"}d</strong><small>largest gap</small></div>
+                    </div>
+                    <div className="agri-online-series__identity">
+                      {series.signature.direction === "A" ? "Ascending" : "Descending"} · {series.signature.polarization} · {series.signature.bandwidth} · {series.signature.frequency} · {series.signature.release}
+                      <span>Series {series.series_id}</span>
+                    </div>
+                    <div className="agri-online-series__dates">
+                      {series.dates.map((date) => <span key={date}>{date.slice(5)}</span>)}
+                    </div>
+                  </button>;
+                })}
+              </div>
+            )}
+            {catalogueResult.interpretation_limits.map((note) => <small className="agri-online-results__note" key={note}>• {note}</small>)}
+            {selectedSeriesId && catalogueResult.series.some((series) => series.series_id === selectedSeriesId) && <div className="agri-online-next">
+              <span className="agri-eyebrow">NEXT · SECURE PROCESSING</span>
+              <strong>Series selected: {selectedSeriesId}</strong>
+              <p>Catalogue discovery now runs on the website. Downloading original HDF5 granules and producing a checksum-verified study will run through a hosted worker with NASA Earthdata authorization. That worker is the next integration; it will not require Python on your PC or expose your NASA password to this site.</p>
+              <div className="agri-online-next__status"><i aria-hidden="true" />Hosted processing service not connected yet</div>
+            </div>}
+          </section>}
+          <p className="agri-small-note">This online step reads public NASA catalogue metadata only. It does not download HDF5 files or claim that the returned pixels pass the SME2 quality screen. No local setup is needed for discovery.</p>
         </div>
       ),
     },
