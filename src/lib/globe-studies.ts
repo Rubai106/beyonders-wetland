@@ -48,13 +48,18 @@ async function loadWetlandMarkers(): Promise<GlobeCaseMarker[]> {
         longitude: center.lng.toFixed(5),
         site: study.site_name,
       });
+      const publishedCaseHref: Record<string, string> = {
+        "3b01cdb5674a44ea9c6c3d17ec8c07b8": "/wetland?case=featured",
+        "d6e65a58802e4cf4907ddefa42a435d6": "/wetland?case=hakaluki",
+        "ec8fa5ee15ae41d1aa89f930f2b47e36": "/wetland/global?story=chokwe",
+      };
       return {
         id: `wetland:${study.run_id}`,
         hazard: "wetland" as const,
         ...center,
         label: shortSiteName(study.site_name),
         sub: "Wetland case · open",
-        href: `/wetland/global?${params.toString()}#nisar-run-controls`,
+        href: publishedCaseHref[study.run_id] ?? `/wetland/global?${params.toString()}#nisar-run-controls`,
         color: HAZARD_COLOR.wetland,
       } satisfies GlobeCaseMarker;
     } catch {
