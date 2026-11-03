@@ -68,6 +68,13 @@ def main() -> int:
             and page.locator("path.wx-patch").count() == 213,
             "Hakaluki's 17 July peak shows the published 2.57 km² and 213 candidates",
         )
+        page.locator(".wx-tab", has_text="Check it").click()
+        page.locator(".wx-callout").wait_for(state="visible", timeout=10_000)
+        require(
+            "Inconclusive" in page.locator(".wx-callout").inner_text()
+            and "<0.1%" in page.locator(".wx-drawer").inner_text(),
+            "Hakaluki's extremely limited HLS overlap is shown as less than 0.1%, not rounded to zero",
+        )
         page.locator(".wx-modes button[data-mode='RADAR']").click()
         page.wait_for_function(
             "() => document.querySelectorAll('.leaflet-wxRadar-pane img').length > 0",
