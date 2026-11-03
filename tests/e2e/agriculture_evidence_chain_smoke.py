@@ -188,7 +188,7 @@ def main() -> int:
             "rainfall is explicitly unavailable rather than fabricated when IMERG context is absent",
         )
 
-        tabs = page.locator(".wx-tabs [role='tab']")
+        tabs = page.locator(".wx-drawer__tabs [role='tab']")
         require(tabs.count() == 5, "Explore, Operator, Evidence, Check it and Learn tabs are all present")
 
         select_tab(
