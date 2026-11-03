@@ -492,15 +492,6 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
 }
 
 /**
- * Build a date-by-date spatial-support audit.
- *
- * A positive gap means the median over that date's valid footprint is higher
- * than the median over the fixed all-date cohort. The gap is a comparison of
- * two spatial samples, not a third sensor measurement or a moisture-change
- * estimate. Return no profile when the fixed cohort is unavailable or the
- * date alignment is inconsistent.
- */
-/**
  * Place acquisition dates on a true elapsed-time axis.
  *
  * position is a 0..100 percentage over the first-to-last acquisition span;
@@ -532,7 +523,14 @@ export function buildAgricultureDateAxis(dates: string[]): AgricultureDateAxisPo
 
 /**
  * Build a date-by-date spatial-support audit.
-
+ *
+ * A positive gap means the median over that date's valid footprint is higher
+ * than the median over the fixed all-date cohort. The gap is a comparison of
+ * two spatial samples, not a third sensor measurement or a moisture-change
+ * estimate. Return no profile when the fixed cohort is unavailable or the
+ * date alignment is inconsistent.
+ */
+export function buildAgricultureSupportDrift(study: AgricultureStudy): AgricultureSupportDriftPoint[] {
   const matched = study.matched_support;
   if (matched.valid_pixels <= 0 || matched.observations.length !== study.observations.length) return [];
 
