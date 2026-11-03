@@ -340,7 +340,7 @@ def download(run_id: str, series_id: str | None = None) -> list[Path]:
     series = _select_series(manifest, series_id)
     try:
         import earthaccess
-        auth = earthaccess.login(strategy="interactive", persist=True)
+        auth = earthaccess.login(strategy="environment", persist=False)
         if not auth:
             raise AgricultureError("Earthdata Login was not established.")
         local = folder / "granules"
