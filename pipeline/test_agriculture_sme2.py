@@ -20,6 +20,7 @@ from agriculture_sme2 import (
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
     _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
     quality_screen_diagnostics, _masked_array_diagnostics, _algorithm_candidate_diagnostics,
+    _resolve_measurement_layers,
 )
 
 
@@ -46,13 +47,17 @@ class AgricultureSME2Tests(unittest.TestCase):
             path = Path(temp) / "candidate-audit.h5"
             with h5py.File(path, "w") as handle:
                 grids = handle.require_group("/science/LSAR/SME2/grids")
+                grids.create_dataset("xCoordinates", data=np.array([100.0, 300.0]))
+                grids.create_dataset("yCoordinates", data=np.array([300.0, 100.0]))
                 candidates = grids.create_group("algorithmCandidates")
                 dsg = candidates.create_group("DSG")
                 moisture = dsg.create_dataset("soilMoisture", data=np.full((2, 2), 0.24, dtype="float32"))
                 moisture.attrs["_FillValue"] = -9999.0
+                moisture.attrs["units"] = "m^3/m^3"
                 uncertainty = dsg.create_dataset("soilMoistureUncertainty", data=np.full((2, 2), 0.02, dtype="float32"))
                 uncertainty.attrs["_FillValue"] = -9999.0
-                dsg.create_dataset("retrievalQualityFlag", data=np.full((2, 2), 15, dtype="int16"))
+                uncertainty.attrs["units"] = "m^3/m^3"
+                dsg.create_dataset("retrievalQualityFlag", data=np.zeros((2, 2), dtype="int16"))
                 dsg.create_dataset("xCoordinates", data=np.array([100.0, 300.0]))
                 dsg.create_dataset("yCoordinates", data=np.array([300.0, 100.0]))
                 candidates.create_group("PMI")
@@ -65,6 +70,7 @@ class AgricultureSME2Tests(unittest.TestCase):
             self.assertEqual(result["status"], "AUDITED")
             self.assertEqual(result["algorithms"]["DSG"]["status"], "AUDITED")
             self.assertEqual(result["algorithms"]["DSG"]["quality"]["all_screen_pass_pixels"], 4)
+            self.assertEqual(result["algorithms"]["DSG"]["quality"]["retrieval_interpretation"], "candidate-zero-clear")
             self.assertEqual(result["algorithms"]["DSG"]["surface_flag_source"], "shared_root_surfaceQualityFlag")
             self.assertEqual(result["algorithms"]["PMI"]["status"], "MISSING_REQUIRED_LAYERS")
 
@@ -86,6 +92,73 @@ class AgricultureSME2Tests(unittest.TestCase):
                 np.zeros((2, 2), dtype="int16"), np.ones((2, 2), dtype=bool),
             )
             self.assertEqual(result["algorithms"]["DSG"]["status"], "GRID_COORDINATE_MISMATCH")
+
+    def test_dsg_candidate_retrieval_flag_uses_zero_clear_semantics_only(self):
+        moisture = np.full((1, 4), 0.24)
+        uncertainty = np.full((1, 4), 0.02)
+        retrieval = np.array([[0, 1, 77, -9999]], dtype="int16")
+        surface = np.zeros((1, 4), dtype="int16")
+        candidate_valid = quality_mask(
+            moisture, uncertainty, retrieval, surface,
+            retrieval_mode="candidate-zero-clear",
+        )
+        np.testing.assert_array_equal(candidate_valid, [[True, False, False, False]])
+
+        baseline_valid = quality_mask(moisture, uncertainty, retrieval, surface)
+        self.assertFalse(np.array_equal(candidate_valid, baseline_valid))
+
+    def test_dsg_algorithm_selector_reads_candidate_layers_and_requires_grid_alignment(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "selector.h5"
+            with h5py.File(path, "w") as handle:
+                grids = handle.create_group("/science/LSAR/SME2/grids")
+                grids.create_dataset("xCoordinates", data=np.array([100.0, 300.0]))
+                grids.create_dataset("yCoordinates", data=np.array([300.0, 100.0]))
+                grids.create_dataset("projection", data=np.int32(6933))
+                baseline = grids.create_dataset("soilMoisture", data=np.full((2, 2), 0.20, dtype="float32"))
+                baseline.attrs["units"] = "m^3/m^3"
+                baseline_unc = grids.create_dataset("soilMoistureUncertainty", data=np.full((2, 2), 0.02, dtype="float32"))
+                baseline_unc.attrs["units"] = "m^3/m^3"
+                grids.create_dataset("retrievalQualityFlag", data=np.full((2, 2), 15, dtype="int16"))
+                grids.create_dataset("surfaceQualityFlag", data=np.zeros((2, 2), dtype="int16"))
+
+                candidate = grids.create_group("algorithmCandidates").create_group("DSG")
+                candidate_moisture = candidate.create_dataset("soilMoisture", data=np.full((2, 2), 0.24, dtype="float32"))
+                candidate_moisture.attrs["units"] = "m^3/m^3"
+                candidate_unc = candidate.create_dataset("soilMoistureUncertainty", data=np.full((2, 2), 0.03, dtype="float32"))
+                candidate_unc.attrs["units"] = "m^3/m^3"
+                candidate.create_dataset("retrievalQualityFlag", data=np.zeros((2, 2), dtype="int16"))
+                candidate.create_dataset("xCoordinates", data=np.array([100.0, 300.0]))
+                candidate.create_dataset("yCoordinates", data=np.array([300.0, 100.0]))
+
+            with h5py.File(path, "r") as handle:
+                grids = handle["/science/LSAR/SME2/grids"]
+                baseline_layers = _baseline_layers(handle)
+                x = np.asarray(grids["xCoordinates"][...], dtype="float64")
+                y = np.asarray(grids["yCoordinates"][...], dtype="float64")
+                selected, mode = _resolve_measurement_layers(handle, "DSG", baseline_layers, x, y)
+                self.assertEqual(selected["soilMoisture"].name, "/science/LSAR/SME2/grids/algorithmCandidates/DSG/soilMoisture")
+                self.assertEqual(selected["retrievalQualityFlag"].name, "/science/LSAR/SME2/grids/algorithmCandidates/DSG/retrievalQualityFlag")
+                self.assertEqual(mode, "candidate-zero-clear")
+                baseline_selected, baseline_mode = _resolve_measurement_layers(
+                    handle, "baseline", baseline_layers, x, y,
+                )
+                self.assertEqual(baseline_selected["soilMoisture"].name, "/science/LSAR/SME2/grids/soilMoisture")
+                self.assertEqual(baseline_mode, "baseline-bitmask")
+
+    def test_dsg_quality_diagnostics_report_zero_clear_retrieval_intersection(self):
+        moisture = np.full((1, 4), 0.24)
+        uncertainty = np.full((1, 4), 0.02)
+        retrieval = np.array([[0, 1, 0, -9999]], dtype="int16")
+        surface = np.array([[0, 0, 1, 0]], dtype="int16")
+        diagnostics = quality_screen_diagnostics(
+            moisture, uncertainty, retrieval, surface, np.ones((1, 4), dtype=bool),
+            retrieval_mode="candidate-zero-clear",
+        )
+        self.assertEqual(diagnostics["retrieval_interpretation"], "candidate-zero-clear")
+        self.assertEqual(diagnostics["retrieval_flag_pass_pixels"], 2)
+        self.assertEqual(diagnostics["retrieval_zero_and_surface_zero_intersection"], 1)
+        self.assertEqual(diagnostics["all_screen_pass_pixels"], 1)
 
     def test_masked_array_diagnostics_reports_fill_like_and_flag_distributions(self):
         values = np.array([[0.2, -9999.0, np.nan, 0.4]], dtype="float64")
@@ -114,6 +187,7 @@ class AgricultureSME2Tests(unittest.TestCase):
         )
         valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
         self.assertEqual(diagnostics, {
+            "retrieval_interpretation": "baseline-bitmask",
             "aoi_pixels": 6,
             "moisture_range_pass_pixels": 5,
             "uncertainty_pass_pixels": 5,
