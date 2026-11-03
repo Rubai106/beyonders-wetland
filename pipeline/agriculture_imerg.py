@@ -29,7 +29,7 @@ from agriculture_sme2 import (
     sha256_file,
 )
 
-IMerg_COLLECTION = "GPM_3IMERGDF"
+IMERG_COLLECTION = "GPM_3IMERGDF"
 IMERG_VERSION = "07"
 IMERG_PRODUCT = "GPM_3IMERGDF_V07"
 IMERG_DOI = "10.5067/GPM/IMERGDF/DAY/07"
@@ -342,14 +342,19 @@ def read_imerg_daily(path: Path, aoi: dict[str, float]) -> dict[str, Any]:
 
     # V07 daily precipitation is the daily mean rate (mm/hour) multiplied by 24,
     # i.e. a daily estimate in mm/day. It is not a half-hourly rate field.
-    lon, lat, precip = _normalize_coordinates(lon, lat, precip)
-    _unused_lon, _unused_lat, counts = _normalize_coordinates(_unused_lon if False else np.asarray(lon), np.asarray(lat), counts)
-    # Reorder validity arrays exactly as the coordinate-normalized values.
-    # The input axes are now ascending; recover the order from the normalized axes.
-    lon_order = np.argsort(np.asarray(lon))
-    lat_order = np.argsort(np.asarray(lat))
-    pvalid = pvalid[np.ix_(lat_order, lon_order)]
-    cvalid = cvalid[np.ix_(lat_order, lon_order)]
+    source_lon, source_lat = lon.copy(), lat.copy()
+    lon, lat, precip = _normalize_coordinates(source_lon, source_lat, precip)
+    lon_check, lat_check, pvalid_grid = _normalize_coordinates(source_lon, source_lat, pvalid.astype("float64"))
+    lon_count, lat_count, counts = _normalize_coordinates(source_lon, source_lat, counts)
+    lon_count_check, lat_count_check, cvalid_grid = _normalize_coordinates(
+        source_lon, source_lat, cvalid.astype("float64"),
+    )
+    if not (np.allclose(lon, lon_check) and np.allclose(lat, lat_check) and
+            np.allclose(lon, lon_count) and np.allclose(lat, lat_count) and
+            np.allclose(lon, lon_count_check) and np.allclose(lat, lat_count_check)):
+        raise AgricultureError("IMERG precipitation, count and validity layers use inconsistent coordinate axes.")
+    pvalid = pvalid_grid > 0.5
+    cvalid = cvalid_grid > 0.5
     rows, columns, weights = _aoi_area_weights(lon, lat, aoi)
     selected_precip = precip[np.ix_(rows, columns)]
     selected_counts = counts[np.ix_(rows, columns)]
