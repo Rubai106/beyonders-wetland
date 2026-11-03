@@ -104,10 +104,11 @@ def main() -> int:
         play_button = page.locator(".wx-play")
         play_button.wait_for(state="visible", timeout=10_000)
         if play_button.get_attribute("aria-pressed") == "true":
-            play_button.click()
+            play_button.evaluate("(button) => button.click()")
         page.wait_for_function(
-            """() => document.querySelector(".wx-play")?.getAttribute("aria-pressed") === "false" """
-        , timeout=10_000)
+            """() => document.querySelector(".wx-play")?.getAttribute("aria-pressed") === "false""",
+            timeout=10_000,
+        )
 
         # Open a real candidate from the packaged Tanguar Haor showcase.
         page.locator("path.wx-patch").nth(40).click(force=True)
