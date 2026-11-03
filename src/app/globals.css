@@ -2945,3 +2945,24 @@ textarea {
 .mozambique-case__verdict i {
   box-shadow: none;
 }
+
+.chokwe-pixel-map { position: relative; }
+.chokwe-pixel-map__notice {
+  position: absolute;
+  z-index: 700;
+  right: 8px;
+  bottom: 8px;
+  left: 8px;
+  width: fit-content;
+  max-width: calc(100% - 16px);
+  padding: 7px 10px;
+  border: 1px solid rgba(212, 163, 91, .62);
+  border-left: 2px solid #d4a35b;
+  border-radius: 4px;
+  background: rgba(16, 19, 21, .94);
+  color: #e8d5b0;
+  font-size: .65rem;
+  line-height: 1.45;
+  pointer-events: none;
+}
+.chokwe-pixel-map__notice--radar { bottom: 54px; }

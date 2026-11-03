@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ImageOverlay,
   MapContainer,
@@ -47,6 +47,9 @@ export default function AgricultureMap({
   trendObservations: Array<AgricultureSummary & { date: string }>;
   onLayerChange: (layer: "moisture" | "change" | "matched") => void;
 }) {
+  const [basemapFailed, setBasemapFailed] = useState(false);
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  const previewRenderFailed = Boolean(previewUrl && failedPreviewUrl === previewUrl);
   const extent = displayBounds ?? aoi;
   const west = extent?.west ?? null;
   const south = extent?.south ?? null;
@@ -109,6 +112,10 @@ export default function AgricultureMap({
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             attribution="Tiles © Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
             maxZoom={18}
+            eventHandlers={{
+              tileerror: () => setBasemapFailed(true),
+              tileload: () => setBasemapFailed(false),
+            }}
           />
         ) : (
           <TileLayer
@@ -116,6 +123,10 @@ export default function AgricultureMap({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
             className="agri-basemap-tile-layer"
             maxZoom={19}
+            eventHandlers={{
+              tileerror: () => setBasemapFailed(true),
+              tileload: () => setBasemapFailed(false),
+            }}
           />
         )}
         <ScaleControl position="bottomleft" />
@@ -124,8 +135,22 @@ export default function AgricultureMap({
           bounds={bounds}
           pathOptions={{ color: "#57c7d0", weight: 2, dashArray: "7 6", fillColor: "#57c7d0", fillOpacity: 0.045 }}
         />}
-        {bounds && previewUrl && <ImageOverlay url={previewUrl} bounds={bounds} opacity={0.86} />}
+        {bounds && previewUrl && <ImageOverlay
+          url={previewUrl}
+          bounds={bounds}
+          opacity={0.86}
+          eventHandlers={{
+            error: () => setFailedPreviewUrl(previewUrl),
+            load: () => setFailedPreviewUrl((current) => current === previewUrl ? null : current),
+          }}
+        />}
       </MapContainer>
+      {(basemapFailed || previewRenderFailed) && (
+        <div className="agri-map-render-status" role="status" aria-live="polite">
+          {basemapFailed && <p>Basemap tiles are unavailable. The verified SME2 layer remains independent of this background.</p>}
+          {previewRenderFailed && <p>The checksum-verified image could not be drawn on the map. The image is withheld; its source data has not been replaced.</p>}
+        </div>
+      )}
       {study && selectedObservation && readoutSummary && (
         <aside className="agri-map-readout" aria-label="Current Agriculture map layer summary">
           <div className="agri-map-readout__head">

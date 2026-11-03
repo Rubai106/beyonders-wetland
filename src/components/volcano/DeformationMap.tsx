@@ -29,8 +29,14 @@ export default function DeformationMap({ bbox, referenceBbox, imageUrl, imageOpa
   const longitudePadding = Math.max((east - west) * .75, .25);
   const mapBounds: LatLngBoundsExpression = [[Math.max(-85.05,south-latitudePadding),Math.max(-180,west-longitudePadding)],[Math.min(85.05,north+latitudePadding),Math.min(180,east+longitudePadding)]];
   return <><MapContainer bounds={bounds(bbox)} minZoom={3} maxZoom={17} maxBounds={mapBounds} maxBoundsViscosity={1} style={{height:"100%",width:"100%"}}>
-    <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Tiles © Esri, USGS, NOAA" noWrap eventHandlers={{tileerror:()=>setTileFailed(true)}} />
-    {imageUrl&&<ImageOverlay key={imageUrl} url={imageUrl} bounds={bounds(bbox)} opacity={imageOpacity} eventHandlers={{error:()=>setFailedImage(imageUrl)}} />}
+    <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Tiles © Esri, USGS, NOAA" noWrap eventHandlers={{
+      tileerror: () => setTileFailed(true),
+      tileload: () => setTileFailed(false),
+    }} />
+    {imageUrl&&<ImageOverlay key={imageUrl} url={imageUrl} bounds={bounds(bbox)} opacity={imageOpacity} eventHandlers={{
+      error: () => setFailedImage(imageUrl),
+      load: () => setFailedImage((current) => current === imageUrl ? null : current),
+    }} />}
     <Rectangle bounds={bounds(referenceBbox)} pathOptions={{color:"#36e1cb",fill:false,weight:2,dashArray:"5 5"}}><Tooltip>Assumed-stable reference patch</Tooltip></Rectangle>
     {regions.map(region => <CircleMarker key={region.name} center={[region.lat,region.lon]} radius={4} pathOptions={{color:"white",fillColor:"#191e1c",fillOpacity:1,weight:1.5}}><Tooltip permanent direction={region.name.endsWith("south")?"right":"top"}>{region.name}</Tooltip></CircleMarker>)}
     {point && <CircleMarker center={[point.lat,point.lon]} radius={6} pathOptions={{color:"#ffdf63",fill:false,weight:3}} />}
