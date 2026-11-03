@@ -1,0 +1,9 @@
+{
+  "west": 88.42,
+  "south": 24.97,
+  "east": 88.57,
+  "north": 25.12,
+  "start": "2026-06-17",
+  "end": "2026-11-02",
+  "allow_missing_imerg": true
+}
