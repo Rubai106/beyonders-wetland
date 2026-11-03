@@ -194,6 +194,7 @@ export default function AgricultureWorkbench() {
 
   useEffect(() => {
     if (!study || !checksums || !activeAsset || !publicationVersion) return;
+    const activePublicationVersion = publicationVersion;
     const checksumFiles = checksums.files;
     const controller = new AbortController();
     let live = true;
@@ -202,7 +203,7 @@ export default function AgricultureWorkbench() {
       try {
         const entry = checksumFiles[activeAsset];
         if (!entry) throw new Error("No checksum entry exists for " + activeAsset + ".");
-        const response = await fetch("/agriculture/current/" + activeAsset + "?v=" + encodeURIComponent(publicationVersion), { signal: controller.signal, cache: "no-store" });
+        const response = await fetch("/agriculture/current/" + activeAsset + "?v=" + encodeURIComponent(activePublicationVersion), { signal: controller.signal, cache: "no-store" });
         if (!response.ok) throw new Error("Preview " + activeAsset + " returned HTTP " + response.status + ".");
         const bytes = await response.arrayBuffer();
         if (bytes.byteLength !== entry.bytes) {
