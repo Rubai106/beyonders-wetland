@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 import type { InvestigationDrawerTab } from "@/components/layout/InvestigationWorkspace";
 import {
@@ -794,7 +794,7 @@ export default function AgricultureWorkbench() {
                   </svg>
                   <div className="agri-support-drift__hit-targets" role="group" aria-label="Select a date and spatial support from the comparison chart">
                     {supportDriftPlot.points.map((point) => (
-                      <React.Fragment key={"hit-" + point.date}>
+                      <Fragment key={"hit-" + point.date}>
                         <button
                           type="button"
                           className="agri-support-drift__point-hit agri-support-drift__point-hit--valid"
@@ -813,7 +813,7 @@ export default function AgricultureWorkbench() {
                           title={"Select fixed all-date cohort · " + dateLabel(point.date)}
                           onClick={() => selectSupportDriftPoint(point.index, "same-pixels")}
                         ><span /></button>
-                      </React.Fragment>
+                      </Fragment>
                     ))}
                   </div>
                     <text x="42" y="166" className="agri-support-drift__date">{dateLabel(supportDrift[0].date)}</text>
