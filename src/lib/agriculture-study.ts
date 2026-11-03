@@ -461,19 +461,23 @@ function validQualityExclusions(
 ): value is AgricultureQualityExclusion[] {
   if (!Array.isArray(value)) return false;
   const seen = new Set<string>();
+  const seenGranules = new Set<string>();
   const observedDates = new Set(observations.map((item) => item.date));
+  const expectedTotalPixels = observations[0]?.total_pixels;
   let previous = "";
   return value.every((item) => {
     if (!isRecord(item) || !isoDay(item.date) || typeof item.granule_name !== "string" ||
         !/^NISAR_L3_PR_SME2_.*\.h5$/i.test(item.granule_name) ||
         item.reason !== "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN" ||
         item.valid_pixels !== 0 || !Number.isInteger(item.total_pixels) ||
-        Number(item.total_pixels) <= 0 || seen.has(item.date) || observedDates.has(item.date) ||
+        Number(item.total_pixels) <= 0 || Number(item.total_pixels) !== expectedTotalPixels ||
+        seen.has(item.date) || seenGranules.has(item.granule_name) || observedDates.has(item.date) ||
         item.date < dateRange.start || item.date > dateRange.end ||
         (algorithm === "DSG" && item.retrieval_interpretation !== "candidate-zero-clear") ||
         (algorithm === "BASELINE" && item.retrieval_interpretation !== "baseline-bitmask") ||
         item.date <= previous) return false;
     seen.add(item.date);
+    seenGranules.add(item.granule_name);
     previous = item.date;
     return true;
   });
