@@ -26,7 +26,7 @@ const CONTRACT = ["time", "change", "evidence", "investigation", "uncertainty"] 
 export const PHENOMENA: Phenomenon[] = [
   {
     id: "wetland", name: "Wetlands", tagline: "Water moves.",
-    evidenceSummary: "Published maps show radar-change candidates, not confirmed floods. Hakaluki agreement is weak, Tanguar checks are inconclusive, and Chókwè candidates remain unverified.",
+    evidenceSummary: "Tanguar and Hakaluki have seven-date NISAR PROVISIONAL series; HLS checks are inconclusive at both sites. Chókwè is a separate two-scene BETA event study, and its candidates remain unverified.",
     status: "AVAILABLE", href: "/wetland/global",
     caseHref: "/wetland", caseLabel: "Open the Tanguar Haor study",
     featureHighlights: [
@@ -38,7 +38,7 @@ export const PHENOMENA: Phenomenon[] = [
   },
   {
     id: "agriculture", name: "Agriculture", tagline: "Soil moisture changes.",
-    evidenceSummary: "No genuine SME2 study is published yet. This is a PROVISIONAL soil-moisture workspace, not a crop-stress or drought classifier.",
+    evidenceSummary: "A genuine six-date NISAR SME2 PROVISIONAL series is published, with 57.9% valid target-date coverage and a 21.3% fixed all-date pixel cohort. It is exploratory soil-moisture evidence, not crop-stress validation.",
     status: "AVAILABLE", href: "/agriculture",
     caseHref: "/agriculture", caseLabel: "Open the SME2 soil-moisture workspace",
     featureHighlights: [
