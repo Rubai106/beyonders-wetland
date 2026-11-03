@@ -123,6 +123,9 @@ class AgricultureSME2Tests(unittest.TestCase):
             "moisture_uncertainty_fill_intersection": 1,
             "after_retrieval_flag_intersection": 1,
             "after_surface_flag_intersection": 1,
+            "retrieval_flag_exact_zero_pixels": 0,
+            "moisture_uncertainty_fill_retrieval_zero_intersection": 0,
+            "retrieval_zero_and_surface_zero_intersection": 0,
             "all_screen_pass_pixels": int(np.sum(valid & aoi)),
         })
         self.assertEqual(diagnostics["all_screen_pass_pixels"], 1)
