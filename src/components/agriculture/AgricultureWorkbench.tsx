@@ -101,6 +101,7 @@ export default function AgricultureWorkbench() {
   const [publicationAssetBase, setPublicationAssetBase] = useState<string | null>(null);
   const [publicationVersion, setPublicationVersion] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [publicationRetry, setPublicationRetry] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
   const [seriesSupportMode, setSeriesSupportMode] = useState<SeriesSupportMode>("date-valid");
@@ -170,7 +171,7 @@ export default function AgricultureWorkbench() {
     }
     void load();
     return () => { live = false; controller.abort(); };
-  }, []);
+  }, [publicationRetry]);
 
   const selectedObservation: AgricultureObservation | null = study?.observations[selectedIndex] ?? null;
   const selectedMatchedObservation = study?.matched_support.observations[selectedIndex] ?? null;
@@ -1100,8 +1101,9 @@ export default function AgricultureWorkbench() {
           ]}
         />
         <span className="agri-eyebrow">MEASUREMENT WORKSPACE</span>
-        <strong>{study ? study.study_id : "No study published"}</strong>
-        <p>{study ? study.observations.length + " valid dates · " + (study.algorithm_label ?? "Root baseline product") + " · " + study.release : "Configure an area and run the cloud SME2 workflow to publish a real result."}</p>
+        <strong>{study ? study.study_id : loadState === "error" ? "Publication withheld · integrity check failed" : loadState === "loading" ? "Verifying publication…" : "No study published"}</strong>
+        <p>{study ? study.observations.length + " valid dates · " + (study.algorithm_label ?? "Root baseline product") + " · " + study.release : loadState === "error" ? loadError : "Configure an area and run the cloud SME2 workflow to publish a real result."}</p>
+        {loadState === "error" && <button type="button" className="agri-secondary-button" onClick={() => { setLoadError(""); setLoadState("loading"); setPublicationRetry((attempt) => attempt + 1); }}>Retry publication verification</button>}
         <div className="agri-rail-divider" />
         <span className="agri-eyebrow">PRODUCT MATURITY</span>
         <strong className="agri-rail-maturity">NISAR L3 · PROVISIONAL</strong>
@@ -1114,6 +1116,8 @@ export default function AgricultureWorkbench() {
         satelliteBasemap={satelliteBasemap}
         noStudy={noStudy}
         layer={layer}
+        publicationError={loadState === "error" ? loadError : ""}
+        onRetry={() => { setLoadError(""); setLoadState("loading"); setPublicationRetry((attempt) => attempt + 1); }}
         study={study}
         selectedObservation={selectedObservation}
         onLayerChange={(nextLayer) => {
@@ -1137,7 +1141,7 @@ export default function AgricultureWorkbench() {
       footer={<div className="agri-footer">
         <div className="agri-footer-head">
           <span className="agri-eyebrow">OBSERVATION TIMELINE</span>
-          <span>{study ? (selectedIndex + 1) + " / " + study.observations.length + " · " + study.target_date + " target" : "No dated SME2 observations published"}</span>
+          <span>{study ? (selectedIndex + 1) + " / " + study.observations.length + " · " + study.target_date + " target" : loadState === "error" ? "Publication withheld · integrity verification failed" : "No dated SME2 observations published"}</span>
         </div>
         {study ? <>
           <div className="agri-support-switch" role="group" aria-label="Choose the pixel support used for the soil-moisture time series">

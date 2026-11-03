@@ -27,6 +27,8 @@ export default function AgricultureMap({
   satelliteBasemap,
   noStudy,
   layer,
+  publicationError,
+  onRetry,
   study,
   selectedObservation,
   onLayerChange,
@@ -37,6 +39,8 @@ export default function AgricultureMap({
   satelliteBasemap: boolean;
   noStudy: boolean;
   layer: "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
+  publicationError: string;
+  onRetry: () => void;
   study: AgricultureStudy | null;
   selectedObservation: AgricultureObservation | null;
   onLayerChange: (layer: "moisture" | "change" | "matched") => void;
@@ -134,6 +138,14 @@ export default function AgricultureMap({
           </div>
           <div className="agri-map-readout__foot">EXPLORATORY EVIDENCE · NOT A CROP-HEALTH CLASSIFICATION</div>
         </aside>
+      )}
+      {publicationError && (
+        <div className="agri-map-integrity" role="alert">
+          <span>PUBLICATION INTEGRITY CHECK</span>
+          <strong>Measurements withheld</strong>
+          <p>{publicationError}</p>
+          <button type="button" onClick={onRetry}>Retry verification</button>
+        </div>
       )}
       {noStudy && (
         <div className="agri-map-empty" role="status">
