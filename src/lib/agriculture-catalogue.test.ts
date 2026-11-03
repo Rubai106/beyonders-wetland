@@ -62,3 +62,13 @@ test("rejects a catalogue identity that conflicts with embedded orbit metadata",
   const input = { ...granule("2026-06-23"), TrackNumber: 69 };
   assert.equal(parseAgricultureSME2Granule(input), null);
 });
+
+test("uses the same deterministic tie-break ordering as the Python pilot screener", () => {
+  const dates = ["2026-06-01", "2026-06-13", "2026-06-25", "2026-07-07", "2026-07-19", "2026-07-31"];
+  const rows = groupAgricultureSME2Series([
+    ...dates.map((date) => granule(date, "141", "014")),
+    ...dates.map((date) => granule(date, "069", "014")),
+  ]);
+  assert.equal(rows[0].series_id, "c5f219dd7bbc");
+  assert.equal(rows[1].series_id, "540e079403d5");
+});
