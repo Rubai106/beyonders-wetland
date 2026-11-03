@@ -151,8 +151,8 @@ def main() -> int:
             page.locator(".agri-chart .agri-chart-point button").count() == EXPECTED_DATES,
             "the moisture trajectory contains six selectable real acquisition points",
         )
-        date_valid_drift_points = page.locator('.agri-support-drift__point--valid[role="button"]')
-        same_pixel_drift_points = page.locator('.agri-support-drift__point--fixed[role="button"]')
+        date_valid_drift_points = page.locator(".agri-support-drift__point-hit--valid")
+        same_pixel_drift_points = page.locator(".agri-support-drift__point-hit--fixed")
         require(
             date_valid_drift_points.count() == EXPECTED_DATES
             and same_pixel_drift_points.count() == EXPECTED_DATES,
