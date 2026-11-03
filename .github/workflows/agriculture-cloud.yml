@@ -31,6 +31,12 @@ on:
         description: Optional compatible SME2 series ID from a previous search (leave blank for unique best series)
         required: false
         type: string
+      algorithm:
+        description: Root baseline product or explicit DSG algorithm candidate
+        required: true
+        default: baseline
+        type: choice
+        options: [baseline, DSG]
       allow_missing_imerg:
         description: Publish valid SME2 evidence if Final IMERG windows are not yet available
         required: true
@@ -75,6 +81,7 @@ jobs:
           INPUT_START: ${{ inputs.start }}
           INPUT_END: ${{ inputs.end }}
           INPUT_SERIES_ID: ${{ inputs.series_id }}
+          INPUT_ALGORITHM: ${{ inputs.algorithm }}
           INPUT_ALLOW_MISSING_IMERG: ${{ inputs.allow_missing_imerg }}
         run: |
           if [ "$EVENT_NAME" = "push" ]; then
@@ -90,6 +97,7 @@ jobs:
             START_DATE=$(jq -r '.start // empty' "$REQUEST_FILE")
             END_DATE=$(jq -r '.end // empty' "$REQUEST_FILE")
             SERIES_ID=$(jq -r '.series_id // empty' "$REQUEST_FILE")
+            ALGORITHM=$(jq -r '.algorithm // "baseline"' "$REQUEST_FILE")
             ALLOW_MISSING=$(jq -r '.allow_missing_imerg // true' "$REQUEST_FILE")
           else
             WEST="$INPUT_WEST"
@@ -99,6 +107,7 @@ jobs:
             START_DATE="$INPUT_START"
             END_DATE="$INPUT_END"
             SERIES_ID="$INPUT_SERIES_ID"
+            ALGORITHM="$INPUT_ALGORITHM"
             ALLOW_MISSING="$INPUT_ALLOW_MISSING_IMERG"
           fi
           for name in WEST SOUTH EAST NORTH START_DATE END_DATE; do
@@ -107,6 +116,10 @@ jobs:
               exit 1
             fi
           done
+          if [ "$ALGORITHM" != "baseline" ] && [ "$ALGORITHM" != "DSG" ]; then
+            echo "::error::ALGORITHM must be baseline or DSG."
+            exit 1
+          fi
           python - "$WEST" "$SOUTH" "$EAST" "$NORTH" "$START_DATE" "$END_DATE" <<'PY'
           import sys
           from datetime import date
@@ -125,6 +138,7 @@ jobs:
             echo "start=$START_DATE"
             echo "end=$END_DATE"
             echo "series_id=$SERIES_ID"
+            echo "algorithm=$ALGORITHM"
             echo "allow_missing_imerg=$ALLOW_MISSING"
           } >> "$GITHUB_OUTPUT"
 
@@ -172,7 +186,9 @@ jobs:
           fi
 
       - name: Analyze real SME2 observations
-        run: python pipeline/agriculture_sme2.py analyze --run-id "$RUN_ID"
+        env:
+          ALGORITHM: ${{ steps.request.outputs.algorithm }}
+        run: python pipeline/agriculture_sme2.py analyze --run-id "$RUN_ID" --algorithm "$ALGORITHM"
 
       - name: Attach NASA GPM IMERG Final rainfall context
         shell: bash
