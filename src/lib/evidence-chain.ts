@@ -387,7 +387,7 @@ export function buildAgricultureEvidenceChain(study: AgricultureStudy | null): E
       screening_rules: [
         "Soil moisture must be finite and within 0.02–0.60 m³/m³.",
         "Uncertainty must be finite and non-negative.",
-        "retrievalQualityFlag bits 0–3 must be set and anomaly bits 4–7 must be clear.",
+        "NASA/JPL D-107677 Rev C defines retrievalQualityFlag = 0 as clear and non-zero as anomaly for both root and algorithm-candidate SME2 layers.",
         "surfaceQualityFlag must equal zero; this conservative rule can exclude dense vegetation over crop areas.",
         "All observations must share the same release and native grid.",
       ],
