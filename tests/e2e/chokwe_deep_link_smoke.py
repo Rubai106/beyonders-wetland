@@ -62,7 +62,14 @@ def main() -> int:
     browser_errors: list[str] = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
-        page = browser.new_page(viewport={"width": 1440, "height": 900})
+        # The app deliberately uses smooth scrolling unless the user asks
+        # for reduced motion. Emulate that accessibility preference so this
+        # layout assertion measures the deep-link destination, not animation
+        # duration or CI frame scheduling.
+        page = browser.new_page(
+            viewport={"width": 1440, "height": 900},
+            reduced_motion="reduce",
+        )
         page.add_init_script(
             "localStorage.setItem('geonexsar_tour_v1', '1')"
         )
@@ -90,7 +97,10 @@ def main() -> int:
         verify_case(page)
 
         # A fresh page load verifies that the URL is independently shareable.
-        direct = browser.new_page(viewport={"width": 1440, "height": 900})
+        direct = browser.new_page(
+            viewport={"width": 1440, "height": 900},
+            reduced_motion="reduce",
+        )
         direct.add_init_script(
             "localStorage.setItem('geonexsar_tour_v1', '1')"
         )
