@@ -10,7 +10,6 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import shutil
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -21,7 +20,6 @@ import numpy as np
 from agriculture_sme2 import (
     AgricultureError,
     CMR_PAGE_SIZE,
-    OUTPUT_ROOT,
     json_read,
     json_write,
     run_folder,
@@ -122,7 +120,7 @@ def search_imerg_daily(aoi: dict[str, float], required_dates: list[str]) -> dict
         raise AgricultureError("No daily dates were requested for IMERG.")
     start, end = required_dates[0], required_dates[-1]
     params = {
-        "short_name": IMerg_COLLECTION,
+        "short_name": IMERG_COLLECTION,
         "version": IMERG_VERSION,
         "provider": "GES_DISC",
         "temporal": f"{start}T00:00:00Z,{end}T23:59:59Z",
@@ -160,7 +158,7 @@ def search_imerg_daily(aoi: dict[str, float], required_dates: list[str]) -> dict
     selected = select_imerg_granules(entries, required_dates)
     return {
         "schema_version": 1,
-        "collection": IMerg_COLLECTION,
+        "collection": IMERG_COLLECTION,
         "version": IMERG_VERSION,
         "product": IMERG_PRODUCT,
         "doi": IMERG_DOI,
