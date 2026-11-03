@@ -4,7 +4,7 @@
 
 The `/agriculture` workspace is a soil-moisture measurement explorer for real NISAR L3 SME2 PROVISIONAL products. It has map navigation, verified moisture/change previews, a real-acquisition timeline, statistics, CSV export, Operator command generation and an Evidence drawer. It does not synthesize results when no publication exists.
 
-The operator pipeline is isolated in `pipeline/agriculture_sme2.py`. Search, Earthdata authentication, exact-granule download, analysis and publication run locally; browser controls do not receive Earthdata credentials or start local jobs. The publish step writes only the compact display package and checksums to `public/agriculture/current`; source HDF5 files and native GeoTIFFs remain local.
+The operator pipeline is isolated in `pipeline/agriculture_sme2.py`. It can run locally or through the cloud-only GitHub Actions workflow `.github/workflows/agriculture-cloud.yml`; browser controls never receive Earthdata credentials. The cloud workflow uses an Actions secret for Earthdata authentication, processes exact granules on a GitHub-hosted runner, and commits only the compact display package and checksums to `public/agriculture/current`. Raw HDF5/NetCDF granules and native GeoTIFFs are not committed.
 
 ## Review work completed on Rubai-dev
 
@@ -111,3 +111,10 @@ Do not represent synthetic regression fixtures or a passing production build as 
 6. Keep all generated operator data under the ignored local output directory. Do not merge `Rubai-dev` into `master` until the focused and whole-project regression gates pass.
 
 The example operator commands and current schema are in [Agriculture method and operator workflow](agriculture-method.md).
+
+
+## Cloud operation status
+
+A manual cloud workflow is now available on `Rubai-dev`: **Actions → Cloud Agriculture SME2 publication**. It requires the repository Actions secret `EARTHDATA_TOKEN` (a NASA Earthdata Login token) and operator-selected WGS84 AOI/date inputs. It runs the SME2 and optional IMERG stages on GitHub-hosted compute, then commits only the verified website publication package to `Rubai-dev`. Raw source granules remain ephemeral on the runner; non-sensitive receipts are retained as a 30-day Actions artifact.
+
+The cloud workflow itself has not yet completed a real-data run. It cannot authenticate until the repository secret is configured, and it cannot select a meaningful study area without AOI/date inputs.
