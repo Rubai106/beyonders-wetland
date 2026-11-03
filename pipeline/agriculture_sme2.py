@@ -501,6 +501,122 @@ def _validate_moisture_units(dataset: h5py.Dataset, label: str) -> None:
         raise AgricultureError(f"{label} units are not recognized as volumetric soil moisture: {_text_value(raw)!r}.")
 
 
+def _algorithm_candidate_diagnostics(
+    path: Path,
+    native_shape: tuple[int, int],
+    row0: int,
+    row1: int,
+    col0: int,
+    col1: int,
+    flip_x: bool,
+    flip_y: bool,
+    root_x: np.ndarray,
+    root_y: np.ndarray,
+    root_surface: np.ndarray,
+    aoi_mask: np.ndarray,
+) -> dict[str, Any]:
+    """Inspect per-algorithm SME2 outputs over the same AOI without mixing grids."""
+    results: dict[str, Any] = {}
+    with h5py.File(path, "r") as handle:
+        candidates = handle.get("/science/LSAR/SME2/grids/algorithmCandidates")
+        if not isinstance(candidates, h5py.Group):
+            return {"status": "NO_ALGORITHM_CANDIDATE_GROUP", "algorithms": results}
+        for name, group in candidates.items():
+            if not isinstance(group, h5py.Group):
+                continue
+            required = ("soilMoisture", "soilMoistureUncertainty", "retrievalQualityFlag")
+            datasets = {key: group.get(key) for key in required}
+            missing = [key for key, value in datasets.items() if not isinstance(value, h5py.Dataset)]
+            if missing:
+                results[name] = {"status": "MISSING_REQUIRED_LAYERS", "missing": missing}
+                continue
+            if any(tuple(dataset.shape) != tuple(native_shape) for dataset in datasets.values()):
+                results[name] = {"status": "GRID_SHAPE_MISMATCH"}
+                continue
+
+            # A candidate may provide its own coordinate vectors. When present,
+            # require them to line up with the root baseline grid before comparing
+            # per-cell masks. Never infer alignment from equal array dimensions.
+            candidate_x = group.get("xCoordinates")
+            candidate_y = group.get("yCoordinates")
+            coordinate_status = "shared_product_grid_by_shape"
+            if isinstance(candidate_x, h5py.Dataset) and isinstance(candidate_y, h5py.Dataset):
+                cx = np.asarray(candidate_x[col0:col1], dtype="float64").reshape(-1)
+                cy = np.asarray(candidate_y[row0:row1], dtype="float64").reshape(-1)
+                if flip_x:
+                    cx = cx[::-1]
+                if flip_y:
+                    cy = cy[::-1]
+                if cx.shape != root_x.shape or cy.shape != root_y.shape or not np.allclose(cx, root_x) or not np.allclose(cy, root_y):
+                    results[name] = {"status": "GRID_COORDINATE_MISMATCH"}
+                    continue
+                coordinate_status = "candidate_coordinates_match_root_grid"
+
+            moisture = np.asarray(datasets["soilMoisture"][row0:row1, col0:col1], dtype="float64")
+            uncertainty = np.asarray(datasets["soilMoistureUncertainty"][row0:row1, col0:col1], dtype="float64")
+            retrieval = np.asarray(datasets["retrievalQualityFlag"][row0:row1, col0:col1])
+            candidate_surface_ds = group.get("surfaceQualityFlag")
+            if isinstance(candidate_surface_ds, h5py.Dataset):
+                if tuple(candidate_surface_ds.shape) != tuple(native_shape):
+                    results[name] = {"status": "CANDIDATE_SURFACE_GRID_SHAPE_MISMATCH"}
+                    continue
+                surface = np.asarray(candidate_surface_ds[row0:row1, col0:col1])
+                surface_source = "candidate_group"
+            else:
+                surface = np.asarray(root_surface)
+                surface_source = "shared_root_surfaceQualityFlag"
+
+            if flip_x:
+                moisture = moisture[:, ::-1]
+                uncertainty = uncertainty[:, ::-1]
+                retrieval = retrieval[:, ::-1]
+                surface = surface[:, ::-1]
+            if flip_y:
+                moisture = moisture[::-1, :]
+                uncertainty = uncertainty[::-1, :]
+                retrieval = retrieval[::-1, :]
+                surface = surface[::-1, :]
+
+            moisture_fills = []
+            uncertainty_fills = []
+            for key in ("_FillValue", "missing_value", "fillValue"):
+                for field, dataset in (
+                    (moisture_fills, datasets["soilMoisture"]),
+                    (uncertainty_fills, datasets["soilMoistureUncertainty"]),
+                ):
+                    if key in dataset.attrs:
+                        field.append(float(np.asarray(dataset.attrs[key]).reshape(-1)[0]))
+            if not moisture_fills:
+                moisture_fills.append(-9999.0)
+            if not uncertainty_fills:
+                uncertainty_fills.append(-9999.0)
+            fill_ok = np.ones(moisture.shape, dtype=bool)
+            for value in moisture_fills:
+                fill_ok &= moisture != value
+            for value in uncertainty_fills:
+                fill_ok &= uncertainty != value
+
+            results[name] = {
+                "status": "AUDITED",
+                "coordinate_alignment": coordinate_status,
+                "surface_flag_source": surface_source,
+                "quality": quality_screen_diagnostics(
+                    moisture, uncertainty, retrieval, surface, aoi_mask, fill_ok,
+                ),
+                "layers": {
+                    "soilMoisture": _masked_array_diagnostics(moisture, aoi_mask),
+                    "soilMoistureUncertainty": _masked_array_diagnostics(uncertainty, aoi_mask),
+                    "retrievalQualityFlag": _masked_array_diagnostics(retrieval, aoi_mask, histogram=True),
+                    "surfaceQualityFlag": _masked_array_diagnostics(surface, aoi_mask, histogram=True),
+                },
+                "fill_values": {
+                    "soilMoisture": moisture_fills,
+                    "soilMoistureUncertainty": uncertainty_fills,
+                },
+            }
+    return {"status": "AUDITED", "algorithms": results}
+
+
 def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str, str]) -> dict[str, Any]:
     if not _looks_like_sme2_hdf5(path):
         raise AgricultureError(f"Not a compatible SME2 HDF5 file: {path.name}")
@@ -629,6 +745,7 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
     retrieval_counts = {str(int(value)): int(np.sum(retrieval[in_aoi] == value)) for value in np.unique(retrieval[in_aoi]) if np.isfinite(value)}
     surface_counts = {str(int(value)): int(np.sum(surface[in_aoi] == value)) for value in np.unique(surface[in_aoi]) if np.isfinite(value)}
     surface_diagnostics = surface_flag_diagnostics(surface, in_aoi, surface_fill_values)
+    native_shape = tuple(moisture.shape)
     moisture = moisture[row0:row1, col0:col1]
     uncertainty = uncertainty[row0:row1, col0:col1]
     retrieval = retrieval[row0:row1, col0:col1]
@@ -646,6 +763,10 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         "west": min(point[0] for point in geographic), "south": min(point[1] for point in geographic),
         "east": max(point[0] for point in geographic), "north": max(point[1] for point in geographic),
     }
+    candidate_diagnostics = _algorithm_candidate_diagnostics(
+        path, native_shape, row0, row1, col0, col1, flip_x, flip_y,
+        x, y, surface, in_aoi,
+    )
     return {
         "date": parse_granule_date(path.name, {}),
         "moisture": moisture, "uncertainty": uncertainty, "valid": valid,
@@ -654,6 +775,7 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         "retrieval_flag_counts": retrieval_counts, "surface_flag_counts": surface_counts,
         "surface_flag_diagnostics": surface_diagnostics,
         "quality_diagnostics": quality_audit,
+        "algorithm_candidate_diagnostics": candidate_diagnostics,
     }
 
 
@@ -751,7 +873,9 @@ def quality_screen_diagnostics(
         np.isfinite(surface_values) & np.isclose(surface_values, np.round(surface_values))
         & (surface_integer == 0)
     )
-    final = moisture_pass & uncertainty_pass & retrieval_pass & surface_pass & fill & aoi
+    after_moisture_uncertainty_fill = moisture_pass & uncertainty_pass & fill
+    after_retrieval = after_moisture_uncertainty_fill & retrieval_pass
+    final = after_retrieval & surface_pass & aoi
     return {
         "aoi_pixels": int(np.sum(aoi)),
         "moisture_range_pass_pixels": int(np.sum(aoi & moisture_pass)),
@@ -759,6 +883,9 @@ def quality_screen_diagnostics(
         "retrieval_flag_pass_pixels": int(np.sum(aoi & retrieval_pass)),
         "surface_flag_clear_pixels": int(np.sum(aoi & surface_pass)),
         "fill_pass_pixels": int(np.sum(aoi & fill)),
+        "moisture_uncertainty_fill_intersection": int(np.sum(aoi & after_moisture_uncertainty_fill)),
+        "after_retrieval_flag_intersection": int(np.sum(aoi & after_retrieval)),
+        "after_surface_flag_intersection": int(np.sum(final)),
         "all_screen_pass_pixels": int(np.sum(final)),
     }
 
