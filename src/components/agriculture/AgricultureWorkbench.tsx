@@ -357,7 +357,9 @@ export default function AgricultureWorkbench() {
     }
   }, [formValid, west, south, east, north, start, end]);
 
-  const aoi: AgricultureAOI | null = study?.aoi ?? null;
+  const aoi: AgricultureAOI | null = study?.aoi ?? (formValid ? {
+    west: Number(west), south: Number(south), east: Number(east), north: Number(north),
+  } : null);
   const target = study?.observations[study.observations.length - 1] ?? null;
   const currentCoverage = study
     ? layer === "change" ? study.change_summary.valid_fraction
