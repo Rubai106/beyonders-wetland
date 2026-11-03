@@ -88,6 +88,11 @@ def main() -> int:
 
         agriculture_map = page.locator(".agri-map")
         require(agriculture_map.count() == 1 and agriculture_map.is_visible(), "the Agriculture map renders")
+        require(
+            agriculture_map.locator(".agri-map-integrity button").count() == 0
+            and page.get_by_role("button", name="Retry publication verification").count() == 0,
+            "publication integrity errors do not expose a misleading map retry button",
+        )
         page.wait_for_function(
             """() => [...document.querySelectorAll('.agri-map .leaflet-tile-pane img.leaflet-tile')].some(tile => tile.src.includes('tile.openstreetmap.org'))""",
             timeout=10_000,
