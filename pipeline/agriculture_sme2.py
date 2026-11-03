@@ -837,7 +837,7 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     """Apply the product-specific SME2 retrieval and shared surface-quality screen.
 
     The root baseline layer uses the existing low-nibble status-bit rule.
-    NASA/JPL D-107677 Rev C separately defines DSG/TSR algorithmCandidates
+    NASA/JPL D-107677 Rev C separately defines DSG algorithmCandidates
     retrievalQualityFlag as zero=clear and non-zero=anomaly. The latter rule
     must never be substituted onto the root baseline layer.
     """
