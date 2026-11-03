@@ -198,3 +198,16 @@ npm run build
 ~~~
 
 No live Earthdata-authenticated SME2 search/download/analyze run is claimed by these unit tests. A real HDF5 granule must be inspected before asserting compatibility with a specific current collection release.
+
+
+## Cloud-only processing (recommended)
+
+A manual GitHub Actions workflow is available at **Actions → Cloud Agriculture SME2 publication**. It runs on GitHub-hosted compute and does not require a local Python environment or manual satellite-file downloads.
+
+Before the first run, add a repository Actions secret named `EARTHDATA_TOKEN` containing a NASA Earthdata Login token. Do not place credentials in workflow inputs, source files, issue comments, or commits. The workflow passes the token only as an environment variable to `earthaccess.login(strategy="environment", persist=False)`.
+
+The workflow asks for a WGS84 AOI bounding box and a date range. It then discovers compatible SME2 series, downloads exact granules, analyzes the selected series, attempts to attach IMERG Final daily context, verifies source receipts, and publishes the web-ready package. It commits only `public/agriculture/current` to `Rubai-dev`; raw HDF5/NetCDF granules and local processing directories are not committed. Non-sensitive receipts are retained as a GitHub Actions artifact for 30 days.
+
+If the IMERG Final product has no matching granules or no complete 90%-coverage rainfall window, the default workflow setting permits the valid SME2 package to publish without rainfall context and records that limitation in the workflow summary. Other rainfall processing errors still fail the run. Disable **allow_missing_imerg** when rainfall context is mandatory.
+
+The workflow is deliberately restricted to `Rubai-dev`. A run can fail if the selected AOI/date range yields no compatible SME2 series, or if multiple equally ranked series require an explicit series ID. Do not weaken the quality gates to force a publication.
