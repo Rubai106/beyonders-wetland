@@ -1,0 +1,700 @@
+{
+  "algorithm": "DSG",
+  "algorithm_label": "DSG algorithm candidate",
+  "aoi": {
+    "east": 88.57,
+    "north": 25.12,
+    "south": 24.97,
+    "west": 88.42
+  },
+  "bandwidth": "4005",
+  "baseline_count": 3,
+  "baseline_dates": [
+    "2026-08-12",
+    "2026-08-24",
+    "2026-09-17"
+  ],
+  "change_native_layer": "native/change-latest-minus-baseline.tif",
+  "change_preview": "previews/change-latest-minus-baseline.png",
+  "change_summary": {
+    "median": 0.03279784321784973,
+    "p05": -0.020563292503356933,
+    "p95": 0.15795742273330687,
+    "total_pixels": 6278,
+    "uncertainty_median": 0.040219174697995186,
+    "valid_fraction": 0.21312519910799618,
+    "valid_pixels": 1338
+  },
+  "coverage_floor": 0.2,
+  "created_at": "2026-11-03T13:47:11.874563+00:00",
+  "date_range": {
+    "end": "2026-11-02",
+    "start": "2026-06-17"
+  },
+  "direction": "A",
+  "evidence_status": "EXPLORATORY",
+  "frame": "014",
+  "frequency": "A",
+  "limitations": [
+    "SME2 PROVISIONAL soil-moisture estimates are not fully calibrated; this is exploratory evidence.",
+    "This study uses the separate DSG algorithmCandidates output rather than the root baseline measurement arrays. Both paths use the NASA/JPL zero-clear retrieval flag rule; dates with no valid DSG AOI retrieval are listed in quality_exclusions.",
+    "A soil-moisture difference is not a crop-stress, drought, irrigation, yield, crop-type, or field-boundary assessment.",
+    "The 20% coverage floor is fixed. Below-floor target or change coverage is inconclusive.",
+    "The same-pixel cohort is the strict intersection of all observation quality masks; low cohort coverage is reported rather than widened or interpolated.",
+    "Matched-cohort medians describe only pixels valid on every date and may not represent excluded parts of the AOI.",
+    "No independent field validation or accuracy estimate is included.",
+    "The source SHA-256 values identify the locally downloaded bytes; they are not NASA digital signatures.",
+    "Native rasters are local operator artifacts and are not included in the public preview package."
+  ],
+  "matched_support": {
+    "method": "ALL_DATE_VALID_PIXEL_INTERSECTION",
+    "observations": [
+      {
+        "date": "2026-08-12",
+        "median": 0.31982290744781494,
+        "p05": 0.22064939513802528,
+        "p95": 0.3754054829478264,
+        "preview": "previews/matched-moisture-2026-08-12.png",
+        "total_pixels": 6278,
+        "uncertainty_median": 0.0407490786164999,
+        "valid_fraction": 0.21280662631411276,
+        "valid_pixels": 1336
+      },
+      {
+        "date": "2026-08-24",
+        "median": 0.3538725972175598,
+        "p05": 0.2778853625059128,
+        "p95": 0.40811625123023987,
+        "preview": "previews/matched-moisture-2026-08-24.png",
+        "total_pixels": 6278,
+        "uncertainty_median": 0.04045444540679455,
+        "valid_fraction": 0.21280662631411276,
+        "valid_pixels": 1336
+      },
+      {
+        "date": "2026-09-17",
+        "median": 0.38299810886383057,
+        "p05": 0.26609863340854645,
+        "p95": 0.47836561501026154,
+        "preview": "previews/matched-moisture-2026-09-17.png",
+        "total_pixels": 6278,
+        "uncertainty_median": 0.040317658334970474,
+        "valid_fraction": 0.21280662631411276,
+        "valid_pixels": 1336
+      },
+      {
+        "date": "2026-09-29",
+        "median": 0.4027073085308075,
+        "p05": 0.29582349210977554,
+        "p95": 0.517380565404892,
+        "preview": "previews/matched-moisture-2026-09-29.png",
+        "total_pixels": 6278,
+        "uncertainty_median": 0.04029562883079052,
+        "valid_fraction": 0.21280662631411276,
+        "valid_pixels": 1336
+      },
+      {
+        "date": "2026-10-11",
+        "median": 0.41094475984573364,
+        "p05": 0.29478131979703903,
+        "p95": 0.5465417355298996,
+        "preview": "previews/matched-moisture-2026-10-11.png",
+        "total_pixels": 6278,
+        "uncertainty_median": 0.040350522845983505,
+        "valid_fraction": 0.21280662631411276,
+        "valid_pixels": 1336
+      },
+      {
+        "date": "2026-10-23",
+        "median": 0.39300765097141266,
+        "p05": 0.31206924468278885,
+        "p95": 0.4913157895207405,
+        "preview": "previews/matched-moisture-2026-10-23.png",
+        "total_pixels": 6278,
+        "uncertainty_median": 0.0402184147387743,
+        "valid_fraction": 0.21280662631411276,
+        "valid_pixels": 1336
+      }
+    ],
+    "status": "COMPARABLE",
+    "total_pixels": 6278,
+    "valid_fraction": 0.21280662631411276,
+    "valid_pixels": 1336
+  },
+  "observations": [
+    {
+      "bandwidth": "4005",
+      "date": "2026-08-12",
+      "direction": "A",
+      "fill_excluded_pixels": 1616,
+      "frame": "014",
+      "frequency": "A",
+      "granule_name": "NISAR_L3_PR_SME2_027_170_A_014_4005_DHDH_A_20260812T232952_20260812T233026_P05023_N_F_J_001.h5",
+      "median": 0.327223539352417,
+      "native_layer": "native/moisture-2026-08-12.tif",
+      "p05": 0.2412109449505806,
+      "p95": 0.3635813370347023,
+      "polarization": "DHDH",
+      "preview": "previews/moisture-2026-08-12.png",
+      "release": "P05023",
+      "retrieval_flag_counts": {
+        "-9999": 40,
+        "0": 3636,
+        "1": 1026,
+        "77": 1576
+      },
+      "source_bytes": 102760448,
+      "source_sha256": "c18c06f557b14b5f33852f66bf367ced748a828f8df41bf350738acc6cdc8ac7",
+      "surface_flag_counts": {
+        "0": 3665,
+        "1": 14,
+        "256": 1016,
+        "257": 1,
+        "4": 40,
+        "512": 1527,
+        "513": 15
+      },
+      "surface_flag_diagnostics": {
+        "encoded_pixels": 3719,
+        "fill_pixels": 0,
+        "flag_combinations": [
+          {
+            "mask": 4,
+            "pixels": 40
+          },
+          {
+            "mask": 1,
+            "pixels": 14
+          }
+        ],
+        "flagged_pixels": 54,
+        "flags": {
+          "dense_vegetation": 0,
+          "frozen_ground": 0,
+          "permanent_snow_or_ice": 0,
+          "precipitation": 40,
+          "snow_or_ice": 0,
+          "static_water": 14,
+          "terrain": 0,
+          "urban_area": 0
+        },
+        "invalid_pixels": 0,
+        "method": "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+        "total_aoi_pixels": 6278,
+        "unflagged_pixels": 3665,
+        "unsupported_encoding_pixels": 2559
+      },
+      "total_pixels": 6278,
+      "track": "170",
+      "uncertainty_median": 0.04025223292410374,
+      "valid_fraction": 0.5791653392800254,
+      "valid_pixels": 3636
+    },
+    {
+      "bandwidth": "4005",
+      "date": "2026-08-24",
+      "direction": "A",
+      "fill_excluded_pixels": 1616,
+      "frame": "014",
+      "frequency": "A",
+      "granule_name": "NISAR_L3_PR_SME2_028_170_A_014_4005_DHDH_A_20260824T232951_20260824T233026_P05023_N_F_J_001.h5",
+      "median": 0.35390809178352356,
+      "native_layer": "native/moisture-2026-08-24.tif",
+      "p05": 0.277937987446785,
+      "p95": 0.4093910932540893,
+      "polarization": "DHDH",
+      "preview": "previews/moisture-2026-08-24.png",
+      "release": "P05023",
+      "retrieval_flag_counts": {
+        "-9999": 40,
+        "0": 1338,
+        "1": 3324,
+        "77": 1576
+      },
+      "source_bytes": 115343360,
+      "source_sha256": "9c1069fd533f6764c8fbd1db69bcad825136d9888615c482fed42777e6d4008e",
+      "surface_flag_counts": {
+        "0": 1362,
+        "1": 14,
+        "12": 15,
+        "256": 437,
+        "257": 1,
+        "264": 579,
+        "4": 25,
+        "512": 1488,
+        "513": 15,
+        "520": 39,
+        "8": 2303
+      },
+      "surface_flag_diagnostics": {
+        "encoded_pixels": 3719,
+        "fill_pixels": 0,
+        "flag_combinations": [
+          {
+            "mask": 8,
+            "pixels": 2303
+          },
+          {
+            "mask": 4,
+            "pixels": 25
+          },
+          {
+            "mask": 12,
+            "pixels": 15
+          },
+          {
+            "mask": 1,
+            "pixels": 14
+          }
+        ],
+        "flagged_pixels": 2357,
+        "flags": {
+          "dense_vegetation": 0,
+          "frozen_ground": 0,
+          "permanent_snow_or_ice": 0,
+          "precipitation": 40,
+          "snow_or_ice": 2318,
+          "static_water": 14,
+          "terrain": 0,
+          "urban_area": 0
+        },
+        "invalid_pixels": 0,
+        "method": "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+        "total_aoi_pixels": 6278,
+        "unflagged_pixels": 1362,
+        "unsupported_encoding_pixels": 2559
+      },
+      "total_pixels": 6278,
+      "track": "170",
+      "uncertainty_median": 0.040455855429172516,
+      "valid_fraction": 0.21312519910799618,
+      "valid_pixels": 1338
+    },
+    {
+      "bandwidth": "4005",
+      "date": "2026-09-17",
+      "direction": "A",
+      "fill_excluded_pixels": 1616,
+      "frame": "014",
+      "frequency": "A",
+      "granule_name": "NISAR_L3_PR_SME2_030_170_A_014_4005_DHDH_A_20260917T232951_20260917T233025_P05023_F_F_J_001.h5",
+      "median": 0.361679270863533,
+      "native_layer": "native/moisture-2026-09-17.tif",
+      "p05": 0.3139772042632103,
+      "p95": 0.4589727595448494,
+      "polarization": "DHDH",
+      "preview": "previews/moisture-2026-09-17.png",
+      "release": "P05023",
+      "retrieval_flag_counts": {
+        "-9999": 40,
+        "0": 3636,
+        "1": 1026,
+        "77": 1576
+      },
+      "source_bytes": 125829120,
+      "source_sha256": "852550602227f5f6863c30a10434b809c554958b624d4e98278cd353e36b0a03",
+      "surface_flag_counts": {
+        "0": 3665,
+        "1": 14,
+        "256": 1016,
+        "257": 1,
+        "4": 40,
+        "512": 1527,
+        "513": 15
+      },
+      "surface_flag_diagnostics": {
+        "encoded_pixels": 3719,
+        "fill_pixels": 0,
+        "flag_combinations": [
+          {
+            "mask": 4,
+            "pixels": 40
+          },
+          {
+            "mask": 1,
+            "pixels": 14
+          }
+        ],
+        "flagged_pixels": 54,
+        "flags": {
+          "dense_vegetation": 0,
+          "frozen_ground": 0,
+          "permanent_snow_or_ice": 0,
+          "precipitation": 40,
+          "snow_or_ice": 0,
+          "static_water": 14,
+          "terrain": 0,
+          "urban_area": 0
+        },
+        "invalid_pixels": 0,
+        "method": "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+        "total_aoi_pixels": 6278,
+        "unflagged_pixels": 3665,
+        "unsupported_encoding_pixels": 2559
+      },
+      "total_pixels": 6278,
+      "track": "170",
+      "uncertainty_median": 0.040138304233551025,
+      "valid_fraction": 0.5791653392800254,
+      "valid_pixels": 3636
+    },
+    {
+      "bandwidth": "4005",
+      "date": "2026-09-29",
+      "direction": "A",
+      "fill_excluded_pixels": 1616,
+      "frame": "014",
+      "frequency": "A",
+      "granule_name": "NISAR_L3_PR_SME2_031_170_A_014_4005_DHDH_A_20260929T232951_20260929T233026_P05023_N_F_J_001.h5",
+      "median": 0.3687695860862732,
+      "native_layer": "native/moisture-2026-09-29.tif",
+      "p05": 0.31780490279197693,
+      "p95": 0.49500779807567596,
+      "polarization": "DHDH",
+      "preview": "previews/moisture-2026-09-29.png",
+      "release": "P05023",
+      "retrieval_flag_counts": {
+        "-9999": 40,
+        "0": 3636,
+        "1": 1026,
+        "77": 1576
+      },
+      "source_bytes": 127926272,
+      "source_sha256": "62afdc6e25c4d5da1aa9a6930b35da64bf2ff394c9a6ded14665bec7ba7ed4ef",
+      "surface_flag_counts": {
+        "0": 3665,
+        "1": 14,
+        "256": 1016,
+        "257": 1,
+        "4": 40,
+        "512": 1527,
+        "513": 15
+      },
+      "surface_flag_diagnostics": {
+        "encoded_pixels": 3719,
+        "fill_pixels": 0,
+        "flag_combinations": [
+          {
+            "mask": 4,
+            "pixels": 40
+          },
+          {
+            "mask": 1,
+            "pixels": 14
+          }
+        ],
+        "flagged_pixels": 54,
+        "flags": {
+          "dense_vegetation": 0,
+          "frozen_ground": 0,
+          "permanent_snow_or_ice": 0,
+          "precipitation": 40,
+          "snow_or_ice": 0,
+          "static_water": 14,
+          "terrain": 0,
+          "urban_area": 0
+        },
+        "invalid_pixels": 0,
+        "method": "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+        "total_aoi_pixels": 6278,
+        "unflagged_pixels": 3665,
+        "unsupported_encoding_pixels": 2559
+      },
+      "total_pixels": 6278,
+      "track": "170",
+      "uncertainty_median": 0.04014153592288494,
+      "valid_fraction": 0.5791653392800254,
+      "valid_pixels": 3636
+    },
+    {
+      "bandwidth": "4005",
+      "date": "2026-10-11",
+      "direction": "A",
+      "fill_excluded_pixels": 1616,
+      "frame": "014",
+      "frequency": "A",
+      "granule_name": "NISAR_L3_PR_SME2_032_170_A_014_4005_DHDH_A_20261011T232951_20261011T233026_P05023_N_F_J_001.h5",
+      "median": 0.37157462537288666,
+      "native_layer": "native/moisture-2026-10-11.tif",
+      "p05": 0.31513973921537397,
+      "p95": 0.5236061096191406,
+      "polarization": "DHDH",
+      "preview": "previews/moisture-2026-10-11.png",
+      "release": "P05023",
+      "retrieval_flag_counts": {
+        "-9999": 40,
+        "0": 3634,
+        "1": 1026,
+        "77": 1576,
+        "9": 2
+      },
+      "source_bytes": 127926272,
+      "source_sha256": "1c52c85ee399080058206910bdc4e2c5bbc7261f20d6be1491b94f6244add207",
+      "surface_flag_counts": {
+        "0": 3665,
+        "1": 14,
+        "256": 1016,
+        "257": 1,
+        "4": 40,
+        "512": 1527,
+        "513": 15
+      },
+      "surface_flag_diagnostics": {
+        "encoded_pixels": 3719,
+        "fill_pixels": 0,
+        "flag_combinations": [
+          {
+            "mask": 4,
+            "pixels": 40
+          },
+          {
+            "mask": 1,
+            "pixels": 14
+          }
+        ],
+        "flagged_pixels": 54,
+        "flags": {
+          "dense_vegetation": 0,
+          "frozen_ground": 0,
+          "permanent_snow_or_ice": 0,
+          "precipitation": 40,
+          "snow_or_ice": 0,
+          "static_water": 14,
+          "terrain": 0,
+          "urban_area": 0
+        },
+        "invalid_pixels": 0,
+        "method": "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+        "total_aoi_pixels": 6278,
+        "unflagged_pixels": 3665,
+        "unsupported_encoding_pixels": 2559
+      },
+      "total_pixels": 6278,
+      "track": "170",
+      "uncertainty_median": 0.040168069303035736,
+      "valid_fraction": 0.5788467664861421,
+      "valid_pixels": 3634
+    },
+    {
+      "bandwidth": "4005",
+      "date": "2026-10-23",
+      "direction": "A",
+      "fill_excluded_pixels": 1616,
+      "frame": "014",
+      "frequency": "A",
+      "granule_name": "NISAR_L3_PR_SME2_033_170_A_014_4005_DHDH_A_20261023T232951_20261023T233026_P05023_N_F_J_001.h5",
+      "median": 0.3597739338874817,
+      "native_layer": "native/moisture-2026-10-23.tif",
+      "p05": 0.31136222928762436,
+      "p95": 0.46541352570056915,
+      "polarization": "DHDH",
+      "preview": "previews/moisture-2026-10-23.png",
+      "release": "P05023",
+      "retrieval_flag_counts": {
+        "-9999": 40,
+        "0": 3636,
+        "1": 1026,
+        "77": 1576
+      },
+      "source_bytes": 127926272,
+      "source_sha256": "f4bd0c3e1f89d64376fbe3e94c44b39df7cd712ef5d106a122100e5d8517ea2f",
+      "surface_flag_counts": {
+        "0": 3665,
+        "1": 14,
+        "256": 1016,
+        "257": 1,
+        "4": 40,
+        "512": 1527,
+        "513": 15
+      },
+      "surface_flag_diagnostics": {
+        "encoded_pixels": 3719,
+        "fill_pixels": 0,
+        "flag_combinations": [
+          {
+            "mask": 4,
+            "pixels": 40
+          },
+          {
+            "mask": 1,
+            "pixels": 14
+          }
+        ],
+        "flagged_pixels": 54,
+        "flags": {
+          "dense_vegetation": 0,
+          "frozen_ground": 0,
+          "permanent_snow_or_ice": 0,
+          "precipitation": 40,
+          "snow_or_ice": 0,
+          "static_water": 14,
+          "terrain": 0,
+          "urban_area": 0
+        },
+        "invalid_pixels": 0,
+        "method": "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS",
+        "total_aoi_pixels": 6278,
+        "unflagged_pixels": 3665,
+        "unsupported_encoding_pixels": 2559
+      },
+      "total_pixels": 6278,
+      "track": "170",
+      "uncertainty_median": 0.04012632183730602,
+      "valid_fraction": 0.5791653392800254,
+      "valid_pixels": 3636
+    }
+  ],
+  "polarization": "DHDH",
+  "preview_bounds": {
+    "east": 88.57053907468911,
+    "north": 25.11931141571527,
+    "south": 24.97071845256337,
+    "west": 88.41908679253143
+  },
+  "product": "NISAR_L3_SME2_PROVISIONAL_V1",
+  "product_maturity": "PROVISIONAL",
+  "provenance": {
+    "cmr_concept_ids": [
+      "G4249564147-ASF",
+      "G4254571503-ASF",
+      "G4262506654-ASF",
+      "G4282013845-ASF",
+      "G4290194422-ASF",
+      "G4308837198-ASF",
+      "G4316923506-ASF",
+      "G4332455527-ASF",
+      "G4363292500-ASF",
+      "G4388648978-ASF"
+    ],
+    "collection": "NISAR_L3_SME2_PROVISIONAL_V1",
+    "crs": "EPSG:6933",
+    "native_grid_shape": [
+      86,
+      73
+    ],
+    "pixel_spacing": [
+      200.17900466918945,
+      200.17900467012078
+    ],
+    "quality_protocol": "NASA/JPL D-107677 Rev C retrievalQualityFlag == 0 (zero=clear; non-zero=anomaly); measurement layers selected from algorithmCandidates/DSG; soilMoisture in [0.02,0.60] m3/m3; finite non-negative uncertainty; surfaceQualityFlag == 0; valid fill and AOI.",
+    "source_files": [
+      {
+        "bytes": 71303168,
+        "name": "NISAR_L3_PR_SME2_023_170_A_014_4005_DHDH_A_20260625T232955_20260625T233029_P05023_N_F_J_001.h5",
+        "sha256": "0dd11c2abfc1e9a3f5dd89e2ff88b50d4073a669aeaf76e724b0fc80839dee89"
+      },
+      {
+        "bytes": 88080384,
+        "name": "NISAR_L3_PR_SME2_024_170_A_014_4005_DHDH_A_20260707T232954_20260707T233028_P05023_N_F_J_001.h5",
+        "sha256": "61b0248de2bcbf9e50cacc015a200fbcf22dfcf4f52ff33f42adebffab589a9d"
+      },
+      {
+        "bytes": 60817408,
+        "name": "NISAR_L3_PR_SME2_025_170_A_014_4005_DHDH_A_20260719T232953_20260719T233028_P05023_N_F_J_001.h5",
+        "sha256": "f66b4ababe3f0f15a77ad7f8a3d17c8c4950fbecfbb2905453a1f02ce5a30938"
+      },
+      {
+        "bytes": 102760448,
+        "name": "NISAR_L3_PR_SME2_027_170_A_014_4005_DHDH_A_20260812T232952_20260812T233026_P05023_N_F_J_001.h5",
+        "sha256": "c18c06f557b14b5f33852f66bf367ced748a828f8df41bf350738acc6cdc8ac7"
+      },
+      {
+        "bytes": 115343360,
+        "name": "NISAR_L3_PR_SME2_028_170_A_014_4005_DHDH_A_20260824T232951_20260824T233026_P05023_N_F_J_001.h5",
+        "sha256": "9c1069fd533f6764c8fbd1db69bcad825136d9888615c482fed42777e6d4008e"
+      },
+      {
+        "bytes": 117440512,
+        "name": "NISAR_L3_PR_SME2_029_170_A_014_4005_DHDH_A_20260905T232951_20260905T233026_P05023_N_F_J_001.h5",
+        "sha256": "ebb917c9368dfc09e9669dae25d4605f5457c3df0aa0dd1a1d915baf5ecd5d1f"
+      },
+      {
+        "bytes": 125829120,
+        "name": "NISAR_L3_PR_SME2_030_170_A_014_4005_DHDH_A_20260917T232951_20260917T233025_P05023_F_F_J_001.h5",
+        "sha256": "852550602227f5f6863c30a10434b809c554958b624d4e98278cd353e36b0a03"
+      },
+      {
+        "bytes": 127926272,
+        "name": "NISAR_L3_PR_SME2_031_170_A_014_4005_DHDH_A_20260929T232951_20260929T233026_P05023_N_F_J_001.h5",
+        "sha256": "62afdc6e25c4d5da1aa9a6930b35da64bf2ff394c9a6ded14665bec7ba7ed4ef"
+      },
+      {
+        "bytes": 127926272,
+        "name": "NISAR_L3_PR_SME2_032_170_A_014_4005_DHDH_A_20261011T232951_20261011T233026_P05023_N_F_J_001.h5",
+        "sha256": "1c52c85ee399080058206910bdc4e2c5bbc7261f20d6be1491b94f6244add207"
+      },
+      {
+        "bytes": 127926272,
+        "name": "NISAR_L3_PR_SME2_033_170_A_014_4005_DHDH_A_20261023T232951_20261023T233026_P05023_N_F_J_001.h5",
+        "sha256": "f4bd0c3e1f89d64376fbe3e94c44b39df7cd712ef5d106a122100e5d8517ea2f"
+      }
+    ]
+  },
+  "quality_exclusions": [
+    {
+      "date": "2026-06-25",
+      "granule_name": "NISAR_L3_PR_SME2_023_170_A_014_4005_DHDH_A_20260625T232955_20260625T233029_P05023_N_F_J_001.h5",
+      "reason": "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN",
+      "retrieval_interpretation": "candidate-zero-clear",
+      "total_pixels": 6278,
+      "valid_pixels": 0
+    },
+    {
+      "date": "2026-07-07",
+      "granule_name": "NISAR_L3_PR_SME2_024_170_A_014_4005_DHDH_A_20260707T232954_20260707T233028_P05023_N_F_J_001.h5",
+      "reason": "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN",
+      "retrieval_interpretation": "candidate-zero-clear",
+      "total_pixels": 6278,
+      "valid_pixels": 0
+    },
+    {
+      "date": "2026-07-19",
+      "granule_name": "NISAR_L3_PR_SME2_025_170_A_014_4005_DHDH_A_20260719T232953_20260719T233028_P05023_N_F_J_001.h5",
+      "reason": "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN",
+      "retrieval_interpretation": "candidate-zero-clear",
+      "total_pixels": 6278,
+      "valid_pixels": 0
+    },
+    {
+      "date": "2026-09-05",
+      "granule_name": "NISAR_L3_PR_SME2_029_170_A_014_4005_DHDH_A_20260905T232951_20260905T233026_P05023_N_F_J_001.h5",
+      "reason": "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN",
+      "retrieval_interpretation": "candidate-zero-clear",
+      "total_pixels": 6278,
+      "valid_pixels": 0
+    }
+  ],
+  "release": "P05023",
+  "run_id": "agri-41647231453",
+  "schema_version": 2,
+  "sources": [
+    {
+      "title": "ASF NISAR SME2 guide",
+      "url": "https://nisar-docs.asf.alaska.edu/sme2/"
+    },
+    {
+      "title": "NISAR PROVISIONAL product known issues",
+      "url": "https://nisar-docs.asf.alaska.edu/provisional-known-issues/"
+    },
+    {
+      "title": "NISAR SME2 product specification",
+      "url": "https://nisar.asf.earthdatacloud.nasa.gov/NISAR-SAMPLE-DATA/DOCS/NISAR_D-107677_RevC_NASA_SDS_Product_Specification_L3_SME2_Nov8_2024_w-sigs.pdf"
+    },
+    {
+      "title": "earthaccess API documentation",
+      "url": "https://earthaccess.readthedocs.io/en/latest/api/"
+    }
+  ],
+  "study_id": "agri-41647231453",
+  "target_date": "2026-10-23",
+  "target_summary": {
+    "median": 0.3597739338874817,
+    "p05": 0.31136222928762436,
+    "p95": 0.46541352570056915,
+    "total_pixels": 6278,
+    "uncertainty_median": 0.04012632183730602,
+    "valid_fraction": 0.5791653392800254,
+    "valid_pixels": 3636
+  },
+  "track": "170"
+}

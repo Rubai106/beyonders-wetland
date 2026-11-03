@@ -1,6 +1,6 @@
 {
-  "checksums_url": "current/web-checksums.json",
-  "published_at": "2026-11-03T13:47:12.554134+00:00",
   "schema_version": 1,
-  "study_url": "current/study.json"
+  "study_url": "current/releases/agri-41647231453/study.json",
+  "checksums_url": "current/releases/agri-41647231453/web-checksums.json",
+  "published_at": "2026-11-03T13:47:12.554134+00:00"
 }

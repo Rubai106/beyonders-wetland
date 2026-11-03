@@ -1,0 +1,61 @@
+{
+  "files": {
+    "previews/change-latest-minus-baseline.png": {
+      "bytes": 12534,
+      "sha256": "fdd3b91608568f6c52287eb98c91a730cf275fa28952179e4db6338a3ddc8d41"
+    },
+    "previews/matched-moisture-2026-08-12.png": {
+      "bytes": 9028,
+      "sha256": "e648e688d796060481db3dd63682534152dff7b615738ac6c8fae2336613f0f2"
+    },
+    "previews/matched-moisture-2026-08-24.png": {
+      "bytes": 8315,
+      "sha256": "203f00f7b5339588fa166dc8649bad43c54a9db76425c528c4b1ce9ae3355504"
+    },
+    "previews/matched-moisture-2026-09-17.png": {
+      "bytes": 9463,
+      "sha256": "a1dd89289419a6bbd9a0ae6962b4ef0b019dd05019e2d3e78e0198e14cd77894"
+    },
+    "previews/matched-moisture-2026-09-29.png": {
+      "bytes": 9951,
+      "sha256": "5b999b1f5432cda6595b45f22224e287bcefea4907708fd21b9268df57045c3f"
+    },
+    "previews/matched-moisture-2026-10-11.png": {
+      "bytes": 10284,
+      "sha256": "582fb745ea386aefb7985d8a4593b4747945d89055debf0466c8a5bdfc737e21"
+    },
+    "previews/matched-moisture-2026-10-23.png": {
+      "bytes": 9561,
+      "sha256": "70a0c6e34795b5fd83c8a2e54a570184239c7b55f2ab079ec6dd788e913bee90"
+    },
+    "previews/moisture-2026-08-12.png": {
+      "bytes": 9533,
+      "sha256": "7709b82799a089bcaf49d5a6248618cd22428acfb5b0e91b9397f8c2fdb6f536"
+    },
+    "previews/moisture-2026-08-24.png": {
+      "bytes": 8312,
+      "sha256": "fbb11d30cd544e2d340184cc605a4e220dd0ebda8d50660d43ef4b2869603a8f"
+    },
+    "previews/moisture-2026-09-17.png": {
+      "bytes": 9994,
+      "sha256": "d77866691460cb826c6258cda099763eaedec42efb17b3855cd1c8cf8c10c282"
+    },
+    "previews/moisture-2026-09-29.png": {
+      "bytes": 10506,
+      "sha256": "e241389b1a860e77fdebab1f9724b6e49a5b3918f88b62f02a933b550eed63f0"
+    },
+    "previews/moisture-2026-10-11.png": {
+      "bytes": 10850,
+      "sha256": "cfb9b5553ad8540070a85f27a5ace839140b399d3c9c406cd17b1b8bbe73fb76"
+    },
+    "previews/moisture-2026-10-23.png": {
+      "bytes": 10090,
+      "sha256": "3710ff117041c0deec139068c36d79971a93e84ed4db6a7f7ebd2e8ffe95fd95"
+    },
+    "study.json": {
+      "bytes": 22460,
+      "sha256": "4c4408cba9c10b226c1f4009088502f3d2e7b5ec73bf23f3dc51e1bb39510eaa"
+    }
+  },
+  "schema_version": 1
+}
