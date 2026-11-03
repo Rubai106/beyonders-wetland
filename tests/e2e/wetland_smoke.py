@@ -28,7 +28,7 @@ with sync_playwright() as p:
     page.goto(BASE + "/wetland"); page.wait_for_selector(".wx-obs", timeout=20000); page.wait_for_timeout(2500)
     text = page.inner_text("body")
     check("real showcase badge", "Real NISAR showcase" in text and page.get_attribute(".wx-root", "data-tier") == "SHOWCASE")
-    check("case is Tanguar Haor (no Hakaluki)", "Tanguar Haor" in text and "Hakaluki" not in text)
+    check("Tanguar Haor remains the default case", "Tanguar Haor" in page.inner_text(".wx-rail") and page.locator(".wx-casepick").input_value() == "featured")
     check("seven real acquisition dates", page.locator(".wx-obs").count() == 7, str(page.locator(".wx-obs").count()))
     check("24-day gap labelled, nothing between dates", "24-day gap" in text)
     check("295 regions drawn at the peak", page.locator("path.wx-patch").count() == 295, str(page.locator("path.wx-patch").count()))
@@ -164,11 +164,23 @@ with sync_playwright() as p:
 
     # ── multi-case showcase plumbing ──
     idx = page.evaluate("fetch('/showcase/index.json').then(r => r.json())")
-    check("case index lists the packaged case", isinstance(idx.get("cases"), list) and any(c.get("id") == "featured" for c in idx["cases"]), str([c.get("id") for c in idx.get("cases", [])]))
+    check("case index lists Tanguar and Hakaluki", isinstance(idx.get("cases"), list) and {"featured", "hakaluki"}.issubset({c.get("id") for c in idx["cases"]}), str([c.get("id") for c in idx.get("cases", [])]))
     page.goto(BASE + "/wetland?case=featured"); page.wait_for_selector(".wx-obs", timeout=20000); page.wait_for_timeout(2500)
     check("case deep link loads the showcase tier", page.get_attribute(".wx-root", "data-tier") == "SHOWCASE")
-    # single packaged case: switcher stays hidden, static title shows
-    check("single case shows static title", page.query_selector(".wx-casepick") is None and "Tanguar Haor" in page.inner_text(".wx-case"))
+    # Two independently published seven-date cases share the same real-data interaction.
+    picker = page.locator(".wx-casepick")
+    check("case selector offers both real wetland studies", picker.count() == 1 and picker.locator("option").count() == 2)
+    picker.select_option("hakaluki")
+    page.wait_for_function("() => document.querySelector('.wx-rail h1')?.textContent?.includes('Hakaluki Haor')", timeout=20000)
+    page.wait_for_function("() => document.querySelectorAll('path.wx-patch').length === 213", timeout=20000)
+    check("Hakaluki loads its own seven-date NISAR series", page.locator(".wx-obs").count() == 7 and "Hakaluki Haor" in page.inner_text(".wx-rail"))
+    check("Hakaluki peak and candidate regions match its published study", "2.57" in page.inner_text(".wx-rail") and page.locator("path.wx-patch").count() == 213)
+    picker.select_option("featured")
+    page.wait_for_function("() => document.querySelector('.wx-rail h1')?.textContent?.includes('Tanguar Haor')", timeout=20000)
+    page.wait_for_function("() => document.querySelectorAll('path.wx-patch').length === 295", timeout=20000)
+    check("switching back restores the Tanguar observation and geometry", page.locator(".wx-obs").count() == 7 and page.locator("path.wx-patch").count() == 295)
+    chokwe_nav = page.get_by_role("link", name="Open the Chókwè flood-event investigation")
+    check("Chókwè is directly discoverable from the wetland workspace", chokwe_nav.get_attribute("href") == "/wetland/global?story=chokwe")
 
     # ── landing: real-case globe marker ──
     page.goto(BASE + "/"); page.wait_for_timeout(9000)
@@ -177,13 +189,15 @@ with sync_playwright() as p:
     check("home brand is GeoNexSAR only", "geonexsar" in page.inner_text(".g3-top").lower() and "beyonders" not in page.inner_text("body").lower())
     page.screenshot(path="/tmp/e2e_landing_marker.png")
 
-    # ── forest + volcano briefing pages ──
-    for route, title in (("/forest", "Forests"), ("/volcano", "Volcanoes")):
-        page.goto(BASE + route); page.wait_for_timeout(1500)
-        body = page.inner_text("body")
-        check(f"{route} briefing renders", title in body and "signal incoming" in body.lower())
-        check(f"{route} lists the five capabilities", all(w in body for w in ("Time", "Change", "Evidence", "Investigation", "Uncertainty")))
-        check(f"{route} is honest about planned status", "no fake" in body.lower())
+    # ── Forest and Volcano module routes open their published interactive cases ──
+    page.goto(BASE + "/forest"); page.wait_for_selector(".forest-comparison", timeout=25000); page.wait_for_timeout(1500)
+    check("Forest opens the published Rondônia case", "What changed in the forest?" in page.inner_text(".wx-quest"))
+    check("Forest exposes paired radar/optical maps", page.locator(".forest-comparison-map").count() == 2)
+    check("Forest exposes selectable observation dates", page.locator(".forest-date-ribbon button").count() >= 4)
+    page.goto(BASE + "/volcano"); page.wait_for_selector(".deformation-map-hint", timeout=25000); page.wait_for_timeout(1500)
+    check("Volcano opens the published Hayli Gubbi case", "What moved beneath Erta Ale?" in page.inner_text(".wx-quest"))
+    check("Volcano exposes selectable NISAR intervals", page.locator(".deformation-timeline button").count() >= 3)
+    check("Hayli Gubbi links to the Kīlauea episode study", page.get_by_role("link", name="Explore the Kīlauea · Episode 36 case ↗").count() == 1)
     browser.close()
 
 bad = [r for r in results if not r[1]]
