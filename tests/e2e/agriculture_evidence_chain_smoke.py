@@ -208,7 +208,10 @@ def main() -> int:
 
         browser.close()
 
-    require(not errors, "Agriculture workflow produces no browser runtime errors")
+    require(
+        not errors,
+        "Agriculture workflow produces no browser runtime errors: " + " | ".join(errors),
+    )
     print("All published Agriculture production-browser checks passed.")
     return 0
 
