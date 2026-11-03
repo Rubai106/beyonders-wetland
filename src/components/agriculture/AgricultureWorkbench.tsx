@@ -338,6 +338,8 @@ export default function AgricultureWorkbench() {
       "crop_weighted_median_m3_m3", "crop_common_support_fraction", "crop_common_weighted_median_m3_m3",
       "release", "track", "direction", "frame", "bandwidth", "polarization", "frequency",
       "granule_name", "source_bytes", "source_sha256",
+      "imerg_1d_mm", "imerg_1d_valid_days", "imerg_3d_mm", "imerg_3d_valid_days",
+      "imerg_7d_mm", "imerg_7d_valid_days", "imerg_12d_mm", "imerg_12d_valid_days",
     ];
     const rows = study.observations.map((item, index) => {
       const matched = study.matched_support.observations[index];
@@ -364,6 +366,14 @@ export default function AgricultureWorkbench() {
         cropCommon?.weighted_soil_moisture?.median ?? "",
         item.release, item.track, item.direction, item.frame, item.bandwidth, item.polarization, item.frequency,
         item.granule_name ?? "", item.source_bytes ?? "", item.source_sha256 ?? "",
+        study.rainfall_context?.observations[index]?.windows["1d"].rainfall_mm ?? "",
+        study.rainfall_context?.observations[index]?.windows["1d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["3d"].rainfall_mm ?? "",
+        study.rainfall_context?.observations[index]?.windows["3d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["7d"].rainfall_mm ?? "",
+        study.rainfall_context?.observations[index]?.windows["7d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["12d"].rainfall_mm ?? "",
+        study.rainfall_context?.observations[index]?.windows["12d"].valid_days ?? "",
       ].map(csvCell).join(",");
     });
     const blob = new Blob([[columns.join(","), ...rows].join("\n"),], { type: "text/csv;charset=utf-8" });
@@ -977,6 +987,7 @@ export default function AgricultureWorkbench() {
                 uncertainty_and_limits: evidenceChain.uncertainty_and_limits,
                 matched_support: study?.matched_support ?? null,
                 crop_observability: study?.crop_observability ?? null,
+                rainfall_context: study?.rainfall_context ?? null,
               }}
             />
           </div>
