@@ -292,6 +292,28 @@ def main() -> int:
             "both mocked CMR searches complete successfully",
         )
         page.wait_for_selector("[data-testid='cmr-granule-card']", timeout=10_000)
+        try:
+            # The inspector receives the two collection responses together,
+            # but wait for both collection sections rather than treating the
+            # first granule card as proof that the whole result list has settled.
+            page.wait_for_function(
+                "() => document.querySelectorAll(\"[data-testid='cmr-result-group']\").length === 2",
+                timeout=10_000,
+            )
+        except Exception:
+            print(
+                "DEBUG CMR result-group count:",
+                request_panel.locator("[data-testid='cmr-result-group']").count(),
+                flush=True,
+            )
+            print(
+                "DEBUG CMR inspector HTML:",
+                request_panel.locator(".wx-cmr-inspector").evaluate("(element) => element.outerHTML.slice(0, 12000)"),
+                flush=True,
+            )
+            print("DEBUG intercepted CMR requests:", json.dumps(cmr_requests), flush=True)
+            print("DEBUG browser errors:", json.dumps(browser_errors), flush=True)
+            raise
         require(
             request_panel.locator("[data-testid='cmr-result-group']").count() == 2,
             "live CMR inspector shows a separate result group for each selected collection",
