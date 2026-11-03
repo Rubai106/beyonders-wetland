@@ -52,7 +52,7 @@ jobs:
         run: npm ci
 
       - name: Compile Python modules and browser smoke tests
-        run: python -m py_compile pipeline/agriculture_sme2.py pipeline/agriculture_imerg.py pipeline/agriculture_pilot_screen.py pipeline/test_agriculture_sme2.py pipeline/test_agriculture_imerg.py pipeline/test_agriculture_pilot_screen.py tests/e2e/explore_smoke.py tests/e2e/wetland_smoke.py tests/e2e/chokwe_deep_link_smoke.py tests/e2e/agriculture_evidence_chain_smoke.py tests/e2e/scattering_hypothesis_smoke.py
+        run: python -m py_compile pipeline/agriculture_sme2.py pipeline/agriculture_imerg.py pipeline/agriculture_pilot_screen.py pipeline/test_agriculture_sme2.py pipeline/test_agriculture_imerg.py pipeline/test_agriculture_pilot_screen.py tests/e2e/explore_smoke.py tests/e2e/wetland_smoke.py tests/e2e/chokwe_deep_link_smoke.py tests/e2e/multi_case_module_smoke.py tests/e2e/agriculture_evidence_chain_smoke.py tests/e2e/scattering_hypothesis_smoke.py
 
       - name: Run full offline Python regression suite
         run: python -m unittest discover -s pipeline -p 'test_*.py' -v
@@ -78,7 +78,7 @@ jobs:
       - name: Install Chromium for production browser test
         run: python -m playwright install --with-deps chromium
 
-      - name: Run Wetland, scattering-hypothesis and Agriculture production-browser smoke tests
+      - name: Run multi-case Wetland, Forest, Volcano, Chókwè, scattering and Agriculture browser smoke tests
         env:
           BEYONDERS_MODE: public
           NEXT_PUBLIC_BEYONDERS_MODE: public
@@ -98,6 +98,7 @@ jobs:
             fi
             sleep 2
           done
+          python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140
           python tests/e2e/chokwe_deep_link_smoke.py http://127.0.0.1:3140
           python tests/e2e/scattering_hypothesis_smoke.py http://127.0.0.1:3140
           python tests/e2e/agriculture_evidence_chain_smoke.py http://127.0.0.1:3140
