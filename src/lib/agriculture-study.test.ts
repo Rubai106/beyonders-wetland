@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAgricultureDateAxis,
+  buildAgricultureRainfallSeries,
   buildAgricultureSupportDrift,
   isAgricultureChecksumManifest,
   isAgricultureIndex,
@@ -369,4 +370,84 @@ test("centres a single acquisition on the elapsed-time axis", () => {
   assert.deepEqual(buildAgricultureDateAxis(["2026-06-20"]), [
     { date: "2026-06-20", position: 50, gap_days: null },
   ]);
+});
+
+
+test("validates IMERG daily rainfall context against exact SME2 dates and complete UTC windows", () => {
+  const changed = structuredClone(study);
+  const dates = changed.observations.map((item) => item.date);
+  const windows = (scale: number) => ({
+    "1d": { rainfall_mm: 4 * scale, valid_days: 1, expected_days: 1 },
+    "3d": { rainfall_mm: 12 * scale, valid_days: 3, expected_days: 3 },
+    "7d": { rainfall_mm: 28 * scale, valid_days: 7, expected_days: 7 },
+    "12d": { rainfall_mm: 48 * scale, valid_days: 12, expected_days: 12 },
+  });
+  changed.rainfall_context = {
+    method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
+    product: "GPM_3IMERGDF_V07", resolution_degrees: 0.1, units: "mm",
+    time_basis: "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION",
+    source: "NASA GPM IMERG Final daily precipitation",
+    source_doi: "10.5067/GPM/IMERGDF/DAY/07",
+    source_sha256: "d".repeat(64), source_bytes: 8192,
+    observations: dates.map((date, index) => ({ date, windows: windows(index + 1) })),
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+  const plot = buildAgricultureRainfallSeries(changed, "3d");
+  assert.equal(plot.length, dates.length);
+  assert.deepEqual(plot.map((item) => item.position), [0, 45.45454545454545, 72.72727272727273, 100]);
+  assert.deepEqual(plot.map((item) => item.rainfall_mm), [12, 24, 36, 48]);
+});
+
+test("keeps incomplete IMERG windows visibly missing instead of treating them as zero rainfall", () => {
+  const changed = structuredClone(study);
+  const dates = changed.observations.map((item) => item.date);
+  const windows = () => ({
+    "1d": { rainfall_mm: null, valid_days: 0, expected_days: 1 },
+    "3d": { rainfall_mm: null, valid_days: 2, expected_days: 3 },
+    "7d": { rainfall_mm: 28, valid_days: 7, expected_days: 7 },
+    "12d": { rainfall_mm: 48, valid_days: 12, expected_days: 12 },
+  });
+  changed.rainfall_context = {
+    method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
+    product: "GPM_3IMERGDF_V07", resolution_degrees: 0.1, units: "mm",
+    time_basis: "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION",
+    source: "NASA GPM IMERG Final daily precipitation",
+    source_doi: "10.5067/GPM/IMERGDF/DAY/07",
+    source_sha256: "e".repeat(64), source_bytes: 8192,
+    observations: dates.map((date) => ({ date, windows: windows() })),
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+  assert.deepEqual(buildAgricultureRainfallSeries(changed, "1d").map((item) => item.rainfall_mm), [null, null, null, null]);
+  assert.deepEqual(buildAgricultureRainfallSeries(changed, "3d").map((item) => item.rainfall_mm), [null, null, null, null]);
+  assert.deepEqual(buildAgricultureRainfallSeries(changed, "7d").map((item) => item.rainfall_mm), [28, 28, 28, 28]);
+});
+
+test("rejects mismatched IMERG dates, incomplete windows with numeric totals and invalid provenance", () => {
+  const changed = structuredClone(study);
+  const dates = changed.observations.map((item) => item.date);
+  const complete = () => ({
+    "1d": { rainfall_mm: 1, valid_days: 1, expected_days: 1 },
+    "3d": { rainfall_mm: 3, valid_days: 3, expected_days: 3 },
+    "7d": { rainfall_mm: 7, valid_days: 7, expected_days: 7 },
+    "12d": { rainfall_mm: 12, valid_days: 12, expected_days: 12 },
+  });
+  changed.rainfall_context = {
+    method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
+    product: "GPM_3IMERGDF_V07", resolution_degrees: 0.1, units: "mm",
+    time_basis: "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION",
+    source: "NASA GPM IMERG Final daily precipitation",
+    source_doi: "10.5067/GPM/IMERGDF/DAY/07",
+    source_sha256: "f".repeat(64), source_bytes: 8192,
+    observations: dates.map((date) => ({ date, windows: complete() })),
+  };
+  assert.equal(isAgricultureStudy(changed), true);
+  const wrongDate = structuredClone(changed);
+  wrongDate.rainfall_context.observations[1].date = "2026-06-24";
+  assert.equal(isAgricultureStudy(wrongDate), false);
+  const partialNumeric = structuredClone(changed);
+  partialNumeric.rainfall_context.observations[0].windows["3d"].valid_days = 2;
+  assert.equal(isAgricultureStudy(partialNumeric), false);
+  const wrongResolution = structuredClone(changed);
+  wrongResolution.rainfall_context.resolution_degrees = 0.001;
+  assert.equal(isAgricultureStudy(wrongResolution), false);
 });
