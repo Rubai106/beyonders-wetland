@@ -98,7 +98,9 @@ class AgriculturePilotScreenTests(unittest.TestCase):
         self.assertEqual(len(report["sites"]), 2)
         # The first error is recorded; a later site can still pass even when one
         # location fails, rather than aborting the complete screening report.
-        self.assertIn(report["sites"][0]["status"], {"CMR_QUERY_FAILED", "ELIGIBLE_FOR_OPERATOR_REVIEW"})
+        statuses = {item["status"] for item in report["sites"]}
+        self.assertEqual(statuses, {"CMR_QUERY_FAILED", "ELIGIBLE_FOR_OPERATOR_REVIEW"})
+        self.assertIsNotNone(report["recommended_site_id"])
 
 
 if __name__ == "__main__":
