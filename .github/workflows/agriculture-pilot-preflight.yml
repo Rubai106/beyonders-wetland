@@ -1,0 +1,48 @@
+name: Agriculture pilot preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "First SME2 acquisition date (YYYY-MM-DD)"
+        required: true
+        default: "2026-01-01"
+        type: string
+      end_date:
+        description: "Last SME2 acquisition date (YYYY-MM-DD)"
+        required: true
+        default: "2026-10-31"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  catalogue-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out Rubai-dev
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Agriculture pipeline dependencies
+        run: python -m pip install -r pipeline/requirements.txt
+
+      - name: Screen Bangladesh pilot AOIs against NASA CMR
+        run: |
+          python pipeline/agriculture_pilot_screen.py \
+            --start-date "${{ inputs.start_date }}" \
+            --end-date "${{ inputs.end_date }}"
+
+      - name: Upload metadata-only preflight report
+        uses: actions/upload-artifact@v4
+        with:
+          name: agriculture-pilot-preflight
+          path: pipeline/output/agriculture/pilot-screening/report.json
+          if-no-files-found: error
+          retention-days: 14
