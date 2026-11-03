@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function ForestPage() {
-  redirect("/forest/global");
+  redirect("/forest/rondonia");
 }
