@@ -1,6 +1,12 @@
 name: Agriculture pilot preflight
 
 on:
+  push:
+    branches: [Rubai-dev]
+    paths:
+      - ".github/workflows/agriculture-pilot-preflight.yml"
+      - "pipeline/agriculture_pilot_screen.py"
+      - "pipeline/agriculture_pilot_sites.json"
   workflow_dispatch:
     inputs:
       start_date:
@@ -35,9 +41,11 @@ jobs:
 
       - name: Screen Bangladesh pilot AOIs against NASA CMR
         run: |
+          START_DATE="${{ inputs.start_date || '2026-01-01' }}"
+          END_DATE="${{ inputs.end_date || '2026-10-31' }}"
           python pipeline/agriculture_pilot_screen.py \
-            --start-date "${{ inputs.start_date }}" \
-            --end-date "${{ inputs.end_date }}"
+            --start-date "$START_DATE" \
+            --end-date "$END_DATE"
 
       - name: Upload metadata-only preflight report
         uses: actions/upload-artifact@v4
