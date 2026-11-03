@@ -6,6 +6,6 @@
   "start": "2026-06-17",
   "end": "2026-11-02",
   "allow_missing_imerg": true,
-  "request_note": "retry-after-exact-cmr-title-hdf5-extension-validation-fix",
+  "request_note": "retry-with-per-date-quality-gate-diagnostics",
   "series_id": "b42cefcd8c0e"
 }
