@@ -165,9 +165,9 @@ function RadarControls() {
   const [loaded, setLoaded] = useState<{ date: string; preview: RadarPreview | null } | null>(null);
   useEffect(() => {
     let live = true;
-    if (date && dataTier === "SHOWCASE") void loadShowcaseRadar(date, showcaseId).then((p) => { if (live) setLoaded({ date, preview: p }); });
+    if (date && dataTier === "SHOWCASE") void loadShowcaseRadar(date, showcaseId, showcase?.manifest).then((p) => { if (live) setLoaded({ date, preview: p }); });
     return () => { live = false; };
-  }, [date, dataTier, showcaseId]);
+  }, [date, dataTier, showcaseId, showcase?.manifest]);
   const preview = loaded && loaded.date === date ? loaded.preview : null;
   const noPreview = dataTier === "SHOWCASE" && !!date && !(showcase?.manifest.radar_dates ?? []).includes(date);
   const scale = radarStage === "change" ? [-10, 10] : preview?.layers[radarChannel]?.scale_db;
@@ -286,9 +286,11 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
           {cur ? <span className="wx-mono wx-case__date" title={`Observation date: ${cur.date}`}>{fmtDate(cur.date, { month: "short", day: "numeric" })}</span> : null}</span>
         <TierBadge tier={dataTier} completeness={s.showcase?.manifest.completeness} />
         <nav className="wx-nav" aria-label="GeoNexSAR">
-          <Link href="/wetland/global" aria-label="Wetlands: worldwide observations and change studies" title="Worldwide observations and processed wetland studies"><span>Wetlands</span></Link>
-          <Link href="/forest/global" aria-label="Open Forests">Forests</Link>
-          <Link href="/volcano/global" aria-label="Open Volcanoes">Volcanoes</Link>
+          <Link href="/wetland" aria-label="Open the Tanguar and Hakaluki wetland investigations" title="Published wetland investigations"><span>Wetlands</span></Link>
+          <Link href="/wetland/global?story=chokwe" aria-label="Open the Chókwè flood-event investigation" title="Chókwè · January 2026 event investigation">Chókwè</Link>
+          <Link href="/agriculture" aria-label="Open Agriculture">Agriculture</Link>
+          <Link href="/forest/rondonia" aria-label="Open the Rondônia forest investigation">Forests</Link>
+          <Link href="/volcano/hayli-gubbi" aria-label="Open the Hayli Gubbi volcano investigation">Volcanoes</Link>
           <button onClick={() => setSatelliteBasemap(!satelliteBasemap)} aria-pressed={satelliteBasemap} aria-label="Satellite basemap" title="Toggle the satellite basemap">{Icon.layers}<span>Basemap</span></button>
           <button onClick={returnToOverview} title="Clear selection, comparison and filters (Esc)">Return<span className="wx-nav__long"> to overview</span></button>
         </nav>
