@@ -1455,6 +1455,7 @@ def analyze(
                     "layers": scene["quality_diagnostics"]["layers"],
                     "fill_values": scene["quality_diagnostics"]["fill_values"],
                     "surface_flags": scene["surface_flag_diagnostics"],
+                    "algorithm_candidates": scene["algorithm_candidate_diagnostics"],
                 }
                 for scene in scenes
             ],
