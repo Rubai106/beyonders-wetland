@@ -177,8 +177,21 @@ export interface AgricultureSupportDriftPoint {
   same_pixel_fraction: number;
 }
 
+export interface AgricultureQualityExclusion {
+  date: string;
+  granule_name: string;
+  reason: "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN";
+  valid_pixels: 0;
+  total_pixels: number;
+  retrieval_interpretation: "baseline-bitmask" | "candidate-zero-clear";
+}
+
 export interface AgricultureStudy {
   schema_version: 2;
+  /** Explicit algorithm provenance; absent only in older schema-v2 publications. */
+  algorithm?: "BASELINE" | "DSG";
+  algorithm_label?: string;
+  quality_exclusions?: AgricultureQualityExclusion[];
   study_id: string;
   run_id: string;
   product: "NISAR_L3_SME2_PROVISIONAL_V1";
@@ -440,6 +453,32 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
   return true;
 }
 
+function validQualityExclusions(
+  value: unknown,
+  algorithm: "BASELINE" | "DSG",
+  observations: AgricultureObservation[],
+  dateRange: { start: string; end: string },
+): value is AgricultureQualityExclusion[] {
+  if (!Array.isArray(value)) return false;
+  const seen = new Set<string>();
+  const observedDates = new Set(observations.map((item) => item.date));
+  let previous = "";
+  return value.every((item) => {
+    if (!isRecord(item) || !isoDay(item.date) || typeof item.granule_name !== "string" ||
+        !/^NISAR_L3_PR_SME2_.*\.h5$/i.test(item.granule_name) ||
+        item.reason !== "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN" ||
+        item.valid_pixels !== 0 || !Number.isInteger(item.total_pixels) ||
+        Number(item.total_pixels) <= 0 || seen.has(item.date) || observedDates.has(item.date) ||
+        item.date < dateRange.start || item.date > dateRange.end ||
+        (algorithm === "DSG" && item.retrieval_interpretation !== "candidate-zero-clear") ||
+        (algorithm === "BASELINE" && item.retrieval_interpretation !== "baseline-bitmask") ||
+        item.date <= previous) return false;
+    seen.add(item.date);
+    previous = item.date;
+    return true;
+  });
+}
+
 function validObservation(value: unknown): value is AgricultureObservation {
   if (!isRecord(value)) return false;
   return (value.surface_flag_diagnostics === undefined ||
@@ -522,6 +561,8 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
       typeof value.study_id !== "string" || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(value.study_id) ||
       typeof value.run_id !== "string" || !/^[a-z0-9][a-z0-9-]{0,39}$/.test(value.run_id) ||
       value.product !== "NISAR_L3_SME2_PROVISIONAL_V1" || value.product_maturity !== "PROVISIONAL" ||
+      (value.algorithm !== undefined && value.algorithm !== "BASELINE" && value.algorithm !== "DSG") ||
+      (value.algorithm_label !== undefined && typeof value.algorithm_label !== "string") ||
       typeof value.release !== "string" || !/^P\d{5}$/.test(value.release) ||
       Number(value.release.slice(1)) < 5023 ||
       typeof value.track !== "string" || !value.track ||
@@ -554,6 +595,15 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
 
   const study = value as unknown as AgricultureStudy;
   const dates = study.observations.map((item) => item.date);
+  const algorithm = study.algorithm ?? "BASELINE";
+  const expectedAlgorithmLabel = algorithm === "DSG" ? "DSG algorithm candidate" : "Root baseline product";
+  if ((study.algorithm_label !== undefined && study.algorithm_label !== expectedAlgorithmLabel) ||
+      (algorithm === "DSG" && (
+        study.quality_exclusions === undefined ||
+        !validQualityExclusions(study.quality_exclusions, algorithm, study.observations, study.date_range)
+      )) ||
+      (study.quality_exclusions !== undefined &&
+        !validQualityExclusions(study.quality_exclusions, algorithm, study.observations, study.date_range))) return false;
   if (study.crop_observability !== undefined &&
       !validCropObservability(study.crop_observability, dates)) return false;
   if (study.rainfall_context !== undefined &&
