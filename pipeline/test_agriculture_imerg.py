@@ -302,7 +302,7 @@ class AgricultureIMERGTests(unittest.TestCase):
                 },
             }
             validate_imerg_publication(study, run)
-            (granule_dir / "day.nc4").write_bytes(b"tampered source bytes")
+            (granule_dir / "day.nc4").write_bytes(b"X" + payload[1:])
             with self.assertRaisesRegex(AgricultureError, "checksum"):
                 validate_imerg_publication(study, run)
 
