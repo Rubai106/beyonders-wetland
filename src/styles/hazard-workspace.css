@@ -75,6 +75,25 @@
   }
 }
 
+/* Shared workspace density pass: reserve space for the map without shrinking evidence text. */
+.wx-root.wx-hazard-shell[data-drawer="open"] {
+  grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) clamp(320px, 23.5vw, 360px);
+}
+.wx-root.wx-hazard-shell .wx-mast { gap: 10px; }
+.wx-root.wx-hazard-shell .wx-nav { gap: 2px; min-width: 0; }
+.wx-root.wx-hazard-shell .wx-nav a,
+.wx-root.wx-hazard-shell .wx-nav button { padding: 6px 8px; font-size: .72rem; }
+.wx-root.wx-root--drawer-tabs .wx-drawer__bar--tabs { min-height: 48px; padding: 6px 8px; }
+.wx-root.wx-root--drawer-tabs .wx-drawer__tabs {
+  grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
+  gap: 4px;
+}
+.wx-root.wx-root--drawer-tabs .wx-drawer__tabs button {
+  padding: 8px 4px;
+  font-size: .66rem;
+  letter-spacing: -.01em;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body { padding: 14px 14px 22px; }
 .wx-root.wx-hazard-shell .wx-hazard-map {
   position: absolute;
   inset: 0;
