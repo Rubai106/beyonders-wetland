@@ -143,8 +143,12 @@ def main() -> int:
         challenge_button.evaluate("(button) => button.click()")
         challenge_panel = page.locator(".wx-drawer .wx-challenge")
         challenge_panel.wait_for(state="visible", timeout=20_000)
+        # React changes the button label to "Hide the challenge" when it
+        # opens, so poll the stable aria-expanded selector rather than the
+        # original accessible-name locator.
+        challenge_toggle = page.locator(".wx-drawer .wx-tool__action button[aria-expanded]")
         for _ in range(30):
-            if challenge_button.get_attribute("aria-expanded") == "true":
+            if challenge_toggle.get_attribute("aria-expanded") == "true":
                 break
             page.wait_for_timeout(100)
         else:
