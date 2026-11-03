@@ -474,7 +474,9 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
       !Array.isArray(value.granules) || value.granules.length < 1 ||
       !value.granules.every((item) => isRecord(item) && isoDay(item.date) &&
         typeof item.concept_id === "string" && item.concept_id.length > 0 &&
-        typeof item.filename === "string" && /^[^/\\\\]+\\.nc4?$/.test(item.filename) &&
+        typeof item.filename === "string" && !item.filename.includes("/") &&
+        !item.filename.includes(String.fromCharCode(92)) &&
+        (item.filename.endsWith(".nc4") || item.filename.endsWith(".nc")) &&
         Number.isInteger(item.bytes) && Number(item.bytes) > 0 && isSha256(item.sha256)) ||
       new Set(value.granules.map((item: Record<string, unknown>) => item.date)).size !== value.granules.length ||
       Number(value.source_bytes) !== value.granules.reduce((sum: number, item: Record<string, unknown>) => sum + Number(item.bytes), 0) ||
@@ -492,7 +494,7 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
           (entry.mean_half_hourly_samples !== null &&
             !finiteRange(entry.mean_half_hourly_samples, 1, 48))) return false;
       if (entry.valid_days !== expected) return entry.rainfall_mm === null &&
-        entry.mean_half_hourly_samples === null || entry.rainfall_mm === null;
+        entry.mean_half_hourly_samples === null;
       return finiteRange(entry.rainfall_mm, 0, 120000) &&
         entry.spatial_coverage_fraction >= Number(value.spatial_coverage_floor) &&
         entry.mean_half_hourly_samples !== null;
