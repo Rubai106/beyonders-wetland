@@ -101,7 +101,6 @@ export default function AgricultureWorkbench() {
   const [publicationAssetBase, setPublicationAssetBase] = useState<string | null>(null);
   const [publicationVersion, setPublicationVersion] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
-  const [publicationRetry, setPublicationRetry] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
   const [seriesSupportMode, setSeriesSupportMode] = useState<SeriesSupportMode>("date-valid");
@@ -171,7 +170,7 @@ export default function AgricultureWorkbench() {
     }
     void load();
     return () => { live = false; controller.abort(); };
-  }, [publicationRetry]);
+  }, []);
 
   const selectedObservation: AgricultureObservation | null = study?.observations[selectedIndex] ?? null;
   const selectedMatchedObservation = study?.matched_support.observations[selectedIndex] ?? null;
@@ -1103,7 +1102,6 @@ export default function AgricultureWorkbench() {
         <span className="agri-eyebrow">MEASUREMENT WORKSPACE</span>
         <strong>{study ? study.study_id : loadState === "error" ? "Publication withheld · integrity check failed" : loadState === "loading" ? "Verifying publication…" : "No study published"}</strong>
         <p>{study ? study.observations.length + " valid dates · " + (study.algorithm_label ?? "Root baseline product") + " · " + study.release : loadState === "error" ? loadError : "Configure an area and run the cloud SME2 workflow to publish a real result."}</p>
-        {loadState === "error" && <button type="button" className="agri-secondary-button" onClick={() => { setLoadError(""); setLoadState("loading"); setPublicationRetry((attempt) => attempt + 1); }}>Retry publication verification</button>}
         <div className="agri-rail-divider" />
         <span className="agri-eyebrow">PRODUCT MATURITY</span>
         <strong className="agri-rail-maturity">NISAR L3 · PROVISIONAL</strong>
@@ -1117,7 +1115,6 @@ export default function AgricultureWorkbench() {
         noStudy={noStudy}
         layer={layer}
         publicationError={loadState === "error" ? loadError : ""}
-        onRetry={() => { setLoadError(""); setLoadState("loading"); setPublicationRetry((attempt) => attempt + 1); }}
         study={study}
         selectedObservation={selectedObservation}
         onLayerChange={(nextLayer) => {
@@ -1136,7 +1133,7 @@ export default function AgricultureWorkbench() {
         <span>{layer === "change" ? "Latest − baseline" : layer === "matched" ? "All dates · fixed cohort" : layer === "crop" ? "Independent crop-area mask" : layer === "crop-common" ? "Quality-valid crop area · all dates" : layer === "crop-source" ? "Independent mask source coverage" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
       </div>}
       drawerTabs={drawerTabs}
-      drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" />{loadState === "error" ? loadError : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</div>}
+      drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" /><span>{loadState === "error" ? loadError + " The release is withheld; this page will not display unverified measurements." : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</span></div>}
       drawer={<div className="agri-drawer-panel"><p>Choose Explore, Operator, Evidence, Check it or Learn.</p></div>}
       footer={<div className="agri-footer">
         <div className="agri-footer-head">
