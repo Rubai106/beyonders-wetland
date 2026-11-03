@@ -70,13 +70,13 @@
       "The comparison checks open water only; it does not validate flooded vegetation."
     ],
     "showcase_images": {
-      "reference_before_rgb": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_before_rgb.png",
-      "reference_before_water": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_before_water.png",
-      "reference_after_rgb": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_after_rgb.png",
-      "reference_after_water": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_after_water.png",
-      "reference_agreement": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_agreement.png",
-      "reference_coverage": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_coverage.png",
-      "reference_candidate_overlay": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_candidate_overlay.png"
+      "reference_before_rgb": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_before_rgb.png",
+      "reference_before_water": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_before_water.png",
+      "reference_after_rgb": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_after_rgb.png",
+      "reference_after_water": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_after_water.png",
+      "reference_agreement": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_agreement.png",
+      "reference_coverage": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_coverage.png",
+      "reference_candidate_overlay": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_candidate_overlay.png"
     }
   }
 }
