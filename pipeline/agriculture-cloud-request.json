@@ -6,6 +6,6 @@
   "start": "2026-06-17",
   "end": "2026-11-02",
   "allow_missing_imerg": true,
-  "request_note": "run-full-native-grid-and-source-layer-observability-diagnostics",
+  "request_note": "audit-algorithm-candidates-and-sequential-quality-gate-overlap",
   "series_id": "b42cefcd8c0e"
 }
