@@ -11,16 +11,17 @@ This module does not classify crop type, identify field boundaries, diagnose cro
 The /agriculture route uses the shared GeoNexSAR investigation workspace.
 
 - **Explore:** checksum-verified moisture, change, independent crop-area and all-date crop-cohort previews; per-date statistics, timeline, support audits and CSV export.
-- **Operator:** validated WGS84 AOI, date range and run ID, plus an optional local crop-mask path and provenance label; creates CLI commands for the local terminal. The browser does not upload masks or start Earthdata downloads/local Python jobs.
+- **Operator:** enter a WGS84 AOI and date range, then search NASA CMR directly from the website. The server groups returned SME2 granules by the full release/track/direction/frame/bandwidth/polarization/frequency identity, deduplicates same-date records and shows actual acquisition dates, revisit gaps and preflight eligibility. This public metadata search does not require Earthdata authentication and does not download granules or claim valid pixels.
+- **Hosted processing:** the intended next stage will hand a selected CMR series to a private, authenticated processing worker. The worker must keep Earthdata tokens, original HDF5 granules and native rasters outside the public Next.js runtime and publish only a reviewed checksum-verified display package. The hosted worker is not yet configured; do not interpret a catalogue preflight as a processed study.
 - **Evidence:** product maturity, granule identity, source digests, retrieval/surface flags, crop-mask provenance, coverage floors and official sources.
 
 When public/agriculture/current/index.json is absent, the page displays an explicit no-publication state. The basemap is context only; no synthetic map or measurements are substituted.
 
 The browser verifies the byte count and SHA-256 of study.json and the active preview before displaying them. The checksum manifest is unsigned; it detects accidental corruption relative to the manifest, not malicious replacement of both files.
 
-## Local operator workflow
+## Maintainer-only local processing fallback
 
-Install the Python requirements using the repository's existing pipeline/requirements.txt and configure Earthdata Login through the terminal. Never place Earthdata credentials in the browser UI or commit them.
+This fallback is for maintainers validating or reprocessing a study from a trusted workstation. It is not the intended website-user workflow. End users should be able to submit a selected series from the website once the authenticated hosted worker has been deployed. Never place Earthdata credentials in the browser UI or commit them.
 
 Example search:
 
@@ -83,7 +84,7 @@ Example (PowerShell; run after the regular search and download commands):
 python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01 --crop-mask "D:\data\crop-probability.tif" --crop-mask-source "Dynamic World V1 · crops probability" --crop-mask-date 2026-07-18 --crop-probability-threshold 0.5 --crop-mask-coverage-floor 0.8
 ~~~
 
-The Operator tab can generate the optional arguments. The path is read by the local Python process. The browser does not transmit the GeoTIFF. The source label and date must identify the actual collection/product and source observation window; do not write "Dynamic World" unless that is the exact data product used.
+The existing local pipeline can read this file during maintainer-only processing. The website worker still needs a private storage/upload path and recorded source provenance before this mask can be supplied online. The source label and date must identify the actual collection/product and source observation window; do not write "Dynamic World" unless that is the exact data product used.
 
 ### Native-grid aggregation
 
