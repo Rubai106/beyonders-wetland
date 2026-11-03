@@ -72,9 +72,9 @@ test("accepts an explicitly labelled DSG study with dated algorithm-quality excl
 
   const wrongRule = structuredClone(changed);
   const wrongRuleExclusions = wrongRule.quality_exclusions as Array<{
-    retrieval_interpretation: "candidate-zero-clear" | "baseline-bitmask";
+    retrieval_interpretation: "candidate-zero-clear" | "root-zero-clear";
   }>;
-  wrongRuleExclusions[0].retrieval_interpretation = "baseline-bitmask";
+  wrongRuleExclusions[0].retrieval_interpretation = "root-zero-clear";
   assert.equal(isAgricultureStudy(wrongRule), false);
 
   const overlap = structuredClone(changed);
