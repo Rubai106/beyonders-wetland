@@ -185,6 +185,49 @@ def main() -> int:
             "the Agriculture mobile workspace has no horizontal page overflow",
         )
 
+        require(
+            page.locator(".wx-root").evaluate("(el) => getComputedStyle(el).position !== 'fixed'")
+            and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
+            "Agriculture uses normal page flow instead of a fixed canvas or a drawer over the map",
+        )
+
+        page.goto(BASE + "/forest", wait_until="domcontentloaded", timeout=30_000)
+        page.locator(".forest-comparison").wait_for(state="visible", timeout=30_000)
+        forest_maps = page.locator(".forest-comparison-map")
+        require(
+            forest_maps.count() == 2
+            and all(height >= 260 for height in forest_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
+            and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
+            "Forest stacks two usable map panels and keeps evidence in page flow on a phone",
+        )
+        require(
+            page.get_by_label("Processed observation date").count() == 0
+            and page.locator(".forest-date-ribbon button").count() >= 4,
+            "Forest has one date selector, not duplicated date controls",
+        )
+        require(
+            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+            "the Forest mobile workspace has no horizontal page overflow",
+        )
+
+        page.goto(BASE + "/volcano", wait_until="domcontentloaded", timeout=30_000)
+        page.locator(".deformation-map-hint").wait_for(state="visible", timeout=30_000)
+        volcano_maps = page.locator(".deformation-map")
+        require(
+            volcano_maps.count() == 2
+            and all(height >= 260 for height in volcano_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
+            and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
+            "Volcano stacks two usable radar maps and keeps evidence in page flow on a phone",
+        )
+        require(
+            page.locator(".deformation-timeline").count() == 1,
+            "Volcano exposes one interval selector rather than repeating it inside Explore",
+        )
+        require(
+            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+            "the Volcano mobile workspace has no horizontal page overflow",
+        )
+
         browser.close()
 
     require(not errors, "module navigation has no browser runtime errors: " + " | ".join(errors))

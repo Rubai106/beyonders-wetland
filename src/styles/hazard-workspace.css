@@ -1626,3 +1626,382 @@
     padding: 5px 7px;
   }
 }
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   GeoNexSAR quality pass · calm hierarchy, responsive flow, usable maps
+   Keep desktop as a three-column instrument; make narrow screens scroll.
+   ───────────────────────────────────────────────────────────────────── */
+
+.wx-root.wx-hazard-shell[data-drawer="open"] {
+  grid-template-columns: minmax(224px, clamp(224px, 16vw, 260px))
+    minmax(0, 1fr) minmax(330px, clamp(330px, 24vw, 380px));
+}
+
+.wx-root.wx-hazard-shell .wx-rail {
+  padding: 18px 16px;
+  gap: 12px;
+}
+
+.wx-root.wx-hazard-shell .wx-drawer__body {
+  padding: 16px 18px 24px;
+  line-height: 1.55;
+}
+
+.wx-root.wx-hazard-shell .wx-drawer__tabs button {
+  min-height: 40px;
+  padding: 8px 9px;
+  font-size: .74rem;
+}
+
+.wx-root.wx-hazard-shell .wx-drawer__persistent {
+  max-height: 92px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.wx-root.wx-hazard-shell .wx-drawer__body :is(button, select, input:not([type="checkbox"]):not([type="radio"]), textarea) {
+  min-height: 36px;
+}
+
+.wx-root.wx-hazard-shell .wx-drawer__body :is(p, li, td, dd) {
+  font-size: .75rem;
+  line-height: 1.55;
+}
+
+.wx-root.wx-hazard-shell .wx-drawer__body small {
+  font-size: .68rem;
+  line-height: 1.45;
+}
+
+.wx-root.wx-hazard-shell .wx-hazard-map .forest-map-title,
+.wx-root.wx-hazard-shell .wx-hazard-map .volcano-map-title {
+  max-width: calc(100% - 112px);
+  gap: 10px;
+  padding: 9px 12px;
+  font-size: .74rem;
+}
+
+.wx-root.wx-hazard-shell .wx-hazard-footer {
+  padding: 9px 14px;
+}
+
+/* At laptop/tablet widths, stop crushing the map between two fixed columns.
+   The evidence panel moves below the map and becomes part of normal page flow. */
+@media (max-width: 1100px) {
+  .wx-root,
+  .wx-root[data-drawer="open"],
+  .wx-root[data-drawer="closed"] {
+    position: relative !important;
+    inset: auto !important;
+    z-index: auto;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100svh;
+    max-width: none;
+    overflow: visible !important;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto minmax(380px, auto) auto auto !important;
+    grid-template-areas:
+      "mast"
+      "quest"
+      "rail"
+      "map"
+      "drawer"
+      "time" !important;
+  }
+
+  .wx-root.wx-root--document {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100svh !important;
+    margin-left: 0 !important;
+  }
+
+  .wx-root .wx-mast {
+    position: relative;
+    min-width: 0;
+    min-height: 68px;
+    flex-wrap: wrap;
+    gap: 7px 10px;
+    padding: 8px 12px;
+  }
+
+  .wx-root .wx-case {
+    min-width: 0;
+    max-width: min(360px, 48vw);
+    flex: 1 1 180px;
+  }
+
+  .wx-root .wx-casepick {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .wx-root .wx-nav {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .wx-root .wx-nav a,
+  .wx-root .wx-nav button {
+    min-height: 36px;
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    font-size: .72rem;
+  }
+
+  .wx-root .wx-quest {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding: 11px 14px;
+  }
+
+  .wx-root .wx-quest > div {
+    min-width: 0;
+    flex: 1 1 240px;
+  }
+
+  .wx-root .wx-quest h1 {
+    font-size: clamp(1.08rem, 2.4vw, 1.32rem);
+    line-height: 1.2;
+  }
+
+  .wx-root .wx-quest p {
+    max-width: 72ch;
+    font-size: .76rem;
+    line-height: 1.45;
+  }
+
+  .wx-root .wx-rail {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    align-items: start;
+    gap: 10px 14px;
+    max-height: none !important;
+    min-width: 0;
+    overflow: visible !important;
+    padding: 13px 14px;
+    border-right: 0;
+    border-bottom: 1px solid #1e2a33;
+  }
+
+  .wx-root .wx-rail > * {
+    min-width: 0;
+  }
+
+  .wx-root .wx-map {
+    position: relative;
+    grid-column: 1 !important;
+    width: 100%;
+    height: auto !important;
+    min-height: 420px;
+    overflow: hidden;
+  }
+
+  .wx-root .wx-drawer {
+    position: relative !important;
+    inset: auto !important;
+    width: 100%;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0;
+    overflow: visible !important;
+    border-top: 1px solid #263741;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    box-shadow: none;
+    animation: none;
+  }
+
+  .wx-root .wx-drawer__bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #0b1117;
+  }
+
+  .wx-root .wx-drawer__body {
+    flex: 0 0 auto;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 16px 16px 24px;
+  }
+
+  .wx-root .wx-drawer__persistent {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .wx-root .wx-timeline,
+  .wx-root .wx-hazard-footer {
+    position: relative;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .wx-root .wx-hazard-footer {
+    flex-wrap: wrap;
+    padding: 10px 14px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-map,
+  .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-map {
+    min-height: 660px;
+  }
+}
+
+/* Phone layout: two-map investigations become vertical comparison boards.
+   The map remains a real touch target; the evidence drawer is never a modal
+   sheet covering it. */
+@media (max-width: 700px) {
+  .wx-root .wx-mast {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand case tier"
+      "nav nav nav";
+    align-items: center;
+    gap: 7px 9px;
+    min-height: 82px;
+    padding: 8px 10px;
+  }
+
+  .wx-root .wx-brand {
+    grid-area: brand;
+    padding-right: 8px;
+    font-size: 1.08rem;
+  }
+
+  .wx-root .wx-case {
+    grid-area: case;
+    max-width: none;
+    width: 100%;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .wx-root .wx-casepick {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    font-size: .72rem;
+  }
+
+  .wx-root .wx-tier {
+    grid-area: tier;
+    max-width: 92px;
+    min-width: 0;
+    padding: 4px 6px;
+    font-size: .63rem;
+  }
+
+  .wx-root .wx-nav {
+    grid-area: nav;
+    display: flex;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    gap: 4px;
+    margin: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .wx-root .wx-nav a,
+  .wx-root .wx-nav button {
+    min-height: 38px;
+    padding: 7px 9px;
+    font-size: .7rem;
+  }
+
+  .wx-root .wx-quest {
+    padding: 10px 12px;
+  }
+
+  .wx-root .wx-rail {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 12px;
+  }
+
+  .wx-root .wx-map {
+    min-height: 400px;
+  }
+
+  .wx-root .wx-drawer__tabs {
+    gap: 4px;
+  }
+
+  .wx-root .wx-drawer__tabs button {
+    min-height: 42px;
+    padding: 8px 5px;
+    font-size: .72rem;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-map,
+  .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-map {
+    min-height: 760px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-hazard-map .forest-comparison {
+    inset: 52px 8px 8px;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: repeat(2, minmax(320px, 1fr)) !important;
+    gap: 8px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-hazard-map .forest-comparison > article {
+    min-height: 320px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map .deformation-maps {
+    inset: 52px 8px 8px;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: repeat(2, minmax(320px, 1fr)) !important;
+    gap: 8px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map .deformation-map-panel {
+    min-height: 320px;
+  }
+
+  .wx-root .wx-hazard-footer :is(.forest-legend, .volcano-map-legend) {
+    font-size: .68rem;
+  }
+}
+
+/* Respect keyboard focus and avoid tiny map-control targets. */
+.wx-root.wx-hazard-shell :is(button, select, a):focus-visible {
+  outline: 2px solid var(--c-observed);
+  outline-offset: 2px;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body button,
+.wx-root.wx-hazard-shell .wx-drawer__body select {
+  min-height: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wx-root.wx-hazard-shell *,
+  .wx-root.wx-hazard-shell *::before,
+  .wx-root.wx-hazard-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
