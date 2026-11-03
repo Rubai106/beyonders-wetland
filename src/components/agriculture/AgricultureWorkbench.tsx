@@ -6,6 +6,7 @@ import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 import type { InvestigationDrawerTab } from "@/components/layout/InvestigationWorkspace";
 import {
   buildAgricultureDateAxis,
+  buildAgricultureRainfallSeries,
   buildAgricultureSupportDrift,
   isAgricultureChecksumManifest,
   isAgricultureIndex,
@@ -17,6 +18,7 @@ import {
   type AgricultureStudy,
   type AgricultureSurfaceFlagId,
   type AgricultureCropObservability,
+  type AgricultureRainfallWindow,
 } from "@/lib/agriculture-study";
 import type { AgricultureCatalogueResult } from "@/lib/agriculture-catalogue";
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
@@ -100,6 +102,7 @@ export default function AgricultureWorkbench() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
   const [seriesSupportMode, setSeriesSupportMode] = useState<SeriesSupportMode>("date-valid");
+  const [rainfallWindow, setRainfallWindow] = useState<AgricultureRainfallWindow>("3d");
   const [selectedFlagMask, setSelectedFlagMask] = useState<number | null>(null);
   const [showAllFlagCombinations, setShowAllFlagCombinations] = useState(false);
   const [previewState, setPreviewState] = useState<{ asset: string; url: string | null; error: string } | null>(null);
@@ -255,6 +258,13 @@ export default function AgricultureWorkbench() {
       date: new Date(first + (last - first) * fraction).toISOString().slice(0, 10),
     }));
   }, [chartObservations]);
+
+  const rainfallPlot = useMemo(
+    () => study ? buildAgricultureRainfallSeries(study, rainfallWindow) : [],
+    [study, rainfallWindow],
+  );
+  const rainfallMaximum = Math.max(1, ...rainfallPlot.flatMap((point) => point.rainfall_mm === null ? [] : [point.rainfall_mm]));
+  const selectedRainfall = rainfallPlot.find((point) => point.date === study?.observations[selectedIndex]?.date) ?? null;
 
   const supportDrift = useMemo(
     () => study ? buildAgricultureSupportDrift(study) : [],
@@ -1133,6 +1143,49 @@ export default function AgricultureWorkbench() {
               <span><i className="extended-gap" />Extended gap (&gt;{LONG_ACQUISITION_GAP_DAYS} days)</span>
             </div>
           </div>
+          <section className="agri-rainfall" aria-labelledby="agri-rainfall-title">
+            <div className="agri-rainfall__head">
+              <div><span className="agri-eyebrow">EVENT-ALIGNED PRECIPITATION · NASA GPM IMERG</span><strong id="agri-rainfall-title">Rainfall before each acquisition</strong></div>
+              <span className="agri-rainfall__resolution">0.1° GRID · mm</span>
+            </div>
+            {study.rainfall_context ? <>
+              <div className="agri-rainfall__windows" role="group" aria-label="Select the complete UTC rainfall accumulation window">
+                {(["1d", "3d", "7d", "12d"] as AgricultureRainfallWindow[]).map((window) => (
+                  <button key={window} type="button" aria-pressed={rainfallWindow === window}
+                    onClick={() => setRainfallWindow(window)}>{window.toUpperCase()}</button>
+                ))}
+              </div>
+              <div className="agri-rainfall__plot" role="group" aria-label={rainfallWindow + " accumulated IMERG precipitation aligned to SME2 acquisition dates; incomplete windows are missing, not zero"}>
+                <div className="agri-rainfall__axis"><span>{rainfallMaximum.toFixed(1)} mm</span><span>0 mm</span></div>
+                <div className="agri-rainfall__bars">
+                  {rainfallPlot.map((point, index) => (
+                    <button key={point.date} type="button"
+                      className={"agri-rainfall__bar-slot" + (index === selectedIndex ? " is-active" : "") + (point.rainfall_mm === null ? " is-missing" : "")}
+                      style={{ left: point.position + "%" }}
+                      aria-pressed={index === selectedIndex}
+                      aria-label={dateLabel(point.date) + (point.rainfall_mm === null ? "; rainfall unavailable, " + point.valid_days + " of " + point.expected_days + " UTC days present" : "; " + point.rainfall_mm.toFixed(1) + " millimetres accumulated over " + rainfallWindow)}
+                      title={point.rainfall_mm === null ? point.valid_days + " of " + point.expected_days + " days available" : point.rainfall_mm.toFixed(1) + " mm"}
+                      onClick={() => setSelectedIndex(index)}>
+                      {point.rainfall_mm === null
+                        ? <i className="agri-rainfall__missing-mark" />
+                        : <i className="agri-rainfall__bar" style={{ height: Math.max(2, point.rainfall_mm / rainfallMaximum * 100) + "%" }} />}
+                    </button>
+                  ))}
+                </div>
+                <div className="agri-rainfall__dates" aria-hidden="true">
+                  {chartDateTicks.map((tick, index) => (
+                    <span key={tick.position} className={chartDateTicks.length === 1 ? "is-center" : index === 0 ? "is-start" : index === chartDateTicks.length - 1 ? "is-end" : ""}
+                      style={{ left: tick.position + "%" }}>{shortDateLabel(tick.date)}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="agri-rainfall__selected" aria-live="polite">
+                <strong>{selectedRainfall?.rainfall_mm === null || !selectedRainfall ? "NOT AVAILABLE" : selectedRainfall.rainfall_mm.toFixed(1) + " mm"}</strong>
+                <span>{selectedRainfall ? dateLabel(selectedRainfall.date) + " · " + selectedRainfall.valid_days + "/" + selectedRainfall.expected_days + " complete UTC days" : "No aligned rainfall record"}</span>
+              </div>
+              <p className="agri-rainfall__note">Daily IMERG accumulation over the complete UTC days immediately before the SME2 acquisition date; the acquisition day is excluded because SME2's date-only identity does not establish its exact observation time. Native IMERG grid: 0.1° (about 10 km), not SME2's native pixel scale. This is temporal context, not evidence of causation.</p>
+            </> : <div className="agri-rainfall__empty"><strong>Rainfall evidence not published</strong><p>No IMERG files or verified rainfall summaries are attached to this SME2 study. No rainfall is inferred from the acquisition dates, and the chart remains unavailable until the source data, coverage and checksums are verified.</p></div>}
+          </section>
         </> : <div className="agri-footer-empty">Dated observations will appear here after genuine SME2 granules are processed and a checksum-verified study is published.</div>}
       </div>}
       satelliteBasemap={satelliteBasemap}
