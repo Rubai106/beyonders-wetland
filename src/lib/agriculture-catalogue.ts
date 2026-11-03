@@ -54,8 +54,8 @@ export interface AgricultureCatalogueResult {
   interpretation_limits: string[];
 }
 
-const DATE_IN_NAME = /(?<!\\d)(20\\d{6})T\\d{6}(?!\\d)/;
-const RELEASE = /^P(\\d{5})$/;
+const DATE_IN_NAME = /(?<!\d)(20\d{6})T\d{6}(?!\d)/;
+const RELEASE = /^P(\d{5})$/;
 
 function flattenMetadata(value: unknown): Array<[string, unknown]> {
   if (Array.isArray(value)) return value.flatMap(flattenMetadata);
@@ -77,7 +77,7 @@ function findMetadataValue(entry: AgricultureCMRGranule, names: string[]): strin
 
 function numericIdentity(value: string | null): number | null {
   if (!value) return null;
-  const match = value.match(/\\d+/);
+  const match = value.match(/\d+/);
   return match ? Number(match[0]) : null;
 }
 
@@ -102,7 +102,7 @@ export function parseAgricultureSME2Granule(entry: AgricultureCMRGranule): {
   const conceptId = String(entry.id ?? "").trim();
   if (!title || !conceptId) return null;
 
-  const filename = title.split(/[\\/]/).pop() ?? title;
+  const filename = title.split(/[\/]/).pop() ?? title;
   const stem = filename.toLowerCase().endsWith(".h5") ? filename.slice(0, -3) : filename;
   const tokens = stem.split("_");
   if (tokens.length < 18 || tokens.slice(0, 4).join("_") !== "NISAR_L3_PR_SME2") return null;
@@ -111,8 +111,8 @@ export function parseAgricultureSME2Granule(entry: AgricultureCMRGranule): {
   const release = (tokens[13] ?? "").toUpperCase();
   const releaseMatch = RELEASE.exec(release);
   if (
-    !/^\\d{3}$/.test(track) || !["A", "D"].includes(direction) ||
-    !/^\\d{3}$/.test(frame) || !/^\\d{4}$/.test(bandwidth) ||
+    !/^\d{3}$/.test(track) || !["A", "D"].includes(direction) ||
+    !/^\d{3}$/.test(frame) || !/^\d{4}$/.test(bandwidth) ||
     !/^[A-Z0-9]{2,8}$/.test(polarization) || !["A", "B"].includes(frequency) ||
     !releaseMatch || Number(releaseMatch[1]) < 5023
   ) return null;
@@ -128,12 +128,12 @@ export function parseAgricultureSME2Granule(entry: AgricultureCMRGranule): {
 
   let acquisitionDate = "";
   const timeStart = typeof entry.time_start === "string" ? entry.time_start : "";
-  if (/^20\\d{2}-\\d{2}-\\d{2}/.test(timeStart)) acquisitionDate = timeStart.slice(0, 10);
+  if (/^20\d{2}-\d{2}-\d{2}/.test(timeStart)) acquisitionDate = timeStart.slice(0, 10);
   if (!acquisitionDate) {
     const match = DATE_IN_NAME.exec(title);
-    if (match) acquisitionDate = match[1].replace(/^(\\d{4})(\\d{2})(\\d{2})$/, "$1-$2-$3");
+    if (match) acquisitionDate = match[1].replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");
   }
-  if (!/^20\\d{2}-\\d{2}-\\d{2}$/.test(acquisitionDate)) return null;
+  if (!/^20\d{2}-\d{2}-\d{2}$/.test(acquisitionDate)) return null;
   const parsedDate = new Date(acquisitionDate + "T00:00:00Z");
   if (!Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== acquisitionDate) return null;
 
