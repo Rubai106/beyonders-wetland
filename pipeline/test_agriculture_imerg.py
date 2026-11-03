@@ -20,6 +20,7 @@ from agriculture_imerg import (
     required_imerg_dates,
     search_imerg_daily,
     select_imerg_granules,
+    validate_imerg_publication,
 )
 from agriculture_sme2 import AgricultureError
 
@@ -262,6 +263,72 @@ class AgricultureIMERGTests(unittest.TestCase):
         with patch("urllib.request.urlopen", return_value=TruncatedResponse()):
             with self.assertRaisesRegex(AgricultureError, "truncated daily series"):
                 search_imerg_daily(self.aoi, ["2026-06-19"])
+
+
+    def test_publish_gate_rechecks_local_granule_bytes_and_aggregate_receipt(self):
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp)
+            granule_dir = run / "imerg" / "granules"
+            granule_dir.mkdir(parents=True)
+            payload = b"actual local source bytes"
+            (granule_dir / "day.nc4").write_bytes(payload)
+            import hashlib
+            item = {
+                "date": "2026-06-19",
+                "concept_id": "G123-PROV",
+                "filename": "day.nc4",
+                "bytes": len(payload),
+                "sha256": hashlib.sha256(payload).hexdigest(),
+            }
+            digest = hashlib.sha256(json.dumps([item], sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+            receipt = {
+                "run_id": "agri-run", "product": "GPM_3IMERGDF_V07",
+                "source_sha256": digest, "source_bytes": len(payload), "granules": [item],
+            }
+            (run / "imerg" / "receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+            study = {
+                "run_id": "agri-run",
+                "observations": [{"date": "2026-06-20"}],
+                "rainfall_context": {
+                    "method": "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
+                    "product": "GPM_3IMERGDF_V07",
+                    "source_doi": "10.5067/GPM/IMERGDF/DAY/07",
+                    "units": "mm",
+                    "time_basis": "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION",
+                    "spatial_coverage_floor": 0.9,
+                    "granules": [item],
+                    "source_bytes": len(payload),
+                    "source_sha256": digest,
+                },
+            }
+            validate_imerg_publication(study, run)
+            (granule_dir / "day.nc4").write_bytes(b"tampered source bytes")
+            with self.assertRaisesRegex(AgricultureError, "checksum"):
+                validate_imerg_publication(study, run)
+
+    def test_publish_gate_rejects_granule_outside_required_lookback_dates(self):
+        with tempfile.TemporaryDirectory() as temp:
+            run = Path(temp)
+            (run / "imerg" / "granules").mkdir(parents=True)
+            item = {
+                "date": "2026-06-20", "concept_id": "G123-PROV",
+                "filename": "day.nc4", "bytes": 1, "sha256": "0" * 64,
+            }
+            study = {
+                "run_id": "agri-run",
+                "observations": [{"date": "2026-06-20"}],
+                "rainfall_context": {
+                    "method": "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
+                    "product": "GPM_3IMERGDF_V07",
+                    "source_doi": "10.5067/GPM/IMERGDF/DAY/07",
+                    "units": "mm",
+                    "time_basis": "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION",
+                    "spatial_coverage_floor": 0.9,
+                    "granules": [item], "source_bytes": 1, "source_sha256": "0" * 64,
+                },
+            }
+            with self.assertRaisesRegex(AgricultureError, "invalid date"):
+                validate_imerg_publication(study, run)
 
 
 
