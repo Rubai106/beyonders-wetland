@@ -338,8 +338,10 @@ export default function AgricultureWorkbench() {
       "crop_weighted_median_m3_m3", "crop_common_support_fraction", "crop_common_weighted_median_m3_m3",
       "release", "track", "direction", "frame", "bandwidth", "polarization", "frequency",
       "granule_name", "source_bytes", "source_sha256",
-      "imerg_1d_mm", "imerg_1d_valid_days", "imerg_3d_mm", "imerg_3d_valid_days",
-      "imerg_7d_mm", "imerg_7d_valid_days", "imerg_12d_mm", "imerg_12d_valid_days",
+      "imerg_1d_mm", "imerg_1d_valid_days", "imerg_1d_spatial_coverage", "imerg_1d_mean_halfhour_samples",
+      "imerg_3d_mm", "imerg_3d_valid_days", "imerg_3d_spatial_coverage", "imerg_3d_mean_halfhour_samples",
+      "imerg_7d_mm", "imerg_7d_valid_days", "imerg_7d_spatial_coverage", "imerg_7d_mean_halfhour_samples",
+      "imerg_12d_mm", "imerg_12d_valid_days", "imerg_12d_spatial_coverage", "imerg_12d_mean_halfhour_samples",
     ];
     const rows = study.observations.map((item, index) => {
       const matched = study.matched_support.observations[index];
@@ -368,12 +370,20 @@ export default function AgricultureWorkbench() {
         item.granule_name ?? "", item.source_bytes ?? "", item.source_sha256 ?? "",
         study.rainfall_context?.observations[index]?.windows["1d"].rainfall_mm ?? "",
         study.rainfall_context?.observations[index]?.windows["1d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["1d"].spatial_coverage_fraction ?? "",
+        study.rainfall_context?.observations[index]?.windows["1d"].mean_half_hourly_samples ?? "",
         study.rainfall_context?.observations[index]?.windows["3d"].rainfall_mm ?? "",
         study.rainfall_context?.observations[index]?.windows["3d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["3d"].spatial_coverage_fraction ?? "",
+        study.rainfall_context?.observations[index]?.windows["3d"].mean_half_hourly_samples ?? "",
         study.rainfall_context?.observations[index]?.windows["7d"].rainfall_mm ?? "",
         study.rainfall_context?.observations[index]?.windows["7d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["7d"].spatial_coverage_fraction ?? "",
+        study.rainfall_context?.observations[index]?.windows["7d"].mean_half_hourly_samples ?? "",
         study.rainfall_context?.observations[index]?.windows["12d"].rainfall_mm ?? "",
         study.rainfall_context?.observations[index]?.windows["12d"].valid_days ?? "",
+        study.rainfall_context?.observations[index]?.windows["12d"].spatial_coverage_fraction ?? "",
+        study.rainfall_context?.observations[index]?.windows["12d"].mean_half_hourly_samples ?? "",
       ].map(csvCell).join(",");
     });
     const blob = new Blob([[columns.join(","), ...rows].join("\n"),], { type: "text/csv;charset=utf-8" });
