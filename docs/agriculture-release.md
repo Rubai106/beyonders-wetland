@@ -115,6 +115,6 @@ The example operator commands and current schema are in [Agriculture method and 
 
 ## Cloud operation status
 
-A manual cloud workflow is now available on `Rubai-dev`: **Actions → Cloud Agriculture SME2 publication**. It requires the repository Actions secret `EARTHDATA_TOKEN` (a NASA Earthdata Login token) and operator-selected WGS84 AOI/date inputs. It runs the SME2 and optional IMERG stages on GitHub-hosted compute, then commits only the verified website publication package to `Rubai-dev`. Raw source granules remain ephemeral on the runner; non-sensitive receipts are retained as a 30-day Actions artifact.
+A cloud workflow is now available on `Rubai-dev`. To preserve the rule against modifying the default branch, its browser trigger is a push to `pipeline/agriculture-cloud-request.json` (create/edit that file in GitHub's web editor). It requires the repository Actions secret `EARTHDATA_TOKEN` (a NASA Earthdata Login token) and WGS84 AOI/date inputs in that request file. It runs the SME2 and optional IMERG stages on GitHub-hosted compute, builds the public site, then commits only the verified website publication package to `Rubai-dev`. Raw source granules remain ephemeral on the runner; non-sensitive receipts are retained as a 30-day Actions artifact.
 
 The cloud workflow itself has not yet completed a real-data run. It cannot authenticate until the repository secret is configured, and it cannot select a meaningful study area without AOI/date inputs.
