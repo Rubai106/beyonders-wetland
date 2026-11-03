@@ -791,6 +791,8 @@ export default function AgricultureWorkbench() {
                         />
                       </g>
                     ))}
+                    <text x="42" y="166" className="agri-support-drift__date">{dateLabel(supportDrift[0].date)}</text>
+                    <text x="678" y="166" textAnchor="end" className="agri-support-drift__date">{dateLabel(supportDrift[supportDrift.length - 1].date)}</text>
                   </svg>
                   <div className="agri-support-drift__hit-targets" role="group" aria-label="Select a date and spatial support from the comparison chart">
                     {supportDriftPlot.points.map((point) => (
@@ -816,9 +818,6 @@ export default function AgricultureWorkbench() {
                       </Fragment>
                     ))}
                   </div>
-                    <text x="42" y="166" className="agri-support-drift__date">{dateLabel(supportDrift[0].date)}</text>
-                    <text x="678" y="166" textAnchor="end" className="agri-support-drift__date">{dateLabel(supportDrift[supportDrift.length - 1].date)}</text>
-                  </svg>
                 </div>
                 <div className="agri-support-drift__legend">
                   <span><i className="is-valid" />Date-valid footprint median</span>
