@@ -19,7 +19,7 @@ from agriculture_sme2 import (
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
     _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
-    quality_screen_diagnostics,
+    quality_screen_diagnostics, _masked_array_diagnostics,
 )
 
 
@@ -40,6 +40,20 @@ class AgricultureSME2Tests(unittest.TestCase):
         with patch("agriculture_sme2.urllib.request.urlopen", return_value=response):
             with self.assertRaisesRegex(AgricultureError, "Narrow the AOI or date range"):
                 _cmr_search({"west": 90, "south": 24, "east": 91, "north": 25}, "2026-06-17", "2026-10-29")
+
+    def test_masked_array_diagnostics_reports_fill_like_and_flag_distributions(self):
+        values = np.array([[0.2, -9999.0, np.nan, 0.4]], dtype="float64")
+        mask = np.array([[True, True, True, False]])
+        result = _masked_array_diagnostics(values, mask, histogram=True)
+        self.assertEqual(result["selected_pixels"], 3)
+        self.assertEqual(result["finite_pixels"], 2)
+        self.assertEqual(result["nonfinite_pixels"], 1)
+        self.assertEqual(result["minimum"], -9999.0)
+        self.assertEqual(result["maximum"], 0.2)
+        self.assertEqual(result["value_counts"]["0.2"], 1)
+        self.assertEqual(result["value_counts"]["-9999.0"], 1)
+        self.assertEqual(result["value_counts"]["nan"], 1)
+        self.assertFalse(result["histogram_truncated"])
 
     def test_quality_screen_diagnostics_count_each_strict_gate_without_changing_mask(self):
         moisture = np.array([[.20, .01, .20, .20, .20, .20]], dtype="float64")
