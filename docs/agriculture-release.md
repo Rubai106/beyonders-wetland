@@ -42,6 +42,21 @@ This adds a joint-pattern view to the existing overlapping reason counts; it doe
 
 The Explore panel now plots the per-date median from each date's valid footprint beside the median from the fixed all-date pixel cohort. Vertical connectors show the gap between those spatial samples at each acquisition. The summary reports the median absolute gap, first-to-last gap shift and largest absolute gap. These values are a descriptive diagnostic for spatial-support sensitivity, not a correction or physical change estimate. The fixed-cohort coverage status remains visible; below 20% is inconclusive and zero common pixels stays unavailable.
 
+## Event-aligned IMERG rainfall integration
+
+The local Agriculture pipeline now has an optional rainfall stage in pipeline/agriculture_imerg.py, invoked after SME2 analysis:
+
+~~~powershell
+python pipeline/agriculture_sme2.py rainfall --run-id agri-pilot-01
+python pipeline/agriculture_sme2.py publish --run-id agri-pilot-01
+~~~
+
+The stage queries NASA CMR for GPM_3IMERGDF version 07 daily granules covering the exact UTC days needed before each SME2 acquisition, authenticates/downloads exact concept IDs with earthaccess, and reads the daily precipitation plus half-hourly sample-count fields. It uses native 0.1-degree grid cells and spherical cell/AOI overlap area weights. A daily AOI estimate is accepted only at 90% or greater spatial support. Incomplete 1-, 3-, 7- or 12-day windows remain null; no missing value is converted to zero. The study embeds a per-granule receipt and aggregate source-manifest digest. Raw NetCDF4 data and daily diagnostics stay in ignored local operator storage; publication copies only the compact study summary and existing preview assets.
+
+The browser has an acquisition-aligned rainfall timeline with four accumulation windows, explicit missing-state markers, spatial-coverage and half-hour-sample support, and an official NASA dataset link. It only appears for a checksum-verified study that contains a schema-valid rainfall context. The existing no-publication state remains unchanged.
+
+This integration is code-complete on Rubai-dev, but a real Earthdata-authenticated run has not been completed here. The CMR/download/NetCDF4 integration, new Python regression tests, updated TypeScript schema tests, lint, production build and browser smoke test must pass before this milestone is considered QA-complete. No actual Agriculture rainfall values or SME2 study are claimed by the implementation itself.
+
 ## Scientific boundaries
 
 - Product: `NISAR_L3_SME2_PROVISIONAL_V1`, PROVISIONAL maturity.
