@@ -109,7 +109,7 @@ def main() -> int:
         select_tab(
             page,
             "Operator",
-            "Operator: Configure an AOI and generate the local processing workflow",
+            "Operator: Discover and select NISAR SME2 observations online",
         )
         require(active_tab(page) == "Operator", "the existing Operator workflow remains available")
         page.get_by_label("AOI west longitude").wait_for(state="visible")
