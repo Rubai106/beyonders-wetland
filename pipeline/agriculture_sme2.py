@@ -332,6 +332,23 @@ def _select_series(search_manifest: dict[str, Any], series_id: str | None) -> di
     return candidates[0]
 
 
+def _matches_granule_filename(path: Path, cmr_title: str) -> bool:
+    """Match the exact CMR granule title while accepting its HDF5 file extension.
+
+    CMR titles for ASF NISAR granules omit the .h5 suffix even though the
+    downloadable data link includes it. Compare the complete basename stem,
+    not a loose substring, so QA_STATS or neighbouring granules cannot match.
+    """
+    expected_name = Path(cmr_title).name
+    expected_suffix = Path(expected_name).suffix.lower()
+    expected_stem = Path(expected_name).stem if expected_suffix in {".h5", ".hdf5"} else expected_name
+    candidate = Path(path).name
+    return candidate == expected_name or (
+        Path(candidate).suffix.lower() in {".h5", ".hdf5"}
+        and Path(candidate).stem == expected_stem
+    )
+
+
 def download(run_id: str, series_id: str | None = None) -> list[Path]:
     folder = run_folder(run_id)
     manifest = json_read(folder / "search.json")
@@ -356,10 +373,14 @@ def download(run_id: str, series_id: str | None = None) -> list[Path]:
             found = [path for path in paths if path.is_file() and path.suffix.lower() in {".h5", ".hdf5"}]
             if not found:
                 found = [path for path in local.rglob("*") if path.is_file() and path.suffix.lower() in {".h5", ".hdf5"}]
-            expected_stem = Path(item["title"]).name
-            matches = [path for path in found if path.name == expected_stem]
+            expected_title = Path(item["title"]).name
+            matches = [path for path in found if _matches_granule_filename(path, expected_title)]
             if not matches:
-                raise AgricultureError(f"Downloaded payload did not match the selected CMR granule {expected_stem}.")
+                observed = ", ".join(sorted(path.name for path in found)) or "no HDF5 files found"
+                raise AgricultureError(
+                    f"Downloaded payload did not match the selected CMR granule {expected_title}; "
+                    f"observed: {observed}."
+                )
             target = matches[0]
             if not _looks_like_sme2_hdf5(target):
                 raise AgricultureError(f"Downloaded file is not a valid SME2 HDF5 payload: {target.name}")
