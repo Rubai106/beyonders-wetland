@@ -64,10 +64,12 @@ class AgricultureIMERGTests(unittest.TestCase):
             {"id": "G2-PROV", "title": "3IMERG.20260620.V07.nc4", "time_start": "2026-06-20T00:00:00Z", "updated": "2026-06-22T00:00:00Z"},
             {"id": "G3-PROV", "title": "3IMERG.20260621.V07.nc4", "time_start": "2026-06-21T00:00:00Z", "updated": "2026-06-22T00:00:00Z"},
             {"id": "G4-PROV", "title": "wrong-format.tif", "time_start": "2026-06-20T00:00:00Z"},
+            {"id": "G5-PROV", "title": "3B-DAY.MS.MRG.3IMERG.20260621-S000000-E235959.V07B.HDF5", "time_start": "2026-06-21T00:00:00Z", "updated": "2026-06-23T00:00:00Z"},
         ]
         selected = select_imerg_granules(entries, ["2026-06-20", "2026-06-21"])
         self.assertEqual(selected["2026-06-20"]["concept_id"], "G2-PROV")
-        self.assertEqual(selected["2026-06-21"]["concept_id"], "G3-PROV")
+        self.assertEqual(selected["2026-06-21"]["concept_id"], "G5-PROV")
+        self.assertEqual(selected["2026-06-21"]["filename"].lower().endswith(".hdf5"), True)
 
     def test_parse_daily_granule_date_uses_title_when_time_start_missing(self):
         self.assertEqual(
