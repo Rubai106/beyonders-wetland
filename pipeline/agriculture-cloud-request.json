@@ -6,6 +6,7 @@
   "start": "2026-06-17",
   "end": "2026-11-02",
   "allow_missing_imerg": true,
-  "request_note": "compare_zero-clear_retrieval_flag_vs_status_bitmask",
-  "series_id": "b42cefcd8c0e"
+  "request_note": "reprocess-naogaon-after-corrected-nasa-zero-clear-root-and-candidate-flags",
+  "series_id": "b42cefcd8c0e",
+  "algorithm": "DSG"
 }
