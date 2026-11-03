@@ -200,6 +200,23 @@ npm run build
 No live Earthdata-authenticated SME2 search/download/analyze run is claimed by these unit tests. A real HDF5 granule must be inspected before asserting compatibility with a specific current collection release.
 
 
+## Explicit algorithm selection: root baseline versus DSG candidate
+
+The analysis command exposes two separate inputs and defaults to the existing root baseline:
+
+~~~bash
+python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01 --algorithm baseline
+python pipeline/agriculture_sme2.py analyze --run-id agri-pilot-01 --algorithm DSG
+~~~
+
+The cloud request file uses the same \`algorithm\` field (\`baseline\` or \`DSG\`). This is an explicit product choice, not an automatic fallback. The root baseline reads the root \`/science/LSAR/SME2/grids/\` layers and retains its existing retrieval bitmask rule. The DSG path reads only \`/science/LSAR/SME2/grids/algorithmCandidates/DSG/\` for soil moisture, uncertainty and retrieval quality. It requires the candidate's own x/y coordinates to match the root native grid; equal array shapes alone are not enough. If the DSG group has no separate surface-quality dataset, it uses the product's shared root \`surfaceQualityFlag\` layer.
+
+**The retrieval flags have different documented semantics.** NASA/JPL D-107677 Revision C identifies the DSG candidate's \`retrievalQualityFlag\` as zero = clear and non-zero = anomaly. This zero-clear rule is used only for the candidate DSG path. It must not be applied to the root baseline layer. The product's other quality gates remain in force for both modes: valid volumetric moisture range, finite non-negative uncertainty, valid fill values, the common surface-quality screen and AOI membership. See the [NASA/JPL SME2 product specification](https://nisar-docs.asf.alaska.edu/product-specification/) and the [ASF SME2 guide](https://nisar-docs.asf.alaska.edu/sme2/).
+
+The DSG mode retains source-date ordering but excludes any acquisition with zero usable AOI pixels after its selected algorithm's quality screen. Every excluded date is recorded in \`quality_exclusions\` with its granule name, total AOI denominator, zero valid-pixel count and retrieval interpretation. No value is interpolated, copied forward, or interpreted as dry soil. At least four valid DSG dates are still required (three valid baseline dates and one later target). The study displays the selected algorithm label and the exclusions; the browser validator rejects missing or inconsistent DSG provenance. The diagnostic artifact retains the per-date full-scene and candidate-layer audit.
+
+This candidate analysis is still exploratory: it does not transform SME2 PROVISIONAL data into calibrated ground truth, and it is not a validated crop-stress or irrigation product. Compare the algorithm outputs as distinct product streams, not as if they were interchangeable layers from one retrieval.
+
 ## Cloud-only processing (recommended)
 
 A cloud-only GitHub Actions workflow is available at `.github/workflows/agriculture-cloud.yml`. It runs on GitHub-hosted compute and does not require a local Python environment or manual satellite-file downloads. Because this project is being kept on `Rubai-dev` without changing the default branch, start a run from the GitHub website by creating or editing `pipeline/agriculture-cloud-request.json` on `Rubai-dev`. That file's push triggers the cloud workflow. Use the request fields `west`, `south`, `east`, `north`, `start`, `end`, optional `series_id`, and optional `allow_missing_imerg`.
