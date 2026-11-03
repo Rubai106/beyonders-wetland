@@ -45,7 +45,7 @@ class AgricultureSME2Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "candidate-audit.h5"
             with h5py.File(path, "w") as handle:
-                grids = handle.create_group("/science/LSAR/SME2/grids")
+                grids = handle.require_group("/science/LSAR/SME2/grids")
                 candidates = grids.create_group("algorithmCandidates")
                 dsg = candidates.create_group("DSG")
                 moisture = dsg.create_dataset("soilMoisture", data=np.full((2, 2), 0.24, dtype="float32"))
