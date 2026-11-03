@@ -19,7 +19,7 @@ from agriculture_sme2 import (
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
     _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
-    quality_screen_diagnostics, _masked_array_diagnostics,
+    quality_screen_diagnostics, _masked_array_diagnostics, _algorithm_candidate_diagnostics,
 )
 
 
@@ -40,6 +40,52 @@ class AgricultureSME2Tests(unittest.TestCase):
         with patch("agriculture_sme2.urllib.request.urlopen", return_value=response):
             with self.assertRaisesRegex(AgricultureError, "Narrow the AOI or date range"):
                 _cmr_search({"west": 90, "south": 24, "east": 91, "north": 25}, "2026-06-17", "2026-10-29")
+
+    def test_algorithm_candidate_diagnostics_uses_matching_grid_and_shared_surface_flags(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "candidate-audit.h5"
+            with h5py.File(path, "w") as handle:
+                grids = handle.create_group("/science/LSAR/SME2/grids")
+                candidates = grids.create_group("algorithmCandidates")
+                dsg = candidates.create_group("DSG")
+                moisture = dsg.create_dataset("soilMoisture", data=np.full((2, 2), 0.24, dtype="float32"))
+                moisture.attrs["_FillValue"] = -9999.0
+                uncertainty = dsg.create_dataset("soilMoistureUncertainty", data=np.full((2, 2), 0.02, dtype="float32"))
+                uncertainty.attrs["_FillValue"] = -9999.0
+                dsg.create_dataset("retrievalQualityFlag", data=np.full((2, 2), 15, dtype="int16"))
+                dsg.create_dataset("xCoordinates", data=np.array([100.0, 300.0]))
+                dsg.create_dataset("yCoordinates", data=np.array([300.0, 100.0]))
+                candidates.create_group("PMI")
+
+            result = _algorithm_candidate_diagnostics(
+                path, (2, 2), 0, 2, 0, 2, False, False,
+                np.array([100.0, 300.0]), np.array([300.0, 100.0]),
+                np.zeros((2, 2), dtype="int16"), np.ones((2, 2), dtype=bool),
+            )
+            self.assertEqual(result["status"], "AUDITED")
+            self.assertEqual(result["algorithms"]["DSG"]["status"], "AUDITED")
+            self.assertEqual(result["algorithms"]["DSG"]["quality"]["all_screen_pass_pixels"], 4)
+            self.assertEqual(result["algorithms"]["DSG"]["surface_flag_source"], "shared_root_surfaceQualityFlag")
+            self.assertEqual(result["algorithms"]["PMI"]["status"], "MISSING_REQUIRED_LAYERS")
+
+    def test_algorithm_candidate_diagnostics_rejects_coordinate_mismatch(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "candidate-mismatch.h5"
+            with h5py.File(path, "w") as handle:
+                candidates = handle.create_group("/science/LSAR/SME2/grids/algorithmCandidates")
+                dsg = candidates.create_group("DSG")
+                dsg.create_dataset("soilMoisture", data=np.full((2, 2), 0.24, dtype="float32"))
+                dsg.create_dataset("soilMoistureUncertainty", data=np.full((2, 2), 0.02, dtype="float32"))
+                dsg.create_dataset("retrievalQualityFlag", data=np.full((2, 2), 15, dtype="int16"))
+                dsg.create_dataset("xCoordinates", data=np.array([101.0, 301.0]))
+                dsg.create_dataset("yCoordinates", data=np.array([300.0, 100.0]))
+
+            result = _algorithm_candidate_diagnostics(
+                path, (2, 2), 0, 2, 0, 2, False, False,
+                np.array([100.0, 300.0]), np.array([300.0, 100.0]),
+                np.zeros((2, 2), dtype="int16"), np.ones((2, 2), dtype=bool),
+            )
+            self.assertEqual(result["algorithms"]["DSG"]["status"], "GRID_COORDINATE_MISMATCH")
 
     def test_masked_array_diagnostics_reports_fill_like_and_flag_distributions(self):
         values = np.array([[0.2, -9999.0, np.nan, 0.4]], dtype="float64")
