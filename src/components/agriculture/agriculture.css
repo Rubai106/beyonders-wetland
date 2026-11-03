@@ -1345,3 +1345,73 @@
   .agri-online-series__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .agri-online-results__header { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Acquisition-aligned IMERG rainfall context. */
+.agriculture-workspace .agri-rainfall {
+  display: grid; gap: 9px; padding: 11px 10px 10px;
+  border: 1px solid #2b4147; border-radius: 4px; background: #0b171c;
+}
+.agriculture-workspace .agri-rainfall__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.agriculture-workspace .agri-rainfall__head > div { display: grid; gap: 4px; }
+.agriculture-workspace .agri-rainfall__head strong { color: #dce9e9; font-size: .75rem; }
+.agriculture-workspace .agri-rainfall__resolution { color: #82999e; font: .55rem var(--font-mono, monospace); white-space: nowrap; }
+.agriculture-workspace .agri-rainfall__windows { display: flex; flex-wrap: wrap; gap: 5px; }
+.agriculture-workspace .agri-rainfall__windows button {
+  min-width: 42px; padding: 5px 8px; border: 1px solid #354b51; border-radius: 3px;
+  background: #101e23; color: #9bb0b4; cursor: pointer; font: 650 .58rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-rainfall__windows button[aria-pressed="true"] {
+  border-color: #548b91; background: #16363b; color: #c9f1eb;
+}
+.agriculture-workspace .agri-rainfall__plot {
+  position: relative; height: 104px; margin: 0 8px 0 45px;
+  border-bottom: 1px solid #40545a; background: linear-gradient(to bottom, transparent 49%, #263a40 50%, transparent 51%);
+}
+.agriculture-workspace .agri-rainfall__axis {
+  position: absolute; top: 0; bottom: 0; left: -44px; display: flex; flex-direction: column;
+  justify-content: space-between; color: #81969c; font: .53rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-rainfall__bars { position: absolute; inset: 0; }
+.agriculture-workspace .agri-rainfall__bar-slot {
+  position: absolute; bottom: 0; display: flex; align-items: flex-end; justify-content: center;
+  width: 22px; height: 100%; padding: 0; border: 0; background: transparent;
+  transform: translateX(-50%); cursor: pointer;
+}
+.agriculture-workspace .agri-rainfall__bar {
+  display: block; width: 8px; min-height: 2px; border-radius: 2px 2px 0 0;
+  background: #4d9f9a; opacity: .78;
+}
+.agriculture-workspace .agri-rainfall__bar-slot.is-active .agri-rainfall__bar {
+  width: 12px; background: #a8dfc8; opacity: 1;
+}
+.agriculture-workspace .agri-rainfall__missing-mark {
+  display: block; width: 8px; height: 8px; margin-bottom: 4px;
+  border: 1px dashed #d2a86f; border-radius: 50%; background: #172127;
+}
+.agriculture-workspace .agri-rainfall__bar-slot:focus-visible {
+  outline: 2px solid #87d6df; outline-offset: 2px;
+}
+.agriculture-workspace .agri-rainfall__dates {
+  position: absolute; inset: auto 0 -17px; height: 13px; color: #82979c;
+  font: .52rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-rainfall__dates span { position: absolute; white-space: nowrap; transform: translateX(-50%); }
+.agriculture-workspace .agri-rainfall__dates span.is-start { transform: none; }
+.agriculture-workspace .agri-rainfall__dates span.is-end { transform: translateX(-100%); }
+.agriculture-workspace .agri-rainfall__dates span.is-center { transform: translateX(-50%); }
+.agriculture-workspace .agri-rainfall__selected {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-top: 11px; padding-top: 7px; border-top: 1px solid #263a40;
+}
+.agriculture-workspace .agri-rainfall__selected strong { color: #bde7d5; font: 650 .85rem var(--font-mono, monospace); }
+.agriculture-workspace .agri-rainfall__selected span { color: #91a5a9; font-size: .58rem; text-align: right; }
+.agriculture-workspace .agri-rainfall__note { color: #82979c; font-size: .57rem; line-height: 1.5; }
+.agriculture-workspace .agri-rainfall__empty {
+  display: grid; gap: 5px; padding: 10px; border: 1px dashed #45545a; border-radius: 3px;
+  background: #0d191e;
+}
+.agriculture-workspace .agri-rainfall__empty strong { color: #d4c09a; font-size: .68rem; }
+.agriculture-workspace .agri-rainfall__empty p { color: #91a4a9; font-size: .61rem; line-height: 1.5; }
