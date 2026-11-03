@@ -67,6 +67,10 @@ def main() -> int:
             page.locator(".agri-date-rail").count() == 0,
             "the calendar-spaced acquisition rail is withheld when no real SME2 observations exist",
         )
+        require(
+            page.locator(".agri-rainfall").count() == 0,
+            "the IMERG rainfall visualization is withheld when no checksum-verified SME2 study exists",
+        )
         agriculture_map = page.locator(".agri-map")
         require(
             agriculture_map.count() == 1 and agriculture_map.is_visible(),
