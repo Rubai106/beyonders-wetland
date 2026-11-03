@@ -602,6 +602,7 @@ def _algorithm_candidate_diagnostics(
                 "surface_flag_source": surface_source,
                 "quality": quality_screen_diagnostics(
                     moisture, uncertainty, retrieval, surface, aoi_mask, fill_ok,
+                    "candidate-zero-clear",
                 ),
                 "layers": {
                     "soilMoisture": _masked_array_diagnostics(moisture, aoi_mask),
@@ -617,12 +618,65 @@ def _algorithm_candidate_diagnostics(
     return {"status": "AUDITED", "algorithms": results}
 
 
-def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str, str]) -> dict[str, Any]:
+def _resolve_measurement_layers(
+    handle: h5py.File,
+    algorithm: str,
+    baseline_layers: dict[str, h5py.Dataset],
+    root_x: np.ndarray,
+    root_y: np.ndarray,
+) -> tuple[dict[str, h5py.Dataset], str]:
+    """Resolve a specific SME2 algorithm without conflating its flag semantics."""
+    if algorithm == "baseline":
+        return baseline_layers, "baseline-bitmask"
+    if algorithm != "DSG":
+        raise AgricultureError(f"Unsupported SME2 algorithm {algorithm!r}; choose 'baseline' or 'DSG'.")
+
+    candidate = handle.get("/science/LSAR/SME2/grids/algorithmCandidates/DSG")
+    if not isinstance(candidate, h5py.Group):
+        raise AgricultureError("This SME2 granule does not contain the DSG algorithm candidate group.")
+    layers = {
+        key: candidate.get(key)
+        for key in ("soilMoisture", "soilMoistureUncertainty", "retrievalQualityFlag")
+    }
+    missing = [key for key, value in layers.items() if not isinstance(value, h5py.Dataset)]
+    if missing:
+        raise AgricultureError("The DSG candidate is missing required layers: " + ", ".join(missing) + ".")
+    if any(tuple(dataset.shape) != tuple(baseline_layers["soilMoisture"].shape) for dataset in layers.values()):
+        raise AgricultureError("The DSG candidate layers do not share the root SME2 native grid shape.")
+
+    candidate_x = candidate.get("xCoordinates")
+    candidate_y = candidate.get("yCoordinates")
+    if not isinstance(candidate_x, h5py.Dataset) or not isinstance(candidate_y, h5py.Dataset):
+        raise AgricultureError("The DSG candidate is missing its own x/y coordinate vectors.")
+    candidate_x_values = np.asarray(candidate_x[...], dtype="float64").reshape(-1)
+    candidate_y_values = np.asarray(candidate_y[...], dtype="float64").reshape(-1)
+    if (candidate_x_values.shape != root_x.shape or candidate_y_values.shape != root_y.shape or
+            not np.allclose(candidate_x_values, root_x, rtol=0, atol=1e-6) or
+            not np.allclose(candidate_y_values, root_y, rtol=0, atol=1e-6)):
+        raise AgricultureError("The DSG candidate coordinates do not exactly align with the root SME2 native grid.")
+
+    candidate_surface = candidate.get("surfaceQualityFlag")
+    if not isinstance(candidate_surface, h5py.Dataset):
+        candidate_surface = baseline_layers["surfaceQualityFlag"]
+    if tuple(candidate_surface.shape) != tuple(baseline_layers["soilMoisture"].shape):
+        raise AgricultureError("The DSG surface-quality layer does not share the native SME2 grid.")
+    layers["surfaceQualityFlag"] = candidate_surface
+    return layers, "candidate-zero-clear"
+
+
+def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str, str],
+                algorithm: str = "baseline") -> dict[str, Any]:
     if not _looks_like_sme2_hdf5(path):
         raise AgricultureError(f"Not a compatible SME2 HDF5 file: {path.name}")
     with h5py.File(path, "r") as handle:
         grids = handle["/science/LSAR/SME2/grids"]
-        layers = _baseline_layers(handle)
+        baseline_layers = _baseline_layers(handle)
+        x_ds, y_ds = grids.get("xCoordinates"), grids.get("yCoordinates")
+        if not isinstance(x_ds, h5py.Dataset) or not isinstance(y_ds, h5py.Dataset):
+            raise AgricultureError("SME2 root grid is missing xCoordinates or yCoordinates.")
+        x = np.asarray(x_ds[...], dtype="float64").reshape(-1)
+        y = np.asarray(y_ds[...], dtype="float64").reshape(-1)
+        layers, retrieval_mode = _resolve_measurement_layers(handle, algorithm, baseline_layers, x, y)
         moisture_ds = layers["soilMoisture"]
         uncertainty_ds = layers["soilMoistureUncertainty"]
         retrieval_ds = layers["retrievalQualityFlag"]
@@ -636,11 +690,6 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         if moisture.ndim != 2 or any(item.shape != moisture.shape for item in (uncertainty, retrieval, surface)):
             raise AgricultureError(f"Required SME2 baseline layers have incompatible shapes in {path.name}.")
 
-        x_ds, y_ds = grids.get("xCoordinates"), grids.get("yCoordinates")
-        if not isinstance(x_ds, h5py.Dataset) or not isinstance(y_ds, h5py.Dataset):
-            raise AgricultureError("SME2 root grid is missing xCoordinates or yCoordinates.")
-        x = np.asarray(x_ds[...], dtype="float64").reshape(-1)
-        y = np.asarray(y_ds[...], dtype="float64").reshape(-1)
         if len(x) != moisture.shape[1] or len(y) != moisture.shape[0]:
             raise AgricultureError("SME2 root x/y coordinate vectors do not match the baseline raster dimensions.")
         epsg = _epsg_from_handle(handle, x, y)
@@ -714,15 +763,16 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         fill_ok &= moisture != fill
     for fill in uncertainty_fill_values:
         fill_ok &= uncertainty != fill
-    valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
+    valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok, retrieval_mode)
     valid &= in_aoi
     quality_audit = {
+        "retrieval_interpretation": retrieval_mode,
         "aoi": quality_screen_diagnostics(
-            moisture, uncertainty, retrieval, surface, in_aoi, fill_ok,
+            moisture, uncertainty, retrieval, surface, in_aoi, fill_ok, retrieval_mode,
         ),
         "native_grid": quality_screen_diagnostics(
             moisture, uncertainty, retrieval, surface,
-            np.ones(moisture.shape, dtype=bool), fill_ok,
+            np.ones(moisture.shape, dtype=bool), fill_ok, retrieval_mode,
         ),
         "layers": {
             "soilMoisture": _masked_array_diagnostics(moisture, in_aoi),
@@ -776,17 +826,20 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         "surface_flag_diagnostics": surface_diagnostics,
         "quality_diagnostics": quality_audit,
         "algorithm_candidate_diagnostics": candidate_diagnostics,
+        "algorithm": "DSG" if algorithm == "DSG" else "BASELINE",
+        "retrieval_mode": retrieval_mode,
     }
 
 
 def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: np.ndarray,
-                 surface_flag: np.ndarray, fill_ok: np.ndarray | None = None) -> np.ndarray:
-    """Strict SME2 flag screen; cast uint8 to float64 before using -1 sentinel.
+                 surface_flag: np.ndarray, fill_ok: np.ndarray | None = None,
+                 retrieval_mode: str = "baseline-bitmask") -> np.ndarray:
+    """Apply the product-specific SME2 retrieval and shared surface-quality screen.
 
-    retrievalQualityFlag is a bit field: bits 0-3 must all be set and bits 4-7
-    must all be clear. surfaceQualityFlag must equal zero. Fractional flags,
-    NoData, invalid uncertainty and moisture outside the conservative physical
-    range are not assessed.
+    The root baseline layer uses the existing low-nibble status-bit rule.
+    NASA/JPL D-107677 Rev C separately defines DSG/TSR algorithmCandidates
+    retrievalQualityFlag as zero=clear and non-zero=anomaly. The latter rule
+    must never be substituted onto the root baseline layer.
     """
     moisture = np.asarray(moisture, dtype="float64")
     uncertainty = np.asarray(uncertainty, dtype="float64")
@@ -798,9 +851,19 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     valid &= np.isfinite(uncertainty) & (uncertainty >= 0)
     retrieval_integer = np.where(np.isfinite(retrieval_values), retrieval_values, -1).astype("int64")
     surface_integer = np.where(np.isfinite(surface_values), surface_values, -1).astype("int64")
-    valid &= np.isfinite(retrieval_values) & (retrieval_values >= 0) & (retrieval_values <= 255) & np.isclose(retrieval_values, np.round(retrieval_values))
-    valid &= (retrieval_integer & 0x0F) == 0x0F
-    valid &= (retrieval_integer & 0xF0) == 0
+    retrieval_integer_ok = (
+        np.isfinite(retrieval_values)
+        & (retrieval_values >= 0) & (retrieval_values <= 255)
+        & np.isclose(retrieval_values, np.round(retrieval_values))
+    )
+    if retrieval_mode == "baseline-bitmask":
+        valid &= retrieval_integer_ok
+        valid &= (retrieval_integer & 0x0F) == 0x0F
+        valid &= (retrieval_integer & 0xF0) == 0
+    elif retrieval_mode == "candidate-zero-clear":
+        valid &= retrieval_integer_ok & (retrieval_values == 0)
+    else:
+        raise AgricultureError(f"Unsupported SME2 retrieval-flag interpretation: {retrieval_mode!r}.")
     valid &= np.isfinite(surface_values) & np.isclose(surface_values, np.round(surface_values))
     valid &= surface_integer == 0
     if fill_ok is not None:
@@ -840,6 +903,7 @@ def quality_screen_diagnostics(
     surface_flag: np.ndarray,
     aoi_mask: np.ndarray,
     fill_ok: np.ndarray | None = None,
+    retrieval_mode: str = "baseline-bitmask",
 ) -> dict[str, int]:
     """Count each strict SME2 quality-screen component inside an AOI.
 
@@ -861,13 +925,23 @@ def quality_screen_diagnostics(
     moisture_pass = np.isfinite(moisture) & (moisture >= MOISTURE_MIN) & (moisture <= MOISTURE_MAX)
     uncertainty_pass = np.isfinite(uncertainty) & (uncertainty >= 0)
     retrieval_integer = np.where(np.isfinite(retrieval_values), retrieval_values, -1).astype("int64")
-    retrieval_pass = (
+    retrieval_integer_ok = (
         np.isfinite(retrieval_values)
         & (retrieval_values >= 0) & (retrieval_values <= 255)
         & np.isclose(retrieval_values, np.round(retrieval_values))
-        & ((retrieval_integer & 0x0F) == 0x0F)
-        & ((retrieval_integer & 0xF0) == 0)
     )
+    if retrieval_mode == "baseline-bitmask":
+        retrieval_pass = (
+            retrieval_integer_ok
+            & ((retrieval_integer & 0x0F) == 0x0F)
+            & ((retrieval_integer & 0xF0) == 0)
+        )
+    elif retrieval_mode == "candidate-zero-clear":
+        # NASA/JPL D-107677 Rev C explicitly describes the DSG/TSR
+        # algorithmCandidates retrievalQualityFlag as 0=clear, non-zero=anomaly.
+        retrieval_pass = retrieval_integer_ok & (retrieval_values == 0)
+    else:
+        raise AgricultureError(f"Unsupported SME2 retrieval-flag interpretation: {retrieval_mode!r}.")
     surface_integer = np.where(np.isfinite(surface_values), surface_values, -1).astype("int64")
     surface_pass = (
         np.isfinite(surface_values) & np.isclose(surface_values, np.round(surface_values))
@@ -1415,6 +1489,7 @@ def analyze(
     crop_mask_date: str | None = None,
     crop_probability_threshold: float = 0.5,
     crop_mask_coverage_floor: float = 0.8,
+    algorithm: str = "baseline",
 ) -> dict[str, Any]:
     folder = run_folder(run_id)
     search_manifest = json_read(folder / "search.json")
@@ -1435,7 +1510,9 @@ def analyze(
     if selected_series is None:
         raise AgricultureError("Download receipt series does not match the saved search manifest.")
     expected_signature = selected_series["signature"]
-    scenes = [_read_scene(path, search_manifest["aoi"], expected_signature) for path in files]
+    if algorithm not in {"baseline", "DSG"}:
+        raise AgricultureError("Algorithm must be 'baseline' or 'DSG'.")
+    scenes = [_read_scene(path, search_manifest["aoi"], expected_signature, algorithm) for path in files]
     scenes.sort(key=lambda item: item["date"])
     if len({scene["date"] for scene in scenes}) != len(scenes):
         raise AgricultureError("Multiple selected granules resolve to the same acquisition date.")
@@ -1444,7 +1521,18 @@ def analyze(
 
     empty_scenes = [
         scene for scene in scenes
-        if scene["quality_diagnostics"]["aoi"]["all_screen_pass_pixels"] == 0
+        if not np.any(scene["valid"] & scene["aoi_mask"])
+    ]
+    quality_exclusions = [
+        {
+            "date": scene["date"],
+            "granule_name": scene["file"].name,
+            "reason": "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN",
+            "valid_pixels": 0,
+            "total_pixels": int(scene["quality_diagnostics"]["aoi"]["aoi_pixels"]),
+            "retrieval_interpretation": scene["retrieval_mode"],
+        }
+        for scene in empty_scenes
     ]
     if empty_scenes:
         diagnostic_path = folder / "result" / "quality-diagnostics.json"
@@ -1477,11 +1565,18 @@ def analyze(
             ),
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
-        dates = ", ".join(scene["date"] for scene in empty_scenes)
-        raise AgricultureError(
-            f"No usable AOI retrievals on {dates}; full-scene and per-layer diagnostics saved to "
-            f"{diagnostic_path.relative_to(folder)}. No study was published."
-        )
+        if algorithm == "baseline":
+            dates = ", ".join(scene["date"] for scene in empty_scenes)
+            raise AgricultureError(
+                f"No usable baseline AOI retrievals on {dates}; full-scene and per-layer diagnostics saved to "
+                f"{diagnostic_path.relative_to(folder)}. No baseline study was published."
+            )
+        scenes = [scene for scene in scenes if scene not in empty_scenes]
+        if len(scenes) < 4:
+            raise AgricultureError(
+                f"Only {len(scenes)} DSG observations have valid AOI pixels after excluding {len(empty_scenes)} "
+                f"flagged/empty dates; at least four are required. Diagnostics: {diagnostic_path.relative_to(folder)}."
+            )
 
     first = scenes[0]
     baseline = scenes[:3]
@@ -1515,12 +1610,6 @@ def analyze(
         name = f"moisture-{scene['date']}.png"
         preview = output / "previews" / name
         native = output / "native" / f"moisture-{scene['date']}.tif"
-        if not np.any(scene["valid"] & scene["aoi_mask"]):
-            raise AgricultureError(
-                f"Observation {scene['date']} has no valid pixels after the SME2 quality screen; "
-                f"per-gate AOI counts: {json.dumps(scene['quality_diagnostics'], sort_keys=True)}; "
-                f"surface flags: {json.dumps(scene['surface_flag_diagnostics'], sort_keys=True)}"
-            )
         summary = _summary(scene["moisture"], scene["valid"], scene["uncertainty"], scene["aoi_mask"])
         _preview(scene["moisture"], scene["valid"], preview)
         _write_geotiff(native, scene["moisture"], scene["valid"], scene["epsg"], scene["transform"])
@@ -1566,6 +1655,9 @@ def analyze(
     study = {
         "schema_version": 2, "study_id": run_id, "run_id": run_id,
         "product": PRODUCT, "product_maturity": "PROVISIONAL",
+        "algorithm": "DSG" if algorithm == "DSG" else "BASELINE",
+        "algorithm_label": "DSG algorithm candidate" if algorithm == "DSG" else "Root baseline product",
+        "quality_exclusions": quality_exclusions,
         **signature,
         "aoi": search_manifest["aoi"], "preview_bounds": target["preview_bounds"], "date_range": search_manifest["date_range"],
         "coverage_floor": COVERAGE_FLOOR, "baseline_count": 3,
@@ -1580,10 +1672,21 @@ def analyze(
             "source_files": [{"name": path.name, "bytes": path.stat().st_size, "sha256": sha256_file(path)} for path in files],
             "crs": f"EPSG:{target['epsg']}", "native_grid_shape": list(target["moisture"].shape),
             "pixel_spacing": [abs(float(target["transform"].a)), abs(float(target["transform"].e))],
-            "quality_protocol": "soilMoisture in [0.02,0.60] m3/m3; finite non-negative uncertainty; retrievalQualityFlag bits 0-3 set and 4-7 clear; surfaceQualityFlag zero; NoData/fractional flags excluded",
+            "quality_protocol": (
+                "DSG candidate: retrievalQualityFlag == 0 (NASA/JPL D-107677 Rev C zero=clear; non-zero=anomaly); "
+                "baseline: lower retrieval bits 0-3 set and bits 4-7 clear; both require soilMoisture in "
+                "[0.02,0.60] m3/m3, finite non-negative uncertainty, surfaceQualityFlag == 0, valid fill and AOI."
+                if algorithm == "DSG" else
+                "Root baseline: retrievalQualityFlag bits 0-3 set and bits 4-7 clear; soilMoisture in "
+                "[0.02,0.60] m3/m3; finite non-negative uncertainty; surfaceQualityFlag == 0; fill and AOI valid."
+            ),
         },
         "limitations": [
             "SME2 PROVISIONAL soil-moisture estimates are not fully calibrated; this is exploratory evidence.",
+            *(
+                ["This study uses the DSG algorithmCandidates output, not the root baseline layer. Its retrievalQualityFlag is interpreted using the NASA/JPL zero-clear rule; dates with no valid DSG AOI retrieval are listed in quality_exclusions."]
+                if algorithm == "DSG" else []
+            ),
             "A soil-moisture difference is not a crop-stress, drought, irrigation, yield, crop-type, or field-boundary assessment.",
             "The 20% coverage floor is fixed. Below-floor target or change coverage is inconclusive.",
             "The same-pixel cohort is the strict intersection of all observation quality masks; low cohort coverage is reported rather than widened or interpolated.",
@@ -1599,7 +1702,9 @@ def analyze(
     json_write(output / "study.json", study)
     # Record a concise operator report separately from the public study.
     json_write(output / "analysis-report.json", {
-        "run_id": run_id, "evidence_status": evidence_status,
+        "run_id": run_id, "algorithm": study["algorithm"],
+        "quality_exclusions": quality_exclusions,
+        "evidence_status": evidence_status,
         "target_coverage": target_summary["valid_fraction"], "change_coverage": change_summary["valid_fraction"],
         "valid_pixels": change_summary["valid_pixels"], "total_pixels": change_summary["total_pixels"],
         "matched_support_status": matched_support["status"],
@@ -1691,6 +1796,8 @@ def build_parser() -> argparse.ArgumentParser:
     get.add_argument("--series-id")
     process = sub.add_parser("analyze", help="Analyze genuine compatible SME2 HDF5 granules")
     process.add_argument("--run-id", required=True)
+    process.add_argument("--algorithm", choices=["baseline", "DSG"], default="baseline",
+                         help="Use the root baseline product or the explicitly separate DSG algorithm candidate.")
     process.add_argument("--crop-mask", type=Path, help="Optional independent probability/binary crop-mask GeoTIFF (values 0..1)")
     process.add_argument("--crop-mask-source", help="Required provenance label for the independent crop-mask source")
     process.add_argument("--crop-mask-date", help="Optional source date, YYYY-MM-DD")
@@ -1715,9 +1822,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "analyze":
             study = analyze(
                 args.run_id, args.crop_mask, args.crop_mask_source, args.crop_mask_date,
-                args.crop_probability_threshold, args.crop_mask_coverage_floor,
+                args.crop_probability_threshold, args.crop_mask_coverage_floor, args.algorithm,
             )
-            print(f"{study['evidence_status']}: {study['target_summary']['valid_fraction']:.1%} target coverage; {study['change_summary']['valid_fraction']:.1%} change coverage.")
+            print(f"{study['algorithm']} · {study['evidence_status']}: {study['target_summary']['valid_fraction']:.1%} target coverage; {study['change_summary']['valid_fraction']:.1%} change coverage.")
+            print(f"Quality exclusions: {len(study.get('quality_exclusions', []))} acquisition date(s).")
             if study.get("crop_observability"):
                 crop = study["crop_observability"]["common_support"]
                 print(f"Crop observability: {crop['status']} · {crop['valid_crop_area_fraction']:.1%} of mapped crop area valid across all dates.")
