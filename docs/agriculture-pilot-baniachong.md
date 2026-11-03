@@ -1,7 +1,7 @@
 # Baniachong Agriculture pilot — site selection and CMR preflight
 
 **Branch:** `Rubai-dev`  
-**Status:** candidate site selected; live CMR coverage not yet checked from this commit  
+**Status:** catalogue preflight passed; awaiting authenticated granule inspection and independent crop-mask verification  
 **Product:** `NISAR_L3_SME2_PROVISIONAL_V1`
 
 ## Why Baniachong
@@ -69,3 +69,39 @@ The existing pipeline already has the strict crop-mask alignment, fractional are
 - **No-go:** no series passes, the series identity is mixed, HDF5 validation fails, crop coverage is insufficient, or common valid crop support falls below the existing policy floor. Revise the site/date window or keep the pilot unpublished. Do not weaken quality flags or manufacture sample measurements.
 
 Passing the build and catalogue preflight is not a real-data agricultural validation. No Baniachong SME2 observations, crop-mask outputs or Agriculture publication are claimed by this document.
+
+
+## Live CMR preflight result — 3 November 2026
+
+The automatic [Agriculture pilot preflight run #3](https://github.com/Rubai106/beyonders-wetland/actions/runs/41578135246) completed successfully on `Rubai-dev`. It queried the public NASA CMR catalogue for `NISAR_L3_SME2_PROVISIONAL_V1` over 2026-01-01 through 2026-10-31. Both configured Baniachong AOIs returned the same 30 compatible granules and the same four product-identity series. The primary AOI is therefore a workflow priority, not a catalogue-coverage winner.
+
+Two series pass the six-date / 60-day preflight:
+
+| Download-compatible series ID | Track / frame | Orbit | Polarization / bandwidth / frequency | Dates | Span | Median / maximum gap |
+|---|---|---|---|---:|---:|---:|
+| `c5f219dd7bbc` | 141 / 014 | Ascending | DHDH / 4005 / A | 10 | 120 days | 12 / 24 days |
+| `540e079403d5` | 069 / 014 | Ascending | DHDH / 4005 / A | 10 | 120 days | 12 / 24 days |
+
+The series are separate tracks and must remain separate time series. Their acquisition dates are:
+
+- Track 141: 2026-06-23, 07-05, 07-17, 08-10, 08-22, 09-03, 09-15, 09-27, 10-09 and 10-21.
+- Track 069: 2026-06-18, 06-30, 07-12, 07-24, 08-17, 08-29, 09-10, 09-22, 10-04 and 10-16.
+
+Two additional descending-track 091 series each have five observations and do not pass the current six-date gate: QPDH/2005 (120-day span, maximum gap 48 days) and DHDH/4005 (96-day span, maximum gap 24 days). The preflight gate is intended to retain enough real acquisitions for a later event-response investigation; it is not a scientific quality threshold.
+
+**Season qualification:** the earliest returned acquisition is 2026-06-18. These series do not cover the full historical Boro season represented in NASA's March 2021 Baniachong image. Do not call this a 2026 Boro-season study. The crop/season present during June–October 2026 must be established with independent, date-aligned crop observations and local crop-calendar context.
+
+**Still unverified:** the CMR result is catalogue/footprint evidence only. No SME2 granule was downloaded in this preflight; no HDF5 hierarchy, native grid, fill values, retrieval/surface flags, moisture values, uncertainty, or valid-pixel fraction has been inspected. No crop mask has been aligned and no Agriculture study has been published.
+
+### Operator handoff after local Earthdata Login
+
+From the repository root, run the existing search for the primary AOI and inspect the generated `search.json` before downloading. The following two commands are intentionally separate because tracks must not be mixed:
+
+```powershell
+python pipeline/agriculture_sme2.py search --run-id baniachong-2026 --west 91.3867 --south 24.3533 --east 91.4467 --north 24.4133 --start 2026-01-01 --end 2026-10-31
+python pipeline/agriculture_sme2.py download --run-id baniachong-2026 --series-id c5f219dd7bbc
+```
+
+To inspect the second track, use a separate run ID (for example `baniachong-track069-2026`) and series ID `540e079403d5`. Downloading requires a local interactive Earthdata Login through the existing terminal workflow; do not put credentials in GitHub Actions, the website or this preflight. Start with the better-supported track only after checking the actual HDF5 metadata and native-grid AOI support from the downloaded receipt. The CMR count alone cannot rank track 141 versus track 069.
+
+Next gate: supply a dated independent fine-resolution crop-probability GeoTIFF, verify its source and alignment against the actual SME2 grid, and run the existing crop-support audit. If the actual crop-covered valid common support is inadequate, keep the study unpublished or revise the AOI/date window transparently.
