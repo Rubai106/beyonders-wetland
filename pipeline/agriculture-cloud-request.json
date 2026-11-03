@@ -6,5 +6,6 @@
   "start": "2026-06-17",
   "end": "2026-11-02",
   "allow_missing_imerg": true,
-  "request_note": "public-catalogue-preflight-after-authentication-order-update"
+  "request_note": "public-catalogue-preflight-after-authentication-order-update",
+  "series_id": "b42cefcd8c0e"
 }
