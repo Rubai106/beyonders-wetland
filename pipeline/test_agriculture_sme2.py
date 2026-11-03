@@ -18,11 +18,20 @@ from agriculture_sme2 import (
     AgricultureError, COLLECTION, CMR_PAGE_SIZE, quality_mask, safe_run_id, validate_aoi_dates, _cmr_search,
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
-    _align_crop_probability_mask, _crop_support_audit,
+    _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
 )
 
 
 class AgricultureSME2Tests(unittest.TestCase):
+    def test_cmr_granule_title_matches_downloaded_hdf5_extension_exactly(self):
+        title = "NISAR_L3_PR_SME2_023_170_A_014_4005_DHDH_A_20260625T232955_20260625T233029_P05023_N_F_J_001"
+        self.assertTrue(_matches_granule_filename(Path(title + ".h5"), title))
+        self.assertTrue(_matches_granule_filename(Path(title + ".hdf5"), title))
+        self.assertTrue(_matches_granule_filename(Path(title), title))
+        self.assertFalse(_matches_granule_filename(Path(title + "_QA_STATS.h5"), title))
+        self.assertFalse(_matches_granule_filename(Path(title + "_other.h5"), title))
+        self.assertFalse(_matches_granule_filename(Path("different-granule.h5"), title))
+
     def test_cmr_truncation_fails_closed(self):
         class Response(io.BytesIO):
             headers = {"CMR-Hits": str(CMR_PAGE_SIZE + 1)}
