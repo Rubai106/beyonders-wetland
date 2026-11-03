@@ -151,6 +151,30 @@ def main() -> int:
             page.locator(".agri-chart .agri-chart-point button").count() == EXPECTED_DATES,
             "the moisture trajectory contains six selectable real acquisition points",
         )
+        date_valid_drift_points = page.locator('.agri-support-drift__point--valid[role="button"]')
+        same_pixel_drift_points = page.locator('.agri-support-drift__point--fixed[role="button"]')
+        require(
+            date_valid_drift_points.count() == EXPECTED_DATES
+            and same_pixel_drift_points.count() == EXPECTED_DATES,
+            "the spatial-support comparison exposes both selectable series at all six real dates",
+        )
+        same_pixel_drift_points.nth(2).click()
+        page.locator(".agri-map-legend__matched").wait_for(state="visible", timeout=10_000)
+        require(
+            "3 / 6" in page.locator(".agri-footer-head").inner_text()
+            and page.locator(".agri-support-switch button").nth(1).get_attribute("aria-pressed") == "true"
+            and same_pixel_drift_points.nth(2).get_attribute("aria-pressed") == "true",
+            "selecting a fixed-cohort drift point syncs the third acquisition, chart and map",
+        )
+        date_valid_drift_points.nth(4).focus()
+        page.keyboard.press("Enter")
+        page.locator(".agri-map-legend__low").wait_for(state="visible", timeout=10_000)
+        require(
+            "5 / 6" in page.locator(".agri-footer-head").inner_text()
+            and page.locator(".agri-support-switch button").nth(0).get_attribute("aria-pressed") == "true"
+            and date_valid_drift_points.nth(4).get_attribute("aria-pressed") == "true",
+            "keyboard activation selects the fifth date and restores its date-valid footprint",
+        )
         require(
             "6 / 6" in page.locator(".agri-footer-head").inner_text()
             and "2026-10-23 target" in page.locator(".agri-footer-head").inner_text(),
