@@ -160,7 +160,7 @@ def main() -> int:
         )
 
         soil = panel.locator('.wx-scattering__choice[data-hypothesis-id="soil-moisture"]')
-        soil.evaluate("(button) => button.click()")
+        soil.click(force=True, timeout=10_000)
         soil.wait_for(state="attached", timeout=10_000)
         page.wait_for_function(
             """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="soil-moisture"][aria-pressed="true"]') !== null""",
@@ -180,7 +180,7 @@ def main() -> int:
         )
 
         vegetation = panel.locator('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"]')
-        vegetation.evaluate("(button) => button.click()")
+        vegetation.click(force=True, timeout=10_000)
         page.wait_for_function(
             """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="vegetation-surface"][aria-pressed="true"]') !== null""",
             timeout=10_000,
@@ -208,7 +208,7 @@ def main() -> int:
 
         # Step 2: build a real, selected-hypothesis CMR request and export its manifest.
         open_water = panel.locator('.wx-scattering__choice[data-hypothesis-id="open-water"]')
-        open_water.evaluate("(button) => button.click()")
+        open_water.click(force=True, timeout=10_000)
         page.wait_for_function(
             """() => document.querySelector('.wx-scattering__choice[data-hypothesis-id="open-water"][aria-pressed="true"]') !== null""",
             timeout=10_000,
@@ -261,7 +261,7 @@ def main() -> int:
             "adjusting the date window regenerates an explicit UTC granule-search range",
         )
         search_button = request_panel.get_by_role("button", name="Search NASA CMR granules")
-        search_button.evaluate("(button) => button.click()")
+        search_button.click(force=True, timeout=10_000)
         try:
             page.wait_for_function(
                 """() => {
@@ -342,7 +342,7 @@ def main() -> int:
         # The cards update as the controlled React shortlist state changes.
         # Dispatch the native input click directly instead of relying on a
         # geometry-stability click during the surrounding drawer animation.
-        first_shortlist.evaluate("(checkbox) => checkbox.click()")
+        first_shortlist.click(force=True, timeout=10_000)
         page.wait_for_function(
             """() => {
               const checkbox = document.querySelector("[data-testid='cmr-shortlist-checkbox']");
@@ -367,7 +367,7 @@ def main() -> int:
         require(not first_shortlist.is_checked(), "analyst can remove a granule from the shortlist")
 
         with page.expect_download() as empty_download_info:
-            request_panel.get_by_role("button", name="Download evidence request JSON").evaluate("(button) => button.click()")
+            request_panel.get_by_role("button", name="Download evidence request JSON").click(force=True, timeout=10_000)
         empty_download = empty_download_info.value
         with open(empty_download.path(), encoding="utf-8") as empty_file:
             empty_export = json.load(empty_file)
@@ -376,10 +376,10 @@ def main() -> int:
             "unchecking a granule removes it from the exported shortlist",
         )
 
-        first_shortlist.evaluate("(checkbox) => checkbox.click()")
+        first_shortlist.click(force=True, timeout=10_000)
         require(first_shortlist.is_checked(), "analyst can restore a granule to the review shortlist")
         with page.expect_download() as download_info:
-            request_panel.get_by_role("button", name="Download evidence request JSON").evaluate("(button) => button.click()")
+            request_panel.get_by_role("button", name="Download evidence request JSON").click(force=True, timeout=10_000)
         download = download_info.value
         request_path = download.path()
         with open(request_path, encoding="utf-8") as request_file:
