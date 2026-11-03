@@ -377,10 +377,10 @@ test("validates IMERG daily rainfall context against exact SME2 dates and comple
   const changed = structuredClone(study);
   const dates = changed.observations.map((item) => item.date);
   const windows = (scale: number) => ({
-    "1d": { rainfall_mm: 4 * scale, valid_days: 1, expected_days: 1 },
-    "3d": { rainfall_mm: 12 * scale, valid_days: 3, expected_days: 3 },
-    "7d": { rainfall_mm: 28 * scale, valid_days: 7, expected_days: 7 },
-    "12d": { rainfall_mm: 48 * scale, valid_days: 12, expected_days: 12 },
+    "1d": { rainfall_mm: 4 * scale, valid_days: 1, expected_days: 1, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "3d": { rainfall_mm: 12 * scale, valid_days: 3, expected_days: 3, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "7d": { rainfall_mm: 28 * scale, valid_days: 7, expected_days: 7, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "12d": { rainfall_mm: 48 * scale, valid_days: 12, expected_days: 12, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
   });
   changed.rainfall_context = {
     method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
@@ -389,6 +389,8 @@ test("validates IMERG daily rainfall context against exact SME2 dates and comple
     source: "NASA GPM IMERG Final daily precipitation",
     source_doi: "10.5067/GPM/IMERGDF/DAY/07",
     source_sha256: "d".repeat(64), source_bytes: 8192,
+    granules: [{ date: dates[0], concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
+    aoi_grid_cells: 4, spatial_coverage_floor: 0.9,
     observations: dates.map((date, index) => ({ date, windows: windows(index + 1) })),
   };
   assert.equal(isAgricultureStudy(changed), true);
@@ -402,10 +404,10 @@ test("keeps incomplete IMERG windows visibly missing instead of treating them as
   const changed = structuredClone(study);
   const dates = changed.observations.map((item) => item.date);
   const windows = () => ({
-    "1d": { rainfall_mm: null, valid_days: 0, expected_days: 1 },
-    "3d": { rainfall_mm: null, valid_days: 2, expected_days: 3 },
-    "7d": { rainfall_mm: 28, valid_days: 7, expected_days: 7 },
-    "12d": { rainfall_mm: 48, valid_days: 12, expected_days: 12 },
+    "1d": { rainfall_mm: null, valid_days: 0, expected_days: 1, spatial_coverage_fraction: 0, mean_half_hourly_samples: null },
+    "3d": { rainfall_mm: null, valid_days: 2, expected_days: 3, spatial_coverage_fraction: 0, mean_half_hourly_samples: null },
+    "7d": { rainfall_mm: 28, valid_days: 7, expected_days: 7, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "12d": { rainfall_mm: 48, valid_days: 12, expected_days: 12, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
   });
   changed.rainfall_context = {
     method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
@@ -414,6 +416,8 @@ test("keeps incomplete IMERG windows visibly missing instead of treating them as
     source: "NASA GPM IMERG Final daily precipitation",
     source_doi: "10.5067/GPM/IMERGDF/DAY/07",
     source_sha256: "e".repeat(64), source_bytes: 8192,
+    granules: [{ date: dates[0], concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
+    aoi_grid_cells: 4, spatial_coverage_floor: 0.9,
     observations: dates.map((date) => ({ date, windows: windows() })),
   };
   assert.equal(isAgricultureStudy(changed), true);
@@ -426,10 +430,10 @@ test("rejects mismatched IMERG dates, incomplete windows with numeric totals and
   const changed = structuredClone(study);
   const dates = changed.observations.map((item) => item.date);
   const complete = () => ({
-    "1d": { rainfall_mm: 1, valid_days: 1, expected_days: 1 },
-    "3d": { rainfall_mm: 3, valid_days: 3, expected_days: 3 },
-    "7d": { rainfall_mm: 7, valid_days: 7, expected_days: 7 },
-    "12d": { rainfall_mm: 12, valid_days: 12, expected_days: 12 },
+    "1d": { rainfall_mm: 1, valid_days: 1, expected_days: 1, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "3d": { rainfall_mm: 3, valid_days: 3, expected_days: 3, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "7d": { rainfall_mm: 7, valid_days: 7, expected_days: 7, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
+    "12d": { rainfall_mm: 12, valid_days: 12, expected_days: 12, spatial_coverage_fraction: 1, mean_half_hourly_samples: 48 },
   });
   changed.rainfall_context = {
     method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1",
@@ -438,6 +442,8 @@ test("rejects mismatched IMERG dates, incomplete windows with numeric totals and
     source: "NASA GPM IMERG Final daily precipitation",
     source_doi: "10.5067/GPM/IMERGDF/DAY/07",
     source_sha256: "f".repeat(64), source_bytes: 8192,
+    granules: [{ date: dates[0], concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
+    aoi_grid_cells: 4, spatial_coverage_floor: 0.9,
     observations: dates.map((date) => ({ date, windows: complete() })),
   };
   assert.equal(isAgricultureStudy(changed), true);
