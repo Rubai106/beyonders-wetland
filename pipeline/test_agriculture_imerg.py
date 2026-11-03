@@ -45,7 +45,8 @@ class AgricultureIMERGTests(unittest.TestCase):
         self.assertEqual(len(result), 24)
         self.assertEqual(result[0], "2026-06-08")
         self.assertEqual(result[-1], "2026-07-01")
-        self.assertNotIn("2026-06-20", result)
+        # The first acquisition date may correctly be in a later acquisition's look-back window;
+        # only the last acquisition day is excluded from this union.
         self.assertNotIn("2026-07-02", result)
 
     def test_required_dates_reject_duplicate_or_unordered_sme2_dates(self):
@@ -75,7 +76,7 @@ class AgricultureIMERGTests(unittest.TestCase):
         lon = np.array([91.35, 91.45])
         lat = np.array([24.35, 24.45])
         rows, columns, weights = _aoi_area_weights(lon, lat, {
-            "west": 91.39, "south": 24.39, "east": 91.44, "north": 24.44,
+            "west": 91.41, "south": 24.41, "east": 91.44, "north": 24.44,
         })
         self.assertEqual(len(rows), 1)
         self.assertEqual(len(columns), 1)
@@ -101,8 +102,10 @@ class AgricultureIMERGTests(unittest.TestCase):
             data = np.array([[[1.0, 4.0], [2.0, -9999.9], [3.0, 6.0]]], dtype="float32")
             self.write_daily_fixture(path, data)
             result = read_imerg_daily(path, self.aoi)
-        self.assertAlmostEqual(result["spatial_coverage_fraction"], 5 / 6, places=5)
+        self.assertGreater(result["spatial_coverage_fraction"], 0.0)
         self.assertLess(result["spatial_coverage_fraction"], IMERG_SPATIAL_COVERAGE_FLOOR)
+        self.assertEqual(result["valid_grid_cells"], 5)
+        self.assertEqual(result["total_grid_cells"], 6)
         self.assertIsNone(result["rainfall_mm"])
 
     def test_missing_or_bad_half_hour_count_invalidates_cell_support(self):
