@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
 export default function VolcanoPage() {
-  redirect("/volcano/global");
+  redirect("/volcano/hayli-gubbi");
 }
