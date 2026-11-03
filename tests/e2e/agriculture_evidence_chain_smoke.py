@@ -126,14 +126,19 @@ def main() -> int:
         change_action.click()
         page.locator(".agri-map-legend__decrease").wait_for(state="visible", timeout=10_000)
         require(
-            change_action.get_attribute("aria-pressed") == "true",
-            "the change layer can be selected directly from the map readout",
+            change_action.get_attribute("aria-pressed") == "true"
+            and "MEDIAN SOIL-MOISTURE CHANGE" in readout.inner_text()
+            and "0.033" in readout.inner_text()
+            and "TARGET-VERSUS-BASELINE CHANGE" in readout.inner_text(),
+            "the change layer readout reports the actual change statistics and target date",
         )
         same_pixels_action.click()
         page.locator(".agri-map-legend__matched").wait_for(state="visible", timeout=10_000)
         require(
-            same_pixels_action.get_attribute("aria-pressed") == "true",
-            "the same-pixel cohort layer can be selected directly from the map readout",
+            same_pixels_action.get_attribute("aria-pressed") == "true"
+            and "SAME-PIXEL MEDIAN SOIL MOISTURE" in readout.inner_text()
+            and "21.3%" in readout.inner_text(),
+            "the same-pixel map readout switches to the fixed-cohort moisture and coverage",
         )
         page.locator(".agri-map-toolbar").get_by_role("button", name="Soil moisture").click()
         crop_button = page.locator(".agri-map-toolbar").get_by_role("button", name="Crop area")
