@@ -125,6 +125,34 @@ export interface AgricultureCropObservability {
   source_coverage_preview: string;
 }
 
+export type AgricultureRainfallWindow = "1d" | "3d" | "7d" | "12d";
+
+export interface AgricultureRainfallWindowValue {
+  /** Daily accumulated precipitation in mm. Null means the full window is not observed. */
+  rainfall_mm: number | null;
+  valid_days: number;
+  expected_days: number;
+}
+
+export interface AgricultureRainfallObservation {
+  /** SME2 acquisition calendar date; rainfall windows use complete UTC days before this date. */
+  date: string;
+  windows: Record<AgricultureRainfallWindow, AgricultureRainfallWindowValue>;
+}
+
+export interface AgricultureRainfallContext {
+  method: "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1";
+  product: "GPM_3IMERGDF_V07";
+  resolution_degrees: 0.1;
+  units: "mm";
+  time_basis: "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION";
+  source: string;
+  source_doi: string;
+  source_sha256: string;
+  source_bytes: number;
+  observations: AgricultureRainfallObservation[];
+}
+
 export interface AgricultureSupportDriftPoint {
   date: string;
   date_valid_median: number;
@@ -159,6 +187,7 @@ export interface AgricultureStudy {
   change_summary: AgricultureSummary;
   matched_support: AgricultureMatchedSupport;
   crop_observability?: AgricultureCropObservability;
+  rainfall_context?: AgricultureRainfallContext;
   evidence_status: AgricultureStatus;
   sources: { title: string; url: string }[];
 }
@@ -418,6 +447,29 @@ function validMatchedObservation(value: unknown): value is AgricultureMatchedObs
   return isoDay(value.date) && safeRelativeAssetPath(value.preview, "previews/") && validSummary(value);
 }
 
+function validRainfallContext(value: unknown, expectedDates: string[]): value is AgricultureRainfallContext {
+  if (!isRecord(value) || value.method !== "GPM_IMERG_FINAL_DAILY_AOI_MEAN_V1" ||
+      value.product !== "GPM_3IMERGDF_V07" || value.resolution_degrees !== 0.1 ||
+      value.units !== "mm" || value.time_basis !== "UTC_COMPLETE_DAYS_BEFORE_ACQUISITION" ||
+      typeof value.source !== "string" || value.source.length < 1 || value.source.length > 240 ||
+      value.source_doi !== "10.5067/GPM/IMERGDF/DAY/07" || !isSha256(value.source_sha256) ||
+      !Number.isInteger(value.source_bytes) || Number(value.source_bytes) <= 0 ||
+      !Array.isArray(value.observations) || value.observations.length !== expectedDates.length) return false;
+  const windows: AgricultureRainfallWindow[] = ["1d", "3d", "7d", "12d"];
+  return value.observations.every((item, index) => {
+    if (!isRecord(item) || item.date !== expectedDates[index] || !isRecord(item.windows)) return false;
+    return windows.every((window) => {
+      const entry = item.windows[window];
+      const expected = Number(window.slice(0, -1));
+      if (!isRecord(entry) || entry.expected_days !== expected ||
+          !Number.isInteger(entry.valid_days) || Number(entry.valid_days) < 0 ||
+          Number(entry.valid_days) > expected) return false;
+      if (entry.valid_days !== expected) return entry.rainfall_mm === null;
+      return finiteRange(entry.rainfall_mm, 0, 10000);
+    });
+  });
+}
+
 export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
   if (!isRecord(value)) return false;
   const observations = Array.isArray(value.observations) ? value.observations : null;
@@ -463,6 +515,8 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
   const dates = study.observations.map((item) => item.date);
   if (study.crop_observability !== undefined &&
       !validCropObservability(study.crop_observability, dates)) return false;
+  if (study.rainfall_context !== undefined &&
+      !validRainfallContext(study.rainfall_context, dates)) return false;
   const matched = study.matched_support;
   const matchedStatus = matched.valid_pixels === 0 ? "NO_COMMON_PIXELS" :
     matched.valid_fraction < study.coverage_floor ? "INCONCLUSIVE_COVERAGE" : "COMPARABLE";
@@ -554,6 +608,37 @@ export function buildAgricultureSupportDrift(study: AgricultureStudy): Agricultu
       same_pixel_fraction: cohortObservation.valid_fraction,
     };
   });
+}
+
+export interface AgricultureRainfallPlotPoint {
+  date: string;
+  position: number;
+  rainfall_mm: number | null;
+  valid_days: number;
+  expected_days: number;
+}
+
+/** Align only complete, date-matched daily IMERG windows to the real SME2 elapsed-time axis. */
+export function buildAgricultureRainfallSeries(
+  study: AgricultureStudy,
+  window: AgricultureRainfallWindow,
+): AgricultureRainfallPlotPoint[] {
+  const context = study.rainfall_context;
+  if (!context || context.observations.length !== study.observations.length) return [];
+  const axis = buildAgricultureDateAxis(study.observations.map((item) => item.date));
+  if (axis.length !== context.observations.length) return [];
+  return axis.map((point, index) => {
+    const rainfall = context.observations[index];
+    if (rainfall.date !== point.date) return null;
+    const sample = rainfall.windows[window];
+    return {
+      date: point.date,
+      position: point.position,
+      rainfall_mm: sample.valid_days === sample.expected_days ? sample.rainfall_mm : null,
+      valid_days: sample.valid_days,
+      expected_days: sample.expected_days,
+    };
+  }).filter((point): point is AgricultureRainfallPlotPoint => point !== null);
 }
 
 export function isAgricultureIndex(value: unknown): value is AgricultureIndex {
