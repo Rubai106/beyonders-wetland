@@ -7,7 +7,7 @@
 import type { SiteBoundary, WetlandGeometry, WetlandPatch, WetlandPulseData, SensitivityData } from "./types";
 
 export const SHOWCASE_ID = "featured";
-export const showcaseUrl = (path: string, id = SHOWCASE_ID) => `/showcase/${id}/${path}`;
+export const showcaseUrl = (path: string, id = SHOWCASE_ID) => path.startsWith("/") ? path : `/showcase/${id}/${path}`;
 
 /** One packaged real case, as listed in /showcase/index.json. */
 export interface ShowcaseCaseSummary {
@@ -75,6 +75,14 @@ export interface ShowcaseManifest {
   has_reference: boolean;
   limitations: string[];
   source: string;
+  /** Optional absolute URLs let an existing published study use the Wetlands explorer without duplicating its science assets. */
+  pulse_file?: string;
+  boundary_file?: string;
+  sensitivity_file?: string;
+  observations_file?: string;
+  reference_file?: string;
+  radar_asset_base?: string;
+  radar_preview_urls?: Record<string, string>;
 }
 
 export interface ShowcaseObservation { date: string; index: number; patches_file: string | null; scene_name?: string | null }
@@ -123,9 +131,11 @@ export async function loadShowcaseBundle(id: string = SHOWCASE_ID): Promise<Show
   const has = manifest.availability ?? { acquisition_dates: true, boundary: true, pulse: true, sensitivity: true, patch_dates: [], radar_dates: [], reference: manifest.has_reference };
   const optional = <T,>(path: string, on: boolean) => (on ? getJson<T>(path, id).catch(() => null) : Promise.resolve(null));
   const [pulse, boundary, sensitivity, observations, reference] = await Promise.all([
-    optional<WetlandPulseData>("pulse.json", has.pulse), optional<SiteBoundary>("boundary.geojson", has.boundary),
-    optional<SensitivityData>("sensitivity.json", has.sensitivity), getJson<ShowcaseObservation[]>("observations.json", id),
-    getJson<ShowcaseReference>("reference.json", id).catch(() => ({ available: false }) as ShowcaseReference),
+    optional<WetlandPulseData>(manifest.pulse_file ?? "pulse.json", has.pulse),
+    optional<SiteBoundary>(manifest.boundary_file ?? "boundary.geojson", has.boundary),
+    optional<SensitivityData>(manifest.sensitivity_file ?? "sensitivity.json", has.sensitivity),
+    getJson<ShowcaseObservation[]>(manifest.observations_file ?? "observations.json", id),
+    getJson<ShowcaseReference>(manifest.reference_file ?? "reference.json", id).catch(() => ({ available: false }) as ShowcaseReference),
   ]);
   if (has.pulse && (!pulse || !Array.isArray(pulse.dates) || !pulse.dates.length)) throw new Error("Showcase pulse is empty.");
   const pulseData: WetlandPulseData | null = pulse ? { ...pulse, data_source: "NISAR", product: manifest.product,
@@ -173,15 +183,19 @@ export async function loadShowcasePatches(bundle: ShowcaseBundle, date: string):
 }
 
 const radarCache = new Map<string, RadarPreview | null>();
-export async function loadShowcaseRadar(date: string, id: string = SHOWCASE_ID): Promise<RadarPreview | null> {
+export async function loadShowcaseRadar(date: string, id: string = SHOWCASE_ID, manifest?: ShowcaseManifest): Promise<RadarPreview | null> {
   const key = `${id}:${date}`;
   if (radarCache.has(key)) return radarCache.get(key) ?? null;
   try {
-    const response = await fetch(showcaseUrl(`radar/preview_${date}.json`, id));
+    const previewUrl = manifest?.radar_preview_urls?.[date] ?? showcaseUrl(`radar/preview_${date}.json`, id);
+    const response = await fetch(previewUrl);
     if (!response.ok) { radarCache.set(key, null); return null; }
     const preview = await response.json() as RadarPreview;
     for (const layer of Object.values(preview.layers)) {
-      layer.images = Object.fromEntries(Object.entries(layer.images).map(([stage, file]) => [stage, showcaseUrl(file, id)]));
+      layer.images = Object.fromEntries(Object.entries(layer.images).map(([stage, file]) => [
+        stage,
+        file.startsWith("/") ? file : manifest?.radar_asset_base ? manifest.radar_asset_base + file : showcaseUrl(file, id),
+      ]));
     }
     radarCache.set(key, preview);
     return preview;
