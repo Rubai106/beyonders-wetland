@@ -389,7 +389,7 @@ test("validates IMERG daily rainfall context against exact SME2 dates and comple
     source: "NASA GPM IMERG Final daily precipitation",
     source_doi: "10.5067/GPM/IMERGDF/DAY/07",
     source_sha256: "d".repeat(64), source_bytes: 8192,
-    granules: [{ date: dates[0], concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
+    granules: [{ date: "2026-06-19", concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
     aoi_grid_cells: 4, spatial_coverage_floor: 0.9,
     observations: dates.map((date, index) => ({ date, windows: windows(index + 1) })),
   };
@@ -416,7 +416,7 @@ test("keeps incomplete IMERG windows visibly missing instead of treating them as
     source: "NASA GPM IMERG Final daily precipitation",
     source_doi: "10.5067/GPM/IMERGDF/DAY/07",
     source_sha256: "e".repeat(64), source_bytes: 8192,
-    granules: [{ date: dates[0], concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
+    granules: [{ date: "2026-06-19", concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
     aoi_grid_cells: 4, spatial_coverage_floor: 0.9,
     observations: dates.map((date) => ({ date, windows: windows() })),
   };
@@ -442,7 +442,7 @@ test("rejects mismatched IMERG dates, incomplete windows with numeric totals and
     source: "NASA GPM IMERG Final daily precipitation",
     source_doi: "10.5067/GPM/IMERGDF/DAY/07",
     source_sha256: "f".repeat(64), source_bytes: 8192,
-    granules: [{ date: dates[0], concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
+    granules: [{ date: "2026-06-19", concept_id: "G123-PROV", filename: "GPM_3IMERGDF_20260619.nc4", bytes: 8192, sha256: "c".repeat(64) }],
     aoi_grid_cells: 4, spatial_coverage_floor: 0.9,
     observations: dates.map((date) => ({ date, windows: complete() })),
   };
@@ -450,6 +450,12 @@ test("rejects mismatched IMERG dates, incomplete windows with numeric totals and
   const wrongDate = structuredClone(changed);
   wrongDate.rainfall_context.observations[1].date = "2026-06-24";
   assert.equal(isAgricultureStudy(wrongDate), false);
+  const wrongGranuleDate = structuredClone(changed);
+  wrongGranuleDate.rainfall_context.granules[0].date = "2026-06-20";
+  assert.equal(isAgricultureStudy(wrongGranuleDate), false);
+  const unsupportedSpatialCoverage = structuredClone(changed);
+  unsupportedSpatialCoverage.rainfall_context.observations[0].windows["1d"].spatial_coverage_fraction = 0.5;
+  assert.equal(isAgricultureStudy(unsupportedSpatialCoverage), false);
   const partialNumeric = structuredClone(changed);
   partialNumeric.rainfall_context.observations[0].windows["3d"].valid_days = 2;
   assert.equal(isAgricultureStudy(partialNumeric), false);
