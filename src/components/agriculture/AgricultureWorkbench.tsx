@@ -1205,6 +1205,16 @@ export default function AgricultureWorkbench() {
                 <span>{selectedRainfall ? dateLabel(selectedRainfall.date) + " · " + selectedRainfall.valid_days + "/" + selectedRainfall.expected_days + " complete UTC days · " + formatPercent(selectedRainfall.spatial_coverage_fraction) + " minimum AOI grid coverage" + (selectedRainfall.mean_half_hourly_samples === null ? "" : " · " + selectedRainfall.mean_half_hourly_samples.toFixed(1) + "/48 mean half-hourly samples per day") : "No aligned rainfall record"}</span>
               </div>
               <p className="agri-rainfall__note">Daily IMERG accumulation over the complete UTC days immediately before the SME2 acquisition date; the acquisition day is excluded because SME2's date-only identity does not establish its exact observation time. Native IMERG grid: 0.1° (about 10 km), not SME2's native pixel scale. This is temporal context, not evidence of causation. <a href="https://doi.org/10.5067/GPM/IMERGDF/DAY/07" target="_blank" rel="noreferrer">NASA product record ↗</a></p>
+              <details className="agri-details">
+                <summary>{study.rainfall_context.granules.length} source granules · {study.rainfall_context.source_bytes.toLocaleString()} bytes · SHA-256 {study.rainfall_context.source_sha256.slice(0, 16)}…</summary>
+                <ul className="agri-granule-list">
+                  {study.rainfall_context.granules.map((granule) => <li key={granule.date}>
+                    <strong>{dateLabel(granule.date)} · {granule.concept_id}</strong>
+                    <span>{granule.filename} · {granule.bytes.toLocaleString()} bytes</span>
+                    <code>{granule.sha256}</code>
+                  </li>)}
+                </ul>
+              </details>
             </> : <div className="agri-rainfall__empty"><strong>Rainfall evidence not published</strong><p>No IMERG files or verified rainfall summaries are attached to this SME2 study. No rainfall is inferred from the acquisition dates, and the chart remains unavailable until the source data, coverage and checksums are verified.</p></div>}
           </section>
         </> : <div className="agri-footer-empty">Dated observations will appear here after genuine SME2 granules are processed and a checksum-verified study is published.</div>}
