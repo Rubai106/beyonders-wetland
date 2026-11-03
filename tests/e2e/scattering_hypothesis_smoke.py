@@ -118,11 +118,10 @@ def main() -> int:
         challenge_button.wait_for(state="visible", timeout=10_000)
         challenge_button.wait_for(state="attached", timeout=10_000)
         # The drawer is layered above the map and can be reflowing while the
-        # nested scroll container settles. Playwright's pointer hit-test can
-        # report the document root as the intercepting element even though
-        # the disclosure is visible. Dispatch the native button click, then
-        # assert the real aria-expanded state below.
-        challenge_button.evaluate("(button) => button.click()")
+        # nested scroll container settles. A DOM evaluate can lose its element
+        # handle during a React re-render; a forced locator click retries the
+        # live element while bypassing only the flaky pointer hit-test.
+        challenge_button.click(force=True, timeout=10_000)
         # Wait for the parent disclosure to commit before inspecting its
         # conditionally rendered content. The challenge sits above the action
         # button, so opening it also changes the drawer's scroll geometry.
