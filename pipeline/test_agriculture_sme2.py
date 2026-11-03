@@ -20,11 +20,29 @@ from agriculture_sme2 import (
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
     _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
     quality_screen_diagnostics, _masked_array_diagnostics, _algorithm_candidate_diagnostics,
-    _resolve_measurement_layers,
+    _resolve_measurement_layers, agriculture_publication_index,
 )
 
 
 class AgricultureSME2Tests(unittest.TestCase):
+    def test_publication_index_uses_immutable_run_scoped_asset_paths(self):
+        publication = agriculture_publication_index(
+            "agri-41647231453", "2026-11-03T13:47:12.554134+00:00"
+        )
+        self.assertEqual(
+            publication["study_url"],
+            "current/releases/agri-41647231453/study.json",
+        )
+        self.assertEqual(
+            publication["checksums_url"],
+            "current/releases/agri-41647231453/web-checksums.json",
+        )
+        self.assertEqual(publication["schema_version"], 1)
+
+    def test_publication_index_rejects_unsafe_run_id(self):
+        with self.assertRaises(AgricultureError):
+            agriculture_publication_index("../latest", "2026-11-03T00:00:00+00:00")
+
     def test_cmr_granule_title_matches_downloaded_hdf5_extension_exactly(self):
         title = "NISAR_L3_PR_SME2_023_170_A_014_4005_DHDH_A_20260625T232955_20260625T233029_P05023_N_F_J_001"
         self.assertTrue(_matches_granule_filename(Path(title + ".h5"), title))

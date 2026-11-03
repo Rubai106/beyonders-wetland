@@ -66,8 +66,8 @@ def main() -> int:
         versioned_checksum_requests = [url for url in publication_asset_requests if "web-checksums.json" in url]
         require(
             versioned_study_requests and versioned_checksum_requests
-            and all("v=" in url for url in versioned_study_requests + versioned_checksum_requests),
-            "study and checksum assets are fetched with the publication-version cache key",
+            and all("v=" in url and "/current/releases/" in url for url in versioned_study_requests + versioned_checksum_requests),
+            "study and checksum assets share one immutable release path and publication-version cache key",
         )
         require(
             page.get_by_text(EXPECTED_STUDY_ID, exact=True).count() >= 1,
@@ -104,6 +104,33 @@ def main() -> int:
             and agriculture_map.locator(".agri-map-legend").count() == 1,
             "the checksum-verified SME2 preview overlay and legend render on the map",
         )
+        readout = agriculture_map.locator(".agri-map-readout")
+        require(
+            readout.count() == 1 and readout.is_visible()
+            and "FIELD OBSERVABILITY" in readout.inner_text()
+            and "57.9%" in readout.inner_text()
+            and "21.3%" in readout.inner_text(),
+            "the map displays real soil-moisture, valid-footprint and same-pixel evidence",
+        )
+        change_action = readout.get_by_role("button", name="View change layer")
+        same_pixels_action = readout.get_by_role("button", name="Inspect same pixels")
+        require(
+            not change_action.is_disabled() and not same_pixels_action.is_disabled(),
+            "change and same-pixel map actions are enabled for a verified study",
+        )
+        change_action.click()
+        page.locator(".agri-map-legend__decrease").wait_for(state="visible", timeout=10_000)
+        require(
+            change_action.get_attribute("aria-pressed") == "true",
+            "the change layer can be selected directly from the map readout",
+        )
+        same_pixels_action.click()
+        page.locator(".agri-map-legend__matched").wait_for(state="visible", timeout=10_000)
+        require(
+            same_pixels_action.get_attribute("aria-pressed") == "true",
+            "the same-pixel cohort layer can be selected directly from the map readout",
+        )
+        page.locator(".agri-map-toolbar").get_by_role("button", name="Soil moisture").click()
         require(
             page.locator(".agri-date-rail button").count() == EXPECTED_DATES,
             "the elapsed-time acquisition rail contains all six valid observation dates",

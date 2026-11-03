@@ -98,6 +98,7 @@ export default function AgricultureWorkbench() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [study, setStudy] = useState<AgricultureStudy | null>(null);
   const [checksums, setChecksums] = useState<AgricultureChecksumManifest | null>(null);
+  const [publicationAssetBase, setPublicationAssetBase] = useState<string | null>(null);
   const [publicationVersion, setPublicationVersion] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -158,6 +159,7 @@ export default function AgricultureWorkbench() {
         setStudy(studyValue);
         setChecksums(checksValue);
         setPublicationVersion(indexValue.published_at);
+        setPublicationAssetBase(indexValue.study_url.slice(0, indexValue.study_url.lastIndexOf("/")));
         setSelectedIndex(Math.max(0, studyValue.observations.length - 1));
         setLoadState("ready");
       } catch (error) {
@@ -193,8 +195,9 @@ export default function AgricultureWorkbench() {
     : "";
 
   useEffect(() => {
-    if (!study || !checksums || !activeAsset || !publicationVersion) return;
+    if (!study || !checksums || !activeAsset || !publicationVersion || !publicationAssetBase) return;
     const activePublicationVersion = publicationVersion;
+    const activeAssetBase = publicationAssetBase;
     const checksumFiles = checksums.files;
     const controller = new AbortController();
     let live = true;
@@ -203,7 +206,7 @@ export default function AgricultureWorkbench() {
       try {
         const entry = checksumFiles[activeAsset];
         if (!entry) throw new Error("No checksum entry exists for " + activeAsset + ".");
-        const response = await fetch("/agriculture/current/" + activeAsset + "?v=" + encodeURIComponent(activePublicationVersion), { signal: controller.signal, cache: "no-store" });
+        const response = await fetch("/agriculture/" + activeAssetBase + "/" + activeAsset + "?v=" + encodeURIComponent(activePublicationVersion), { signal: controller.signal, cache: "no-store" });
         if (!response.ok) throw new Error("Preview " + activeAsset + " returned HTTP " + response.status + ".");
         const bytes = await response.arrayBuffer();
         if (bytes.byteLength !== entry.bytes) {
@@ -226,7 +229,7 @@ export default function AgricultureWorkbench() {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [study, checksums, activeAsset, publicationVersion]);
+  }, [study, checksums, activeAsset, publicationVersion, publicationAssetBase]);
 
   const previewUrl = previewState?.asset === activeAsset ? previewState.url : null;
   const previewError = previewState?.asset === activeAsset ? previewState.error : "";
@@ -1104,7 +1107,21 @@ export default function AgricultureWorkbench() {
         <strong className="agri-rail-maturity">NISAR L3 · PROVISIONAL</strong>
         <p>Exploratory soil-moisture evidence. Not crop classification.</p>
       </div>}
-      map={<AgricultureMap aoi={aoi} displayBounds={study?.preview_bounds ?? null} previewUrl={previewUrl} satelliteBasemap={satelliteBasemap} noStudy={noStudy} layer={layer} />}
+      map={<AgricultureMap
+        aoi={aoi}
+        displayBounds={study?.preview_bounds ?? null}
+        previewUrl={previewUrl}
+        satelliteBasemap={satelliteBasemap}
+        noStudy={noStudy}
+        layer={layer}
+        study={study}
+        selectedObservation={selectedObservation}
+        onLayerChange={(nextLayer) => {
+          setLayer(nextLayer);
+          if (nextLayer === "matched") setSeriesSupportMode("same-pixels");
+          if (nextLayer === "moisture") setSeriesSupportMode("date-valid");
+        }}
+      />
       mapToolbar={<div className="agri-map-toolbar" role="group" aria-label="Agriculture map layers">
         <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => { setLayer("moisture"); setSeriesSupportMode("date-valid"); }}>Soil moisture</button>
         <button type="button" aria-pressed={layer === "change"} disabled={!study} onClick={() => setLayer("change")}>Change</button>

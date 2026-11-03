@@ -10,7 +10,7 @@ import {
   useMap,
 } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
-import type { AgricultureAOI } from "@/lib/agriculture-study";
+import type { AgricultureAOI, AgricultureObservation, AgricultureStudy } from "@/lib/agriculture-study";
 
 function FitStudyBounds({ bounds }: { bounds: LatLngBoundsExpression | undefined }) {
   const map = useMap();
@@ -27,6 +27,9 @@ export default function AgricultureMap({
   satelliteBasemap,
   noStudy,
   layer,
+  study,
+  selectedObservation,
+  onLayerChange,
 }: {
   aoi: AgricultureAOI | null;
   displayBounds: AgricultureAOI | null;
@@ -34,6 +37,9 @@ export default function AgricultureMap({
   satelliteBasemap: boolean;
   noStudy: boolean;
   layer: "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
+  study: AgricultureStudy | null;
+  selectedObservation: AgricultureObservation | null;
+  onLayerChange: (layer: "moisture" | "change" | "matched") => void;
 }) {
   const extent = displayBounds ?? aoi;
   const west = extent?.west ?? null;
@@ -49,6 +55,21 @@ export default function AgricultureMap({
   const center: [number, number] = extent
     ? [(extent.south + extent.north) / 2, (extent.west + extent.east) / 2]
     : [12, 0];
+
+  const trendPoints = useMemo(() => {
+    const observations = study?.observations ?? [];
+    if (observations.length === 0) return [];
+    const values = observations.map((item) => item.median);
+    const low = Math.min(...values);
+    const high = Math.max(...values);
+    const span = high - low || 0.01;
+    return observations.map((item, index) => ({
+      date: item.date,
+      x: observations.length === 1 ? 50 : (index / (observations.length - 1)) * 100,
+      y: 34 - ((item.median - low) / span) * 27,
+    }));
+  }, [study]);
+  const selectedTrendPoint = trendPoints.find((point) => point.date === selectedObservation?.date);
 
   return (
     <div className="agri-map" aria-label="Interactive soil-moisture map">
@@ -84,6 +105,36 @@ export default function AgricultureMap({
         />}
         {bounds && previewUrl && <ImageOverlay url={previewUrl} bounds={bounds} opacity={0.86} />}
       </MapContainer>
+      {study && selectedObservation && (
+        <aside className="agri-map-readout" aria-label="Current soil-moisture observation summary">
+          <div className="agri-map-readout__head">
+            <div><span>FIELD OBSERVABILITY</span><strong>{new Date(selectedObservation.date + "T00:00:00Z").toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}</strong></div>
+            <span className="agri-map-readout__tag">NISAR SME2</span>
+          </div>
+          <div className="agri-map-readout__signal">
+            <div>
+              <span className="agri-map-readout__label">MEDIAN SOIL MOISTURE</span>
+              <strong>{selectedObservation.median.toFixed(3)}<small>m³/m³</small></strong>
+              <span className="agri-map-readout__range">P05 {selectedObservation.p05.toFixed(3)} · P95 {selectedObservation.p95.toFixed(3)}</span>
+            </div>
+            <svg viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Median soil moisture across the six acquisition dates">
+              <polyline points={trendPoints.map((point) => point.x.toFixed(2) + "," + point.y.toFixed(2)).join(" ")} />
+              {selectedTrendPoint && <circle cx={selectedTrendPoint.x} cy={selectedTrendPoint.y} r="2.8" />}
+            </svg>
+          </div>
+          <div className="agri-map-readout__time"><span>{trendPoints[0]?.date ?? ""}</span><span>{trendPoints[trendPoints.length - 1]?.date ?? ""}</span></div>
+          <div className="agri-map-readout__metrics">
+            <div><strong>{(selectedObservation.valid_fraction * 100).toFixed(1)}%</strong><span>date-valid footprint</span><small>{selectedObservation.valid_pixels.toLocaleString()} / {selectedObservation.total_pixels.toLocaleString()} cells</small></div>
+            <div><strong>{(study.matched_support.valid_fraction * 100).toFixed(1)}%</strong><span>same pixels · all dates</span><small>{study.matched_support.valid_pixels.toLocaleString()} fixed cells</small></div>
+            <div><strong>{study.change_summary.median > 0 ? "+" : ""}{study.change_summary.median.toFixed(3)}</strong><span>latest − baseline</span><small>m³/m³ · {study.target_date}</small></div>
+          </div>
+          <div className="agri-map-readout__actions">
+            <button type="button" aria-pressed={layer === "change"} onClick={() => onLayerChange("change")}>View change layer</button>
+            <button type="button" aria-pressed={layer === "matched"} disabled={study.matched_support.observations.length === 0} onClick={() => onLayerChange("matched")}>Inspect same pixels</button>
+          </div>
+          <div className="agri-map-readout__foot">EXPLORATORY EVIDENCE · NOT A CROP-HEALTH CLASSIFICATION</div>
+        </aside>
+      )}
       {noStudy && (
         <div className="agri-map-empty" role="status">
           <span className="agri-map-empty__eyebrow">SME2 · PROVISIONAL</span>

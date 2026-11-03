@@ -742,12 +742,19 @@ export function buildAgricultureRainfallSeries(
 }
 
 export function isAgricultureIndex(value: unknown): value is AgricultureIndex {
-  return isRecord(value) && value.schema_version === 1 &&
-    safeRelativeAssetPath(value.study_url, "current/") &&
-    safeRelativeAssetPath(value.checksums_url, "current/") &&
-    value.study_url === "current/study.json" &&
-    value.checksums_url === "current/web-checksums.json" &&
-    typeof value.published_at === "string" && Number.isFinite(Date.parse(value.published_at));
+  if (!isRecord(value) || value.schema_version !== 1 ||
+      !safeRelativeAssetPath(value.study_url, "current/") ||
+      !safeRelativeAssetPath(value.checksums_url, "current/") ||
+      typeof value.published_at !== "string" || !Number.isFinite(Date.parse(value.published_at))) {
+    return false;
+  }
+  // Accept the original flat publication for backwards compatibility, while
+  // preferring immutable, run-scoped directories for all newly published studies.
+  if (value.study_url === "current/study.json" &&
+      value.checksums_url === "current/web-checksums.json") return true;
+  const release = /^current\/releases\/([a-z0-9][a-z0-9-]{0,39})\/study\.json$/.exec(value.study_url);
+  return release !== null &&
+    value.checksums_url === "current/releases/" + release[1] + "/web-checksums.json";
 }
 
 export function isAgricultureChecksumManifest(value: unknown): value is AgricultureChecksumManifest {

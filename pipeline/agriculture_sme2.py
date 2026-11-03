@@ -1706,6 +1706,20 @@ def analyze(
     return study
 
 
+def agriculture_publication_index(run_id: str, published_at: str) -> dict[str, Any]:
+    """Return an index that points at an immutable, run-scoped asset directory."""
+    safe_run_id(run_id)
+    if not isinstance(published_at, str) or not published_at:
+        raise AgricultureError("Publication timestamp is required.")
+    release_base = f"current/releases/{run_id}"
+    return {
+        "schema_version": 1,
+        "study_url": f"{release_base}/study.json",
+        "checksums_url": f"{release_base}/web-checksums.json",
+        "published_at": published_at,
+    }
+
+
 def publish(run_id: str, public_root: Path | None = None) -> Path:
     folder = run_folder(run_id)
     output = folder / "result"
@@ -1746,15 +1760,23 @@ def publish(run_id: str, public_root: Path | None = None) -> Path:
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
+    # Keep the legacy flat paths for older clients, but point the index at a
+    # run-scoped directory. A new publication can never overwrite the assets
+    # referenced by an older index/CDN cache.
     shutil.copy2(study_path, staging / "study.json")
     shutil.copy2(output / "web-checksums.json", staging / "web-checksums.json")
     if (output / "previews").exists():
         shutil.copytree(output / "previews", staging / "previews")
-    json_write(staging / "index.json", {
-        "schema_version": 1, "study_url": "current/study.json",
-        "checksums_url": "current/web-checksums.json",
-        "published_at": datetime.now(timezone.utc).isoformat(),
-    })
+
+    release_root = staging / "releases" / safe_run_id(run_id)
+    release_root.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(study_path, release_root / "study.json")
+    shutil.copy2(output / "web-checksums.json", release_root / "web-checksums.json")
+    if (output / "previews").exists():
+        shutil.copytree(output / "previews", release_root / "previews")
+
+    published_at = datetime.now(timezone.utc).isoformat()
+    json_write(staging / "index.json", agriculture_publication_index(run_id, published_at))
     # The directory swap is local and atomic on the same filesystem. Preserve the
     # previous publication until the staging directory is complete.
     previous = target.with_name("current.previous")
