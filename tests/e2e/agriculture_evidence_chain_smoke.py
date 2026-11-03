@@ -288,7 +288,7 @@ def main() -> int:
         require(True, "the walkthrough navigates to the Check it evidence tab")
         page.get_by_role("button", name="Next section").click()
         page.wait_for_function(
-            "() => document.querySelector('.wx-drawer__tabs [role=tab][aria-selected=true] span:last-child')?.textContent?.trim() === 'Learn'",
+            "() => document.querySelector('.wx-drawer__tabs [role=tab][aria-selected=true]')?.textContent?.trim() === 'Learn'",
             timeout=10_000,
         )
         page.get_by_role("heading", name="Understand the interpretation limits").wait_for()
