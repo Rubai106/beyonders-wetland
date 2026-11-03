@@ -599,6 +599,7 @@ export function isAgricultureStudy(value: unknown): value is AgricultureStudy {
   const expectedAlgorithmLabel = algorithm === "DSG" ? "DSG algorithm candidate" : "Root baseline product";
   if ((study.algorithm_label !== undefined && study.algorithm_label !== expectedAlgorithmLabel) ||
       (algorithm === "DSG" && (
+        study.algorithm_label !== expectedAlgorithmLabel ||
         study.quality_exclusions === undefined ||
         !validQualityExclusions(study.quality_exclusions, algorithm, study.observations, study.date_range)
       )) ||
