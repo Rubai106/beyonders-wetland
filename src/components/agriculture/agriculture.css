@@ -53,7 +53,7 @@
   filter: invert(1) hue-rotate(180deg) saturate(.42) brightness(.76) contrast(1.08);
 }
 .agriculture-workspace .agri-map-readout {
-  position: absolute; z-index: 760; left: 16px; bottom: 48px; width: min(358px, calc(100% - 32px));
+  position: absolute; z-index: 920; left: 16px; bottom: 48px; width: min(358px, calc(100% - 32px));
   display: grid; gap: 10px; padding: 13px 14px; border: 1px solid #3a535c; border-radius: 6px;
   background: rgb(8 17 22 / 94%); color: #e5eff1; box-shadow: 0 14px 34px rgb(0 0 0 / 34%);
   backdrop-filter: blur(12px);
@@ -97,7 +97,7 @@
   .agriculture-workspace .agri-map-readout__metrics { gap: 4px; }
 }
 .agriculture-workspace .agri-map-integrity {
-  position: absolute; z-index: 820; top: 16px; left: 16px; width: min(355px, calc(100% - 32px));
+  position: absolute; z-index: 900; top: 16px; left: 16px; width: min(355px, calc(100% - 32px));
   display: grid; gap: 8px; padding: 13px 14px; border: 1px solid #824e49; border-radius: 5px;
   background: rgb(24 14 15 / 95%); color: #f1d6d1; box-shadow: 0 12px 35px rgb(0 0 0 / 30%);
   backdrop-filter: blur(10px);
@@ -106,7 +106,7 @@
 .agriculture-workspace .agri-map-integrity > strong { color: #fff0ed; font-size: .84rem; }
 .agriculture-workspace .agri-map-integrity p { color: #ddbdb8; font-size: .64rem; line-height: 1.45; overflow-wrap: anywhere; }
 .agriculture-workspace .agri-map-empty {
-  position: absolute; z-index: 700; top: 18px; left: 18px; width: min(300px, calc(100% - 36px));
+  position: absolute; z-index: 900; top: 18px; left: 18px; width: min(300px, calc(100% - 36px));
   padding: 14px 16px; border: 1px solid #30434b; border-radius: 5px;
   background: rgb(8 17 22 / 94%); color: #e2eaed; box-shadow: 0 12px 35px rgb(0 0 0 / 26%);
   pointer-events: none; backdrop-filter: blur(9px);
@@ -115,7 +115,7 @@
 .agriculture-workspace .agri-map-empty strong { display: block; margin-bottom: 6px; font-size: .85rem; }
 .agriculture-workspace .agri-map-empty p { color: #9babb1; font-size: .68rem; line-height: 1.5; }
 .agriculture-workspace .agri-map-legend {
-  position: absolute; z-index: 650; right: 14px; bottom: 15px; display: flex; flex-wrap: wrap; gap: 8px 13px;
+  position: absolute; z-index: 900; right: 14px; bottom: 15px; display: flex; flex-wrap: wrap; gap: 8px 13px;
   padding: 8px 10px; border: 1px solid #33434a; border-radius: 4px; background: rgb(8 17 22 / 91%);
   color: #d6e0e3; font-size: .62rem; pointer-events: none;
 }
@@ -221,19 +221,7 @@
 .agriculture-workspace .agri-source-list a:hover { text-decoration: underline; }
 .agriculture-workspace .agri-footer { display: grid; gap: 9px; width: 100%; min-width: 0; padding: 9px 15px 10px; }
 .agriculture-workspace .agri-footer-head { display: flex; justify-content: space-between; gap: 10px; color: #899da4; font-size: .62rem; }
-.agriculture-workspace .agri-date-rail { position: relative; height: 44px; min-width: 0; margin: 0 8px 0 44px; }
-.agriculture-workspace .agri-date-rail__track { position: absolute; inset: 0 0 auto; width: 100%; height: 21px; overflow: visible; pointer-events: none; }
-.agriculture-workspace .agri-date-rail__track line { stroke: #628b89; stroke-width: 1.4; vector-effect: non-scaling-stroke; }
-.agriculture-workspace .agri-date-rail__track line.is-extended-gap { stroke: #d8ae73; stroke-dasharray: 4 4; }
-.agriculture-workspace .agri-date-rail > button { position: absolute; top: 0; z-index: 2; display: grid; place-items: center; width: 24px; height: 21px; padding: 0; border: 0; border-radius: 50%; background: transparent; transform: translateX(-50%); cursor: pointer; }
-.agriculture-workspace .agri-date-rail > button span { width: 8px; height: 8px; border: 2px solid #0b1518; border-radius: 50%; background: #a4dfe0; box-shadow: 0 0 0 1px #a4dfe0; }
-.agriculture-workspace .agri-date-rail > button.is-active span { width: 12px; height: 12px; background: #f2c77d; box-shadow: 0 0 0 2px #f2c77d; }
-.agriculture-workspace .agri-date-rail__axis { position: absolute; inset: 23px 0 auto; height: 16px; color: #83999f; font: .55rem var(--font-mono, monospace); }
-.agriculture-workspace .agri-date-rail__axis span { position: absolute; white-space: nowrap; transform: translateX(-50%); }
-.agriculture-workspace .agri-date-rail__axis span.is-start { transform: none; }
-.agriculture-workspace .agri-date-rail__axis span.is-end { transform: translateX(-100%); }
-.agriculture-workspace .agri-date-rail__axis span.is-center { transform: translateX(-50%); }
-.agriculture-workspace .agri-chart { display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-rows: 104px 14px auto; gap: 4px 8px; padding: 4px 3px 2px; }
+.agriculture-workspace .agri-chart { display: grid; grid-template-columns: 36px minmax(0, 1fr); grid-template-rows: 136px 14px auto; gap: 4px 8px; padding: 4px 3px 2px; }
 .agriculture-workspace .agri-chart-axis { display: flex; flex-direction: column; justify-content: space-between; color: #7e9299; font: .56rem var(--font-mono, monospace); }
 .agriculture-workspace .agri-chart-plot { position: relative; min-width: 0; border-left: 1px solid #3a4b52; border-bottom: 1px solid #3a4b52; }
 .agriculture-workspace .agri-chart-grid { position: absolute; right: 0; left: 0; border-top: 1px dashed #263840; }
@@ -277,7 +265,7 @@
   .agriculture-workspace .agri-date-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .agriculture-workspace .agri-footer-head { flex-direction: column; gap: 3px; }
   .agriculture-workspace .agri-date-rail { margin-right: 4px; margin-left: 40px; }
-  .agriculture-workspace .agri-chart { grid-template-rows: 100px 14px auto; }
+  .agriculture-workspace .agri-chart { grid-template-rows: 124px 14px auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .agriculture-workspace *,
