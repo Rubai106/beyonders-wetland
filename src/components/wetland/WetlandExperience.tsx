@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useWetlandStore, type PanelTab, type ViewMode } from "@/lib/store";
 import { fmtDate, opticalState, regionLabel } from "@/lib/story";
@@ -217,6 +218,7 @@ function AcquisitionsOnly() {
 
 export default function WetlandExperience({ preferLocalRun, initialCaseId }: { preferLocalRun: boolean; initialCaseId: string | null }) {
   const s = useWetlandStore();
+  const router = useRouter();
   const { dataTier, drawer, setDrawer, returnToOverview, isLoadingData, dataError, satelliteBasemap, setSatelliteBasemap, pulseData, showcaseChecked, probeActive } = s;
 
   useEffect(() => {
@@ -279,15 +281,18 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
         <Link href="/" className="wx-brand" aria-label="GeoNexSAR home">GeoNexSAR</Link>
         <span className="wx-case"><span className="wx-micro">Case</span>
           {dataTier === "SHOWCASE" && s.showcaseCases.length > 1 ? (
-            <select className="wx-casepick" value={s.showcaseId} onChange={(e) => void s.switchShowcase(e.target.value)} aria-label="Choose a real case">
+            <select className="wx-casepick" value={s.showcaseId} onChange={(e) => {
+              if (e.target.value === "chokwe") router.push("/wetland/global?story=chokwe");
+              else void s.switchShowcase(e.target.value);
+            }} aria-label="Choose a real wetland investigation">
               {s.showcaseCases.map((c) => <option key={c.id} value={c.id}>{c.site_display_name.replace(/\s*mapped boundary$/i, "")}</option>)}
+              <option value="chokwe">Chókwè · January 2026 event</option>
             </select>
           ) : <span className="wx-case__title">{title || (showcaseChecked ? "No real case loaded" : "Loading real observations…")}</span>}
           {cur ? <span className="wx-mono wx-case__date" title={`Observation date: ${cur.date}`}>{fmtDate(cur.date, { month: "short", day: "numeric" })}</span> : null}</span>
         <TierBadge tier={dataTier} completeness={s.showcase?.manifest.completeness} />
         <nav className="wx-nav" aria-label="GeoNexSAR">
           <Link href="/wetland" aria-label="Open the Tanguar and Hakaluki wetland investigations" title="Published wetland investigations"><span>Wetlands</span></Link>
-          <Link href="/wetland/global?story=chokwe" aria-label="Open the Chókwè flood-event investigation" title="Chókwè · January 2026 event investigation">Chókwè</Link>
           <Link href="/agriculture" aria-label="Open Agriculture">Agriculture</Link>
           <Link href="/forest/rondonia" aria-label="Open the Rondônia forest investigation">Forests</Link>
           <Link href="/volcano/hayli-gubbi" aria-label="Open the Hayli Gubbi volcano investigation">Volcanoes</Link>
