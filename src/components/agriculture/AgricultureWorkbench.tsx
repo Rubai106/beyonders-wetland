@@ -30,7 +30,7 @@ const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
 });
 
 const MIN_DATE = "2026-01-01";
-const MAX_DATE = "2026-12-31";
+const MAX_DATE = new Date().toISOString().slice(0, 10);
 
 type LoadState = "loading" | "not-published" | "ready" | "error";
 type MapLayer = "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
