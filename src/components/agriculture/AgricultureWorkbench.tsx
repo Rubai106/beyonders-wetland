@@ -1193,34 +1193,6 @@ export default function AgricultureWorkbench() {
               <strong>Same pixels across dates</strong><span>{formatPercent(study.matched_support.valid_fraction)} of AOI · {study.matched_support.status.replaceAll("_", " ")}</span>
             </button>
           </div>
-          <div className="agri-date-rail" role="group" aria-label="Select an SME2 acquisition on the elapsed calendar-time axis">
-            <svg className="agri-date-rail__track" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
-              {chartPoints.slice(1).map((point, index) => {
-                const previous = chartPoints[index];
-                const extendedGap = point.gapDays !== null && point.gapDays > LONG_ACQUISITION_GAP_DAYS;
-                return <line key={point.date} x1={previous.x} y1="10" x2={point.x} y2="10"
-                  className={extendedGap ? "is-extended-gap" : ""} />;
-              })}
-            </svg>
-            {chartPoints.map((point, index) => (
-              <button key={point.date} type="button"
-                className={index === selectedIndex ? "is-active" : ""}
-                style={{ left: point.x + "%" }}
-                aria-pressed={index === selectedIndex}
-                aria-label={"Select " + dateLabel(point.date) + "; " + formatMoisture(point.median) + "; " + formatPercent(point.valid_fraction) + " valid coverage" + (point.gapDays === null ? "; first acquisition" : "; " + point.gapDays + " days since previous acquisition")}
-                title={point.gapDays === null ? "First acquisition" : point.gapDays + " days since previous acquisition"}
-                onClick={() => { setSelectedIndex(index); if (layer === "change") setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}>
-                <span />
-              </button>
-            ))}
-            <div className="agri-date-rail__axis" aria-hidden="true">
-              {chartDateTicks.map((tick, index) => (
-                <span key={tick.position}
-                  className={chartDateTicks.length === 1 ? "is-center" : index === 0 ? "is-start" : index === chartDateTicks.length - 1 ? "is-end" : ""}
-                  style={{ left: tick.position + "%" }}>{shortDateLabel(tick.date)}</span>
-              ))}
-            </div>
-          </div>
           <div className="agri-chart" role="group" aria-label={"Median soil moisture with fifth to ninety-fifth percentile range using " + (seriesSupportMode === "same-pixels" ? "the same pixels across all dates" : "each date's quality-valid pixels") + "; the horizontal axis is proportional to elapsed calendar time; select a point to inspect a date"}>
             <div className="agri-chart-axis"><span>m³/m³</span><span>{chartRange.max.toFixed(2)}</span><span>{chartRange.min.toFixed(2)}</span></div>
             <div className="agri-chart-plot">
