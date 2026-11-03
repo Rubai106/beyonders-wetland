@@ -116,7 +116,7 @@ def main() -> int:
         require(active_tab(page) == "Check it", "Check it opens as a first-class investigation tab")
         page.locator(".evidence-chain__header h3").wait_for(state="visible", timeout=10_000)
         require(
-            page.locator(".evidence-chain__header h3").inner_text() == "Agriculture soil-moisture feasibility",
+            page.locator(".evidence-chain__header h3").inner_text() == "SME2 soil-moisture feasibility",
             "the standardized Agriculture evidence chain is rendered",
         )
         require(
