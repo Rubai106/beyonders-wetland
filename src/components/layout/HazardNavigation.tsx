@@ -16,13 +16,13 @@ export default function HazardNavigation() {
     <nav className="hazard-nav" aria-label="Earth change topics">
       <Link className="hazard-nav__brand" href="/" aria-label="GeoNexSAR home">GeoNexSAR</Link>
       <div className="hazard-nav__links">
-        <Link href="/wetland/global" aria-current={wetlandActive ? "page" : undefined}>
+        <Link href="/wetland" aria-current={wetlandActive ? "page" : undefined}>
           Wetlands
         </Link>
-        <Link href="/volcano/global" aria-current={volcanoActive ? "page" : undefined}>
+        <Link href="/volcano/hayli-gubbi" aria-current={volcanoActive ? "page" : undefined}>
           Volcanoes
         </Link>
-        <Link href="/forest/global" aria-current={forestActive ? "page" : undefined}>
+        <Link href="/forest/rondonia" aria-current={forestActive ? "page" : undefined}>
           Forests
         </Link>
         <Link href="/agriculture">Agriculture</Link>
