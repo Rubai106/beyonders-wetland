@@ -175,10 +175,11 @@ def main() -> int:
             and date_valid_drift_points.nth(4).get_attribute("aria-pressed") == "true",
             "keyboard activation selects the fifth date and restores its date-valid footprint",
         )
+        page.locator(".agri-chart .agri-chart-point button").nth(EXPECTED_DATES - 1).click()
         require(
             "6 / 6" in page.locator(".agri-footer-head").inner_text()
             and "2026-10-23 target" in page.locator(".agri-footer-head").inner_text(),
-            "the latest 23 October 2026 acquisition is selected as the target",
+            "the latest 23 October 2026 acquisition can be restored as the target after inspecting earlier dates",
         )
 
         rainfall_empty = page.locator(".agri-rainfall__empty")
