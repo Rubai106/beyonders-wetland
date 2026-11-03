@@ -150,6 +150,41 @@ def main() -> int:
             "Agriculture integrity status has no ineffective Retry button",
         )
 
+        # Responsive acceptance: selectors and the active map must remain
+        # available without horizontal page overflow on a phone viewport.
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
+        mobile_case_picker = page.locator(".wx-casepick")
+        mobile_case_picker.wait_for(state="visible", timeout=30_000)
+        require(
+            mobile_case_picker.is_visible()
+            and mobile_case_picker.locator("option").count() == 3,
+            "the Tanguar, Hakaluki and Chókwè case picker remains visible on a phone",
+        )
+        require(
+            page.locator(".wx-map .leaflet-container").is_visible()
+            and page.locator(".wx-map .leaflet-container").evaluate("(el) => el.getBoundingClientRect().height >= 200"),
+            "the wetland map retains a usable touch viewport on a phone",
+        )
+        require(
+            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+            "the Wetlands mobile workspace has no horizontal page overflow",
+        )
+
+        page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
+        page.locator(".agri-map").wait_for(state="visible", timeout=30_000)
+        page.locator(".agri-chart .agri-chart-point button").first.wait_for(state="visible", timeout=30_000)
+        require(
+            page.locator(".agri-chart .agri-chart-point button").count() == 6
+            and page.locator(".agri-map-toolbar").is_visible()
+            and page.locator(".agri-map").evaluate("(el) => el.getBoundingClientRect().height >= 200"),
+            "Agriculture keeps its map controls and six-date timeline usable on a phone",
+        )
+        require(
+            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+            "the Agriculture mobile workspace has no horizontal page overflow",
+        )
+
         browser.close()
 
     require(not errors, "module navigation has no browser runtime errors: " + " | ".join(errors))
