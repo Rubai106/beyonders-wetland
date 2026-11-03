@@ -490,3 +490,25 @@
   .wx-cmr-granule { grid-template-columns: minmax(0, 1fr); }
   .wx-cmr-granule__shortlist { white-space: normal; }
 }
+
+.wx-radar-status {
+  position: absolute;
+  z-index: 860;
+  top: 16px;
+  right: 16px;
+  max-width: min(360px, calc(100% - 32px));
+  padding: 8px 11px;
+  border: 1px solid #806743;
+  border-left: 2px solid #d8ae73;
+  border-radius: 4px;
+  background: rgb(24 19 13 / 94%);
+  color: #eed5aa;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 25%);
+  font-size: .66rem;
+  line-height: 1.45;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+@media (max-width: 700px) {
+  .wx-radar-status { top: 54px; right: 8px; max-width: calc(100% - 16px); }
+}

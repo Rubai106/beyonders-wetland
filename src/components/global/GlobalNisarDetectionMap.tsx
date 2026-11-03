@@ -265,7 +265,7 @@ export default function GlobalNisarDetectionMap({
         noWrap
         eventHandlers={{
           tileload: () => { setBasemapReady(true); setBasemapFailed(false); },
-          tileerror: () => { if (!basemapReady) setBasemapFailed(true); },
+          tileerror: () => { setBasemapFailed(true); },
         }}
       />}
       {showNisarMosaic && <TileLayer
@@ -333,7 +333,7 @@ export default function GlobalNisarDetectionMap({
         }}
       /> : null}
     </MapContainer>
-    {showBasemap && !basemapReady && <div className={`wx-basemap-status${basemapFailed ? " is-error" : ""}`} role="status" aria-live="polite">
+    {showBasemap && (!basemapReady || basemapFailed) && <div className={`wx-basemap-status${basemapFailed ? " is-error" : ""}`} role="status" aria-live="polite">
       {basemapFailed ? "Satellite imagery unavailable · radar and study overlays remain visible" : "Loading satellite imagery…"}
     </div>}
     </>

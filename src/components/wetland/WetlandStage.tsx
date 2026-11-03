@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, Pane, Polygon, Tooltip, GeoJSON as LeafletGeoJSON, ImageOverlay, ZoomControl, useMap, useMapEvents } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -97,7 +97,10 @@ function DetectiveClicks() {
   return null;
 }
 
-function RadarOverlay() {
+function RadarOverlay({ onPreviewUnavailable, onImageFailure }: {
+  onPreviewUnavailable: (unavailable: boolean) => void;
+  onImageFailure: (failed: boolean) => void;
+}) {
   const { dataTier, pipelineRunId, pulseData, selectedDateIndex, radarChannel, radarStage, radarOpacity, showcaseId, showcase } = useWetlandStore();
   const date = pulseData?.dates[selectedDateIndex]?.date;
   const key = `${dataTier}:${pipelineRunId}:${showcaseId}:${date}`;
@@ -105,16 +108,40 @@ function RadarOverlay() {
   const preview = loaded?.key === key ? loaded.preview : null;
   useEffect(() => {
     let live = true;
-    if (!date) return;
+    onPreviewUnavailable(false);
+    onImageFailure(false);
+    if (!date) {
+      onPreviewUnavailable(true);
+      return () => { live = false; };
+    }
     const load = dataTier === "SHOWCASE" ? loadShowcaseRadar(date, showcaseId, showcase?.manifest)
       : fetch(`/api/wetland/radar?run=${pipelineRunId}&date=${date}`).then((r) => r.ok ? r.json() as Promise<RadarPreview> : null)
         .then((v) => { if (v) for (const l of Object.values(v.layers)) l.images = Object.fromEntries(Object.entries(l.images).map(([k, f]) => [k, `/api/wetland/artifact?run=${pipelineRunId}&file=${encodeURIComponent(f)}`])); return v; }).catch(() => null);
-    void load.then((v) => { if (live) setLoaded({ key, preview: v }); });
+    void load.then((v) => {
+      if (!live) return;
+      setLoaded({ key, preview: v });
+      onPreviewUnavailable(!v);
+      onImageFailure(false);
+    });
     return () => { live = false; };
-  }, [date, dataTier, pipelineRunId, showcaseId, showcase?.manifest, key]);
+  }, [date, dataTier, pipelineRunId, showcaseId, showcase?.manifest, key, onPreviewUnavailable, onImageFailure]);
   const layer = preview?.layers[radarChannel];
-  if (!layer || !layer.images[radarStage]) return null;
-  return <Pane name="wxRadar" style={{ zIndex: 380 }}><ImageOverlay url={layer.images[radarStage]} bounds={layer.bounds as LatLngBoundsExpression} opacity={radarOpacity} /></Pane>;
+  const imageUrl = layer?.images[radarStage];
+  useEffect(() => {
+    onImageFailure(false);
+  }, [imageUrl, onImageFailure]);
+  if (!layer || !imageUrl) return null;
+  return <Pane name="wxRadar" style={{ zIndex: 380 }}>
+    <ImageOverlay
+      url={imageUrl}
+      bounds={layer.bounds as LatLngBoundsExpression}
+      opacity={radarOpacity}
+      eventHandlers={{
+        error: () => onImageFailure(true),
+        load: () => onImageFailure(false),
+      }}
+    />
+  </Pane>;
 }
 
 function PatchLayer({ list, interactive, dim }: { list: WetlandPatch[]; interactive: boolean; dim: boolean }) {
@@ -141,6 +168,10 @@ export default function WetlandStage() {
   const [split, setSplit] = useState(50);
   const [basemapReady, setBasemapReady] = useState(false);
   const [basemapFailed, setBasemapFailed] = useState(false);
+  const [radarPreviewUnavailable, setRadarPreviewUnavailable] = useState(false);
+  const [radarImageFailed, setRadarImageFailed] = useState(false);
+  const handleRadarPreviewUnavailable = useCallback((unavailable: boolean) => setRadarPreviewUnavailable(unavailable), []);
+  const handleRadarImageFailure = useCallback((failed: boolean) => setRadarImageFailed(failed), []);
   const wrap = useRef<HTMLDivElement>(null);
   const drag = useRef(false);
   useEffect(() => {
@@ -161,10 +192,13 @@ export default function WetlandStage() {
           attribution={MAP_CONFIG.tileAttribution}
           eventHandlers={{
             tileload: () => { setBasemapReady(true); setBasemapFailed(false); },
-            tileerror: () => { if (!basemapReady) setBasemapFailed(true); },
+            tileerror: () => { setBasemapFailed(true); },
           }}
         />}
-        {viewMode === "RADAR" && <RadarOverlay />}
+        {viewMode === "RADAR" && <RadarOverlay
+          onPreviewUnavailable={handleRadarPreviewUnavailable}
+          onImageFailure={handleRadarImageFailure}
+        />}
         {siteBoundary && <Pane name="wxBoundary" style={{ zIndex: 420 }}><LeafletGeoJSON data={siteBoundary} interactive={false} style={{ color: "#5AC8D8", weight: 1.5, opacity: 0.9, fillOpacity: 0, dashArray: "6 5" }} /></Pane>}
         {lock ? <>
           <Pane name="wxBefore" style={{ zIndex: 400 }}><PatchLayer list={lock.before} interactive={false} dim={false} /></Pane>
@@ -174,9 +208,19 @@ export default function WetlandStage() {
         <DetectiveClicks />
       </MapContainer>
 
-      {satelliteBasemap && !basemapReady && <div className={`wx-basemap-status${basemapFailed ? " is-error" : ""}`} role="status" aria-live="polite">
+      {satelliteBasemap && (!basemapReady || basemapFailed) && <div className={`wx-basemap-status${basemapFailed ? " is-error" : ""}`} role="status" aria-live="polite">
         {basemapFailed ? "Satellite imagery unavailable · radar layers remain visible" : "Loading satellite imagery…"}
       </div>}
+      {viewMode === "RADAR" && radarPreviewUnavailable && (
+        <div className="wx-radar-status is-error" role="status" aria-live="polite">
+          Published radar preview unavailable for this date · candidate regions and study evidence remain available.
+        </div>
+      )}
+      {viewMode === "RADAR" && radarImageFailed && (
+        <div className="wx-radar-status is-error" role="status" aria-live="polite">
+          Radar preview loaded but could not be drawn · try another date or layer. Candidate regions remain available.
+        </div>
+      )}
 
       {probeActive && probeResult && <div className="wx-crosshair-note" aria-hidden="true">{probeResult.lat.toFixed(4)}°, {probeResult.lng.toFixed(4)}°</div>}
 
