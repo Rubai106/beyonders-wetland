@@ -1,0 +1,161 @@
+"""Production-browser integration checks for published module case navigation.
+
+Run against the built public viewer:
+    python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140
+
+The test loads only committed public evidence packages. It does not fabricate
+results, call Earthdata, or substitute a demo series for a missing publication.
+"""
+from __future__ import annotations
+
+import sys
+from playwright.sync_api import sync_playwright
+
+BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://127.0.0.1:3140"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+    print(f"PASS {message}")
+
+
+def main() -> int:
+    errors: list[str] = []
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch()
+        page = browser.new_page(
+            viewport={"width": 1440, "height": 960},
+            reduced_motion="reduce",
+        )
+        page.add_init_script("localStorage.setItem('geonexsar_tour_v1', '1')")
+        page.on("pageerror", lambda error: errors.append(str(error)))
+
+        # Both seven-date wetland publications must use the same genuine
+        # observation/timeline/map interaction, while keeping Tanguar default.
+        page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
+        case_picker = page.locator(".wx-casepick")
+        case_picker.wait_for(state="visible", timeout=30_000)
+        require(
+            case_picker.locator("option").count() == 2
+            and case_picker.locator("option[value='featured']").count() == 1
+            and case_picker.locator("option[value='hakaluki']").count() == 1,
+            "the Wetlands selector lists Tanguar Haor and Hakaluki Haor",
+        )
+        require(
+            case_picker.input_value() == "featured"
+            and "Tanguar Haor" in page.inner_text(".wx-rail"),
+            "Tanguar Haor remains the original default case",
+        )
+        play = page.locator(".wx-play")
+        if play.count() and play.get_attribute("aria-pressed") == "true":
+            play.click()
+        case_picker.select_option("hakaluki")
+        page.wait_for_function(
+            "() => document.querySelector('.wx-rail h1')?.textContent?.includes('Hakaluki Haor')",
+            timeout=30_000,
+        )
+        page.wait_for_function(
+            "() => document.querySelectorAll('path.wx-patch').length === 213",
+            timeout=30_000,
+        )
+        require(
+            page.locator(".wx-obs").count() == 7,
+            "Hakaluki loads seven discrete, real NISAR observation dates",
+        )
+        require(
+            "2.57" in page.inner_text(".wx-rail")
+            and page.locator("path.wx-patch").count() == 213,
+            "Hakaluki's 17 July peak shows the published 2.57 km² and 213 candidates",
+        )
+        page.locator(".wx-modes button[data-mode='RADAR']").click()
+        page.wait_for_function(
+            "() => document.querySelectorAll('.leaflet-wxRadar-pane img').length > 0",
+            timeout=20_000,
+        )
+        require(True, "Hakaluki loads its actual date-matched HH/HV radar preview")
+
+        case_picker = page.locator(".wx-casepick")
+        case_picker.select_option("featured")
+        page.wait_for_function(
+            "() => document.querySelector('.wx-rail h1')?.textContent?.includes('Tanguar Haor')",
+            timeout=30_000,
+        )
+        page.wait_for_function(
+            "() => document.querySelectorAll('path.wx-patch').length === 295",
+            timeout=30_000,
+        )
+        require(
+            page.locator(".wx-obs").count() == 7
+            and page.locator("path.wx-patch").count() == 295,
+            "switching back restores Tanguar's own observations and peak geometry",
+        )
+
+        chokwe_link = page.get_by_role(
+            "link", name="Open the Chókwè flood-event investigation"
+        )
+        require(
+            chokwe_link.get_attribute("href") == "/wetland/global?story=chokwe",
+            "Chókwè is directly discoverable from the Wetlands workspace",
+        )
+        chokwe_link.click()
+        page.wait_for_url("**/wetland/global?story=chokwe", timeout=30_000)
+        page.locator("#mozambique-case-title").wait_for(
+            state="visible", timeout=30_000
+        )
+        require(
+            page.locator(".mozambique-case").is_visible(),
+            "the Chókwè navigation opens its dedicated event investigation",
+        )
+
+        # Forests and Volcanoes should open published case workspaces rather
+        # than the global discovery catalogue or a generic planned-status page.
+        page.goto(BASE + "/forest", wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_url("**/forest/rondonia", timeout=20_000)
+        page.locator(".forest-comparison").wait_for(state="visible", timeout=30_000)
+        require(
+            "What changed in the forest?" in page.inner_text(".wx-quest")
+            and page.locator(".forest-comparison-map").count() == 2
+            and page.locator(".forest-date-ribbon button").count() >= 4,
+            "Forest opens the interactive Rondônia case with paired maps and selectable dates",
+        )
+
+        page.goto(BASE + "/volcano", wait_until="domcontentloaded", timeout=30_000)
+        page.wait_for_url("**/volcano/hayli-gubbi", timeout=20_000)
+        page.locator(".deformation-map-hint").wait_for(state="visible", timeout=30_000)
+        require(
+            "What moved beneath Erta Ale?" in page.inner_text(".wx-quest")
+            and page.locator(".deformation-timeline button").count() >= 3,
+            "Volcano opens the interactive Hayli Gubbi case with selectable NISAR intervals",
+        )
+        require(
+            page.get_by_role(
+                "link", name="Explore the Kīlauea · Episode 36 case ↗"
+            ).count() == 1,
+            "Hayli Gubbi links to the separate Kīlauea Episode 36 investigation",
+        )
+
+        # Agriculture must explain an integrity failure without an inert retry
+        # button floating on the map.
+        page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
+        agriculture_map = page.locator(".agri-map")
+        agriculture_map.wait_for(state="visible", timeout=30_000)
+        require(
+            agriculture_map.locator(".agri-map-integrity button").count() == 0
+            and page.get_by_role("button", name="Retry publication verification").count() == 0,
+            "Agriculture integrity status has no ineffective Retry button",
+        )
+
+        browser.close()
+
+    require(not errors, "module navigation has no browser runtime errors: " + " | ".join(errors))
+    print("All multi-case and module-navigation production-browser checks passed.")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as error:
+        print(f"FAIL {error}", file=sys.stderr)
+        raise
