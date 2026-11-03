@@ -226,6 +226,7 @@ jobs:
             pipeline/output/agriculture/${{ env.RUN_ID }}/search.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/download.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/result/study.json
+            pipeline/output/agriculture/${{ env.RUN_ID }}/result/quality-diagnostics.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/result/web-checksums.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/imerg/receipt.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/imerg/daily-diagnostics.json
