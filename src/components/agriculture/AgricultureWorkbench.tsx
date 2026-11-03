@@ -1130,9 +1130,9 @@ export default function AgricultureWorkbench() {
         <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => { setLayer("moisture"); setSeriesSupportMode("date-valid"); }}>Soil moisture</button>
         <button type="button" aria-pressed={layer === "change"} disabled={!study} onClick={() => setLayer("change")}>Change</button>
         <button type="button" aria-pressed={layer === "matched"} disabled={!study || study.matched_support.observations.length === 0} onClick={() => { setLayer("matched"); setSeriesSupportMode("same-pixels"); }}>Same pixels</button>
-        <button type="button" aria-pressed={layer === "crop"} disabled={!cropObservability?.preview} onClick={() => setLayer("crop")}>Crop area</button>
-        <button type="button" aria-pressed={layer === "crop-common"} disabled={!cropObservability?.common_support.preview} onClick={() => setLayer("crop-common")}>Crop cohort</button>
-        <button type="button" aria-pressed={layer === "crop-source"} disabled={!cropObservability?.source_coverage_preview} onClick={() => setLayer("crop-source")}>Mask QA</button>
+        <button type="button" aria-pressed={layer === "crop"} disabled={!cropObservability?.preview} title={!cropObservability?.preview ? "Unavailable: this publication has no independent crop-area mask." : "Show the independent crop-area mask."} onClick={() => setLayer("crop")}>Crop area</button>
+        <button type="button" aria-pressed={layer === "crop-common"} disabled={!cropObservability?.common_support.preview} title={!cropObservability?.common_support.preview ? "Unavailable: an independent crop mask is needed to build a fixed crop cohort." : "Show crop area that is valid on every observation date."} onClick={() => setLayer("crop-common")}>Crop cohort</button>
+        <button type="button" aria-pressed={layer === "crop-source"} disabled={!cropObservability?.source_coverage_preview} title={!cropObservability?.source_coverage_preview ? "Unavailable: no independent crop-mask source coverage is attached." : "Show independent crop-mask source coverage."} onClick={() => setLayer("crop-source")}>Mask QA</button>
         <span>{layer === "change" ? "Latest − baseline" : layer === "matched" ? "All dates · fixed cohort" : layer === "crop" ? "Independent crop-area mask" : layer === "crop-common" ? "Quality-valid crop area · all dates" : layer === "crop-source" ? "Independent mask source coverage" : selectedObservation ? dateLabel(selectedObservation.date) : "No layer loaded"}</span>
       </div>}
       drawerTabs={drawerTabs}

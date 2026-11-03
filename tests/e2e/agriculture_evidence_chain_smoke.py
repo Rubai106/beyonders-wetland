@@ -131,6 +131,13 @@ def main() -> int:
             "the same-pixel cohort layer can be selected directly from the map readout",
         )
         page.locator(".agri-map-toolbar").get_by_role("button", name="Soil moisture").click()
+        crop_button = page.locator(".agri-map-toolbar").get_by_role("button", name="Crop area")
+        require(
+            crop_button.is_disabled()
+            and "no independent crop-area mask" in (crop_button.get_attribute("title") or "")
+            and "no independent crop-area mask" in readout.inner_text().lower(),
+            "unpublished crop-mask layers explain their unavailable state instead of implying a failed control",
+        )
         require(
             page.locator(".agri-date-rail button").count() == EXPECTED_DATES,
             "the elapsed-time acquisition rail contains all six valid observation dates",

@@ -113,7 +113,7 @@ export default function AgricultureMap({
         <aside className="agri-map-readout" aria-label="Current soil-moisture observation summary">
           <div className="agri-map-readout__head">
             <div><span>FIELD OBSERVABILITY</span><strong>{new Date(selectedObservation.date + "T00:00:00Z").toLocaleDateString("en", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}</strong></div>
-            <span className="agri-map-readout__tag">NISAR SME2</span>
+            <span className="agri-map-readout__tag">{study.algorithm_label ?? "Root baseline product"}</span>
           </div>
           <div className="agri-map-readout__signal">
             <div>
@@ -137,6 +137,7 @@ export default function AgricultureMap({
             <button type="button" aria-pressed={layer === "matched"} disabled={study.matched_support.observations.length === 0} onClick={() => onLayerChange("matched")}>Inspect same pixels</button>
           </div>
           <div className="agri-map-readout__foot">EXPLORATORY EVIDENCE · NOT A CROP-HEALTH CLASSIFICATION</div>
+          {!study.crop_observability && <div className="agri-map-readout__availability">Crop overlays are unavailable: this release contains no independent crop-area mask.</div>}
         </aside>
       )}
       {publicationError && (
