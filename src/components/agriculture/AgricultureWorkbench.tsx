@@ -98,6 +98,7 @@ export default function AgricultureWorkbench() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [study, setStudy] = useState<AgricultureStudy | null>(null);
   const [checksums, setChecksums] = useState<AgricultureChecksumManifest | null>(null);
+  const [publicationVersion, setPublicationVersion] = useState<string | null>(null);
   const [loadError, setLoadError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [layer, setLayer] = useState<MapLayer>("moisture");
@@ -123,7 +124,7 @@ export default function AgricultureWorkbench() {
     let live = true;
     async function load() {
       try {
-        const indexResponse = await fetch("/agriculture/current/index.json", { signal: controller.signal, cache: "no-store" });
+        const indexResponse = await fetch("/agriculture/current/index.json?fresh=" + Date.now(), { signal: controller.signal, cache: "no-store" });
         if (indexResponse.status === 404) {
           if (live) setLoadState("not-published");
           return;
@@ -133,23 +134,30 @@ export default function AgricultureWorkbench() {
         const indexValue: unknown = JSON.parse(new TextDecoder().decode(indexBytes));
         if (!isAgricultureIndex(indexValue)) throw new Error("Agriculture publication index is malformed or contains an unsafe asset path.");
 
+        const versionQuery = "?v=" + encodeURIComponent(indexValue.published_at);
         const checksResponse = await fetch("/agriculture/" + indexValue.checksums_url, { signal: controller.signal, cache: "no-store" });
         if (!checksResponse.ok) throw new Error("Checksum manifest unavailable (HTTP " + checksResponse.status + ").");
         const checksValue: unknown = await checksResponse.json();
         if (!isAgricultureChecksumManifest(checksValue)) throw new Error("The Agriculture checksum manifest is missing or invalid.");
 
-        const studyResponse = await fetch("/agriculture/" + indexValue.study_url, { signal: controller.signal, cache: "no-store" });
+        const studyResponse = await fetch("/agriculture/" + indexValue.study_url + versionQuery, { signal: controller.signal, cache: "no-store" });
         if (!studyResponse.ok) throw new Error("Published study unavailable (HTTP " + studyResponse.status + ").");
         const studyBytes = await studyResponse.arrayBuffer();
         const entry = checksValue.files["study.json"];
-        if (!entry || studyBytes.byteLength !== entry.bytes || await sha256Hex(studyBytes) !== entry.sha256) {
-          throw new Error("Study integrity check failed: byte count or SHA-256 did not match the publication manifest.");
+        if (!entry) throw new Error("Study integrity check failed: the checksum manifest has no study.json entry.");
+        if (studyBytes.byteLength !== entry.bytes) {
+          throw new Error("Study integrity check failed: expected " + entry.bytes + " bytes but received " + studyBytes.byteLength + ". The publication files may be out of sync.");
+        }
+        const actualStudyHash = await sha256Hex(studyBytes);
+        if (actualStudyHash !== entry.sha256) {
+          throw new Error("Study integrity check failed: SHA-256 does not match the manifest for publication " + indexValue.published_at + ".");
         }
         const studyValue: unknown = JSON.parse(new TextDecoder().decode(studyBytes));
         if (!isAgricultureStudy(studyValue)) throw new Error("Published Agriculture study failed the SME2 schema and evidence-status checks.");
         if (!live) return;
         setStudy(studyValue);
         setChecksums(checksValue);
+        setPublicationVersion(indexValue.published_at);
         setSelectedIndex(Math.max(0, studyValue.observations.length - 1));
         setLoadState("ready");
       } catch (error) {
@@ -185,7 +193,7 @@ export default function AgricultureWorkbench() {
     : "";
 
   useEffect(() => {
-    if (!study || !checksums || !activeAsset) return;
+    if (!study || !checksums || !activeAsset || !publicationVersion) return;
     const checksumFiles = checksums.files;
     const controller = new AbortController();
     let live = true;
@@ -194,11 +202,14 @@ export default function AgricultureWorkbench() {
       try {
         const entry = checksumFiles[activeAsset];
         if (!entry) throw new Error("No checksum entry exists for " + activeAsset + ".");
-        const response = await fetch("/agriculture/current/" + activeAsset, { signal: controller.signal, cache: "no-store" });
+        const response = await fetch("/agriculture/current/" + activeAsset + "?v=" + encodeURIComponent(publicationVersion), { signal: controller.signal, cache: "no-store" });
         if (!response.ok) throw new Error("Preview " + activeAsset + " returned HTTP " + response.status + ".");
         const bytes = await response.arrayBuffer();
-        if (bytes.byteLength !== entry.bytes || await sha256Hex(bytes) !== entry.sha256) {
-          throw new Error("Preview integrity check failed for " + activeAsset + "; the image has been withheld.");
+        if (bytes.byteLength !== entry.bytes) {
+          throw new Error("Preview integrity check failed for " + activeAsset + ": expected " + entry.bytes + " bytes but received " + bytes.byteLength + "; the image has been withheld.");
+        }
+        if (await sha256Hex(bytes) !== entry.sha256) {
+          throw new Error("Preview SHA-256 check failed for " + activeAsset + "; the image has been withheld.");
         }
         if (!live) return;
         objectUrl = URL.createObjectURL(new Blob([bytes], { type: "image/png" }));
@@ -214,7 +225,7 @@ export default function AgricultureWorkbench() {
       controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [study, checksums, activeAsset]);
+  }, [study, checksums, activeAsset, publicationVersion]);
 
   const previewUrl = previewState?.asset === activeAsset ? previewState.url : null;
   const previewError = previewState?.asset === activeAsset ? previewState.error : "";

@@ -40,11 +40,14 @@ def select_tab(page, label: str, accessible_name: str) -> None:
 
 def main() -> int:
     errors: list[str] = []
+    publication_asset_requests: list[str] = []
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         page = browser.new_page(viewport={"width": 1440, "height": 1000})
         page.add_init_script("localStorage.setItem('geonexsar_tour_v1', '1')")
         page.on("pageerror", lambda error: errors.append(str(error)))
+        page.on("request", lambda request: publication_asset_requests.append(request.url)
+               if "/agriculture/current/" in request.url else None)
 
         response = page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
         require(response is not None and response.ok, "Agriculture route responds successfully")
@@ -58,6 +61,13 @@ def main() -> int:
         require(
             "SHA-256 checked" in status.inner_text() and "EXPLORATORY" in status.inner_text(),
             "the published SME2 study is checksum-verified and explicitly labelled exploratory",
+        )
+        versioned_study_requests = [url for url in publication_asset_requests if "/study.json" in url]
+        versioned_checksum_requests = [url for url in publication_asset_requests if "web-checksums.json" in url]
+        require(
+            versioned_study_requests and versioned_checksum_requests
+            and all("v=" in url for url in versioned_study_requests + versioned_checksum_requests),
+            "study and checksum assets are fetched with the publication-version cache key",
         )
         require(
             page.get_by_text(EXPECTED_STUDY_ID, exact=True).count() >= 1,
@@ -78,6 +88,16 @@ def main() -> int:
 
         agriculture_map = page.locator(".agri-map")
         require(agriculture_map.count() == 1 and agriculture_map.is_visible(), "the Agriculture map renders")
+        page.wait_for_function(
+            """() => [...document.querySelectorAll('.agri-map .leaflet-tile-pane img.leaflet-tile')].some(tile => tile.src.includes('tile.openstreetmap.org'))""",
+            timeout=10_000,
+        )
+        base_tile_urls = agriculture_map.locator(".leaflet-tile-pane img.leaflet-tile").evaluate_all("(tiles) => tiles.map(tile => tile.src)")
+        require(
+            any("tile.openstreetmap.org" in url for url in base_tile_urls)
+            and all("basemaps.cartocdn.com" not in url for url in base_tile_urls),
+            "the default basemap uses keyless OpenStreetMap tiles, not CARTO's keyed endpoint",
+        )
         page.locator(".agri-map-legend").wait_for(state="visible", timeout=20_000)
         require(
             agriculture_map.locator(".leaflet-image-layer").count() == 1

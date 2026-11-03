@@ -33,6 +33,9 @@
 }
 .agriculture-workspace .agri-map-loading { display: grid; place-items: center; color: #9eafb4; font-size: .8rem; }
 .agriculture-workspace .agri-map .leaflet-container { width: 100%; height: 100%; background: #091217; }
+.agriculture-workspace .agri-map .leaflet-tile-pane .agri-basemap-tile-layer {
+  filter: invert(1) hue-rotate(180deg) saturate(.42) brightness(.76) contrast(1.08);
+}
 .agriculture-workspace .agri-map-empty {
   position: absolute; z-index: 700; top: 18px; left: 18px; width: min(300px, calc(100% - 36px));
   padding: 14px 16px; border: 1px solid #30434b; border-radius: 5px;
