@@ -36,6 +36,10 @@ on:
         required: true
         default: true
         type: boolean
+  push:
+    branches: [Rubai-dev]
+    paths:
+      - 'pipeline/agriculture-cloud-request.json'
 
 permissions:
   contents: write
@@ -52,13 +56,77 @@ jobs:
     env:
       EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
       RUN_ID: agri-${{ github.run_id }}
-      SERIES_ID: ${{ inputs.series_id }}
-      ALLOW_MISSING_IMERG: ${{ inputs.allow_missing_imerg }}
+
     steps:
       - name: Check out Rubai-dev
         uses: actions/checkout@v4
         with:
           ref: Rubai-dev
+
+      - name: Resolve AOI and date inputs
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_WEST: ${{ inputs.west }}
+          INPUT_SOUTH: ${{ inputs.south }}
+          INPUT_EAST: ${{ inputs.east }}
+          INPUT_NORTH: ${{ inputs.north }}
+          INPUT_START: ${{ inputs.start }}
+          INPUT_END: ${{ inputs.end }}
+          INPUT_SERIES_ID: ${{ inputs.series_id }}
+          INPUT_ALLOW_MISSING_IMERG: ${{ inputs.allow_missing_imerg }}
+        run: |
+          if [ "$EVENT_NAME" = "push" ]; then
+            REQUEST_FILE="pipeline/agriculture-cloud-request.json"
+            if [ ! -f "$REQUEST_FILE" ]; then
+              echo "::error::Missing $REQUEST_FILE."
+              exit 1
+            fi
+            WEST=$(jq -r '.west // empty' "$REQUEST_FILE")
+            SOUTH=$(jq -r '.south // empty' "$REQUEST_FILE")
+            EAST=$(jq -r '.east // empty' "$REQUEST_FILE")
+            NORTH=$(jq -r '.north // empty' "$REQUEST_FILE")
+            START_DATE=$(jq -r '.start // empty' "$REQUEST_FILE")
+            END_DATE=$(jq -r '.end // empty' "$REQUEST_FILE")
+            SERIES_ID=$(jq -r '.series_id // empty' "$REQUEST_FILE")
+            ALLOW_MISSING=$(jq -r '.allow_missing_imerg // true' "$REQUEST_FILE")
+          else
+            WEST="$INPUT_WEST"
+            SOUTH="$INPUT_SOUTH"
+            EAST="$INPUT_EAST"
+            NORTH="$INPUT_NORTH"
+            START_DATE="$INPUT_START"
+            END_DATE="$INPUT_END"
+            SERIES_ID="$INPUT_SERIES_ID"
+            ALLOW_MISSING="$INPUT_ALLOW_MISSING_IMERG"
+          fi
+          for name in WEST SOUTH EAST NORTH START_DATE END_DATE; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required AOI/date value $name is missing."
+              exit 1
+            fi
+          done
+          python - "$WEST" "$SOUTH" "$EAST" "$NORTH" "$START_DATE" "$END_DATE" <<'PY'
+          import sys
+          from datetime import date
+          west, south, east, north = map(float, sys.argv[1:5])
+          start, end = map(date.fromisoformat, sys.argv[5:7])
+          if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
+              raise SystemExit("AOI must be a valid WGS84 bounding box.")
+          if start.isoformat() < "2026-06-17" or start > end or end > date.today():
+              raise SystemExit("Date range is invalid, future-dated, or starts before 2026-06-17.")
+          PY
+          {
+            echo "west=$WEST"
+            echo "south=$SOUTH"
+            echo "east=$EAST"
+            echo "north=$NORTH"
+            echo "start=$START_DATE"
+            echo "end=$END_DATE"
+            echo "series_id=$SERIES_ID"
+            echo "allow_missing_imerg=$ALLOW_MISSING"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Validate secure Earthdata configuration
         shell: bash
@@ -81,12 +149,12 @@ jobs:
 
       - name: Discover compatible NISAR SME2 acquisitions
         env:
-          WEST: ${{ inputs.west }}
-          SOUTH: ${{ inputs.south }}
-          EAST: ${{ inputs.east }}
-          NORTH: ${{ inputs.north }}
-          START_DATE: ${{ inputs.start }}
-          END_DATE: ${{ inputs.end }}
+          WEST: ${{ steps.request.outputs.west }}
+          SOUTH: ${{ steps.request.outputs.south }}
+          EAST: ${{ steps.request.outputs.east }}
+          NORTH: ${{ steps.request.outputs.north }}
+          START_DATE: ${{ steps.request.outputs.start }}
+          END_DATE: ${{ steps.request.outputs.end }}
         run: |
           python pipeline/agriculture_sme2.py search \
             --run-id "$RUN_ID" \
@@ -96,6 +164,7 @@ jobs:
       - name: Download the exact selected SME2 series
         shell: bash
         run: |
+          SERIES_ID="${{ steps.request.outputs.series_id }}"
           if [ -n "$SERIES_ID" ]; then
             python pipeline/agriculture_sme2.py download --run-id "$RUN_ID" --series-id "$SERIES_ID"
           else
@@ -116,6 +185,7 @@ jobs:
             echo "IMERG rainfall context attached." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          ALLOW_MISSING_IMERG="${{ steps.request.outputs.allow_missing_imerg }}"
           if [ "$ALLOW_MISSING_IMERG" = "true" ] && grep -Eq "no GPM IMERG Final daily V07 granules|no complete rainfall window met the 90% native-cell spatial coverage rule" "$RUNNER_TEMP/imerg.log"; then
             echo "### IMERG not yet available" >> "$GITHUB_STEP_SUMMARY"
             echo "SME2 evidence will be published without rainfall context. No missing rainfall values were fabricated." >> "$GITHUB_STEP_SUMMARY"
