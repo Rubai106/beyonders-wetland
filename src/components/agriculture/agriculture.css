@@ -385,6 +385,26 @@
   stroke-dasharray: 2 3;
   opacity: .8;
 }
+.agriculture-workspace .agri-support-drift__selection {
+  stroke: #d7e8cf;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: .75;
+}
+.agriculture-workspace .agri-support-drift__point[role="button"] {
+  cursor: pointer;
+  outline: none;
+  transition: r .12s ease, stroke-width .12s ease;
+}
+.agriculture-workspace .agri-support-drift__point[role="button"]:hover,
+.agriculture-workspace .agri-support-drift__point[role="button"].is-active {
+  stroke: #f4f0df;
+  stroke-width: 2.4;
+}
+.agriculture-workspace .agri-support-drift__point[role="button"]:focus-visible {
+  stroke: #ffffff;
+  stroke-width: 3;
+}
 .agriculture-workspace .agri-support-drift__point--valid {
   fill: #72c4b4;
   stroke: #0b1518;
