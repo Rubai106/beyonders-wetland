@@ -128,6 +128,12 @@ def main() -> int:
             "the evidence chain lists all six valid source observations",
         )
 
+        select_tab(
+            page,
+            "Evidence",
+            "Evidence: Review product maturity, quality flags, coverage and provenance",
+        )
+        require(active_tab(page) == "Evidence", "the Evidence tab opens for source and quality review")
         exclusions = page.get_by_text(
             f"Excluded acquisition dates ({EXPECTED_EXCLUSIONS})", exact=True
         )
@@ -141,6 +147,12 @@ def main() -> int:
             "each excluded acquisition has a dated, source-specific audit entry",
         )
 
+        select_tab(
+            page,
+            "Check it",
+            "Check it: Follow the soil-moisture measurement, reference status and uncertainty",
+        )
+        require(active_tab(page) == "Check it", "the Check it tab remains available for field-reference metrics")
         for metric in ("Precision", "Recall", "F1"):
             row = page.locator(".evidence-chain__reference-metrics > div").filter(
                 has=page.get_by_text(metric, exact=True)
