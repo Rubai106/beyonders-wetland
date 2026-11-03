@@ -1,6 +1,8 @@
 """Offline contract tests for the NASA GPM IMERG daily rainfall sidecar."""
+import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -10,6 +12,7 @@ import numpy as np
 from agriculture_imerg import (
     IMERG_SPATIAL_COVERAGE_FLOOR,
     _aoi_area_weights,
+    attach_imerg_rainfall,
     build_imerg_windows,
     parse_imerg_granule_date,
     read_imerg_daily,
@@ -157,6 +160,57 @@ class AgricultureIMERGTests(unittest.TestCase):
         self.assertEqual(row["3d"]["rainfall_mm"], None)
         self.assertEqual(row["3d"]["valid_days"], 1)
         self.assertEqual(row["3d"]["spatial_coverage_fraction"], 0.0)
+
+
+    def test_attach_records_verified_rainfall_context_without_publishing_source_granules(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run = root / "agri-run"
+            result_dir = run / "result"
+            result_dir.mkdir(parents=True)
+            study_path = result_dir / "study.json"
+            study_path.write_text(json.dumps({
+                "run_id": "agri-run",
+                "aoi": self.aoi,
+                "observations": [{"date": "2026-06-20"}],
+                "sources": [],
+            }), encoding="utf-8")
+            source = root / "granule.nc4"
+            source.write_bytes(b"verified test fixture bytes")
+            day = "2026-06-19"
+            search_manifest = {
+                "selected_granules": [{
+                    "date": day, "concept_id": "G123-PROV",
+                    "filename": "GPM_3IMERGDF_20260619.nc4",
+                }],
+                "missing_dates": [],
+            }
+            with patch("agriculture_imerg.run_folder", return_value=run), \
+                    patch("agriculture_imerg.search_imerg_daily", return_value=search_manifest), \
+                    patch("agriculture_imerg.download_imerg_granules", return_value={day: source}), \
+                    patch("agriculture_imerg.read_imerg_daily", return_value={
+                        "rainfall_mm": 5.0,
+                        "spatial_coverage_fraction": 1.0,
+                        "mean_half_hourly_samples": 48.0,
+                        "valid_grid_cells": 4,
+                        "total_grid_cells": 4,
+                    }):
+                context = attach_imerg_rainfall("agri-run")
+
+            saved = json.loads(study_path.read_text(encoding="utf-8"))
+            one_day = saved["rainfall_context"]["observations"][0]["windows"]["1d"]
+            self.assertEqual(one_day["rainfall_mm"], 5.0)
+            self.assertEqual(one_day["valid_days"], 1)
+            self.assertEqual(context["granules"][0]["concept_id"], "G123-PROV")
+            self.assertEqual(context["source_bytes"], source.stat().st_size)
+            self.assertEqual(
+                saved["sources"][-1]["url"],
+                "https://doi.org/10.5067/GPM/IMERGDF/DAY/07",
+            )
+            self.assertTrue((run / "imerg" / "receipt.json").is_file())
+            self.assertTrue((run / "imerg" / "daily-diagnostics.json").is_file())
+            self.assertFalse((root / "public").exists())
+
 
 
 if __name__ == "__main__":
