@@ -72,6 +72,8 @@ test("Agriculture chain preserves SME2 units and does not invent independent val
   assert.equal(chain.references[0].f1, null);
   assert.match(chain.conclusion, /not crop-stress/i);
   assert.match(chain.uncertainty_and_limits.join(" "), /not propagated/i);
+  assert.ok(chain.method.screening_rules.some((rule) => /retrievalQualityFlag = 0 as clear/i.test(rule)));
+  assert.ok(!chain.method.screening_rules.some((rule) => /bits 0/.test(rule)));
 });
 
 test("unpublished Agriculture workspace is explicit and has no fabricated observations", () => {
