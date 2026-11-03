@@ -1957,29 +1957,37 @@
 
   .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-map,
   .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-map {
-    min-height: 760px;
+    min-height: 840px;
   }
 
   .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-hazard-map .forest-comparison {
     inset: 52px 8px 8px;
     grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: repeat(2, minmax(320px, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(360px, 1fr)) !important;
     gap: 8px;
   }
 
   .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-hazard-map .forest-comparison > article {
-    min-height: 320px;
+    min-height: 360px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="forest"] .wx-hazard-map .forest-comparison-map {
+    min-height: 260px;
   }
 
   .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map .deformation-maps {
     inset: 52px 8px 8px;
     grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: repeat(2, minmax(320px, 1fr)) !important;
+    grid-template-rows: repeat(2, minmax(360px, 1fr)) !important;
     gap: 8px;
   }
 
   .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map .deformation-map-panel {
-    min-height: 320px;
+    min-height: 360px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map .deformation-map {
+    min-height: 260px;
   }
 
   .wx-root .wx-hazard-footer :is(.forest-legend, .volcano-map-legend) {
