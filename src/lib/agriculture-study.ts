@@ -183,7 +183,7 @@ export interface AgricultureQualityExclusion {
   reason: "NO_VALID_PIXELS_AFTER_SELECTED_ALGORITHM_QUALITY_SCREEN";
   valid_pixels: 0;
   total_pixels: number;
-  retrieval_interpretation: "baseline-bitmask" | "candidate-zero-clear";
+  retrieval_interpretation: "root-zero-clear" | "candidate-zero-clear";
 }
 
 export interface AgricultureStudy {
@@ -474,7 +474,7 @@ function validQualityExclusions(
         seen.has(item.date) || seenGranules.has(item.granule_name) || observedDates.has(item.date) ||
         item.date < dateRange.start || item.date > dateRange.end ||
         (algorithm === "DSG" && item.retrieval_interpretation !== "candidate-zero-clear") ||
-        (algorithm === "BASELINE" && item.retrieval_interpretation !== "baseline-bitmask") ||
+        (algorithm === "BASELINE" && item.retrieval_interpretation !== "root-zero-clear") ||
         item.date <= previous) return false;
     seen.add(item.date);
     seenGranules.add(item.granule_name);
