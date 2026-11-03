@@ -94,7 +94,7 @@ def select_imerg_granules(
         if not title or not concept_id:
             continue
         filename = Path(title).name
-        if not filename.lower().endswith((".nc4", ".nc")):
+        if not filename.lower().endswith((".nc4", ".nc", ".hdf5", ".h5")):
             continue
         try:
             granule_date = parse_imerg_granule_date(entry)
