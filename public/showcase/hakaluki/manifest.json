@@ -1,0 +1,111 @@
+{
+  "showcase_version": 1,
+  "case_id": "hakaluki",
+  "label": "REAL NISAR-PROVISIONAL SHOWCASE",
+  "run_id": "d6e65a58802e4cf4907ddefa42a435d6",
+  "site_name": "Hakaluki Haor",
+  "site_display_name": "Hakaluki Haor",
+  "completeness": "FULL",
+  "legacy_format": false,
+  "availability": {
+    "acquisition_dates": true,
+    "boundary": true,
+    "pulse": true,
+    "sensitivity": true,
+    "patch_dates": [
+      "2026-07-05",
+      "2026-07-17",
+      "2026-08-10",
+      "2026-08-22",
+      "2026-09-03",
+      "2026-09-15",
+      "2026-09-27"
+    ],
+    "radar_dates": [
+      "2026-07-05",
+      "2026-07-17",
+      "2026-08-10",
+      "2026-08-22",
+      "2026-09-03",
+      "2026-09-15",
+      "2026-09-27"
+    ],
+    "reference": true
+  },
+  "baseline_date": "2026-06-23",
+  "baseline_method": "PER_PIXEL_MEDIAN",
+  "baseline_observation_dates": [
+    "2026-06-23",
+    "2026-07-05"
+  ],
+  "selected_date": "2026-07-17",
+  "observation_count": 7,
+  "observation_scenes": [
+    "NISAR_L2_PR_GCOV_024_141_A_014_4005_DHDH_A_20260705T231315_20260705T231350_P05023_N_F_J_001",
+    "NISAR_L2_PR_GCOV_025_141_A_014_4005_DHDH_A_20260717T231314_20260717T231349_P05023_N_F_J_001",
+    "NISAR_L2_PR_GCOV_027_141_A_014_4005_DHDH_A_20260810T231313_20260810T231348_P05023_N_F_J_001",
+    "NISAR_L2_PR_GCOV_028_141_A_014_4005_DHDH_A_20260822T231312_20260822T231347_P05023_N_F_J_001",
+    "NISAR_L2_PR_GCOV_029_141_A_014_4005_DHDH_A_20260903T231312_20260903T231347_P05023_N_F_J_001",
+    "NISAR_L2_PR_GCOV_030_141_A_014_4005_DHDH_A_20260915T231312_20260915T231347_P05023_N_F_J_001",
+    "NISAR_L2_PR_GCOV_031_141_A_014_4005_DHDH_A_20260927T231312_20260927T231347_P05023_N_F_J_001"
+  ],
+  "product": "NISAR_L2_GCOV_PROVISIONAL_V1",
+  "product_maturity": "PROVISIONAL",
+  "frequency": "frequencyA",
+  "reference_check_status": "INCONCLUSIVE",
+  "reference_validated": false,
+  "cross_sensor_check_completed": false,
+  "wetland_boundary_source": "Bangladesh Haor Boundary feature, ArcGIS service ADB005/CRIIPS layer 147; attributes report 173.02 km²",
+  "site_bounds": [
+    91.95680997300008,
+    24.579922022000062,
+    92.12511599400005,
+    24.73396591200003
+  ],
+  "quality_mask_method": "Finite positive HHHH/HVHV; GCOV numberOfLooks > 0 and metadata-declared fill exclusions where raw quality layers are present; optional external binary mask; GCOV averaging-ensemble mask recorded but not treated as validity.",
+  "completed_at": "2026-10-04T18:02:22.061034+00:00",
+  "observation_dates": [
+    "2026-07-05",
+    "2026-07-17",
+    "2026-08-10",
+    "2026-08-22",
+    "2026-09-03",
+    "2026-09-15",
+    "2026-09-27"
+  ],
+  "radar_dates": [
+    "2026-07-05",
+    "2026-07-17",
+    "2026-08-10",
+    "2026-08-22",
+    "2026-09-03",
+    "2026-09-15",
+    "2026-09-27"
+  ],
+  "has_reference": true,
+  "limitations": [
+    "NISAR L2 GCOV input is a PROVISIONAL product; results are exploratory.",
+    "A radar-darkening candidate is not confirmed flooding; backscatter changes can have multiple causes.",
+    "The independent HLS open-water comparison is INCONCLUSIVE: only 9 common-clear 30 m pixels (0.00052% of the study area) were available, below the 20% assessment floor.",
+    "No candidate pixels were assessed by the HLS comparison; precision, recall and F1 are not recorded.",
+    "The HLS method checks open water only and does not validate vegetated inundation.",
+    "The boundary is a GIS study mask, not an authoritative legal or Ramsar wetland extent.",
+    "Acquisition dates are discrete; no values are interpolated between observations."
+  ],
+  "source": "NASA/JPL NISAR L2 GCOV PROVISIONAL via NASA CMR / ASF DAAC; published real run d6e65a58802e4cf4907ddefa42a435d6.",
+  "pulse_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/wetland_pulse.json",
+  "boundary_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/site_boundary.geojson",
+  "sensitivity_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/sensitivity_results.json",
+  "observations_file": "/showcase/hakaluki/observations.json",
+  "reference_file": "/showcase/hakaluki/reference.json",
+  "radar_asset_base": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/",
+  "radar_preview_urls": {
+    "2026-07-05": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_00.json",
+    "2026-07-17": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_01.json",
+    "2026-08-10": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_02.json",
+    "2026-08-22": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_03.json",
+    "2026-09-03": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_04.json",
+    "2026-09-15": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_05.json",
+    "2026-09-27": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_06.json"
+  }
+}

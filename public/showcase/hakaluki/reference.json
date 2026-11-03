@@ -1,0 +1,82 @@
+{
+  "available": true,
+  "validation": {
+    "status": "INCONCLUSIVE",
+    "site": "Hakaluki Haor",
+    "reference_product": "NASA HLS v2.0 (Landsat L30 + Sentinel-2 S30 surface reflectance)",
+    "source_url": "https://hls.gsfc.nasa.gov/data-products/",
+    "reason": "Too few co-registered, cloud-free pixels overlap the wetland mask for a useful check.",
+    "selection": {
+      "available_pairs": 32,
+      "evaluated_pairs": 32,
+      "date_tolerance_days": 5,
+      "method": "Maximum common cloud-free study-area coverage; ties favor closer dates. Detection agreement is not used for selection."
+    },
+    "comparison": {
+      "baseline": {
+        "nisar_date": "2026-06-29",
+        "hls_date": "2026-07-04",
+        "offset_days": 5,
+        "product": "S30"
+      },
+      "event": {
+        "nisar_date": "2026-07-17",
+        "hls_date": "2026-07-14",
+        "offset_days": -3,
+        "product": "L30"
+      },
+      "hls_tile": "T46RCN",
+      "spatial_resolution_m": 30
+    },
+    "coverage": {
+      "study_area_valid_pixels": 1729130,
+      "common_clear_pixels": 9,
+      "common_clear_fraction": 0.000005204929646700942,
+      "common_clear_area_km2": 0.0009,
+      "minimum_clear_fraction_for_check": 0.2
+    },
+    "limitations": [
+      "This is a cross-sensor agreement check, not field truth or a formal accuracy estimate.",
+      "HLS dates differ from NISAR dates; water can change between acquisitions.",
+      "Clouds and HLS 30 m pixels greatly reduce comparable coverage.",
+      "Only open-water candidates are evaluated; vegetated inundation is not validated."
+    ]
+  },
+  "evidence": {
+    "reference_status": "INCONCLUSIVE",
+    "coverage": {
+      "common_clear_fraction": 0.000005204929646700942,
+      "common_clear_area_km2": 0.0009
+    },
+    "metrics": {
+      "precision": null,
+      "recall": null,
+      "f1": null,
+      "matching_pixels": 0,
+      "radar_only_pixels": 0,
+      "optical_only_pixels": 0
+    },
+    "comparison": {
+      "baseline": {
+        "hls_date": "2026-07-04"
+      },
+      "event": {
+        "hls_date": "2026-07-14"
+      }
+    },
+    "limitations": [
+      "Only 9 common-clear pixels (0.0009 km²; 0.00052% of the study area) were available.",
+      "None of the 25,702 candidate pixels was assessed by the HLS comparison.",
+      "The comparison checks open water only; it does not validate flooded vegetation."
+    ],
+    "showcase_images": {
+      "reference_before_rgb": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_before_rgb.png",
+      "reference_before_water": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_before_water.png",
+      "reference_after_rgb": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_after_rgb.png",
+      "reference_after_water": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_after_water.png",
+      "reference_agreement": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_agreement.png",
+      "reference_coverage": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_coverage.png",
+      "reference_candidate_overlay": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/reference_candidate_overlay.png"
+    }
+  }
+}
