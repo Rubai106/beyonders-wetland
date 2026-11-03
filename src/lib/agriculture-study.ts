@@ -128,7 +128,7 @@ export interface AgricultureCropObservability {
 export type AgricultureRainfallWindow = "1d" | "3d" | "7d" | "12d";
 
 export interface AgricultureRainfallWindowValue {
-  /** Daily accumulated precipitation in mm. Null means the full window is not observed. */
+  /** Sum of daily IMERG mm/day estimates over the window, in mm; null means incomplete. */
   rainfall_mm: number | null;
   valid_days: number;
   expected_days: number;
@@ -481,6 +481,15 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
       new Set(value.granules.map((item: Record<string, unknown>) => item.date)).size !== value.granules.length ||
       Number(value.source_bytes) !== value.granules.reduce((sum: number, item: Record<string, unknown>) => sum + Number(item.bytes), 0) ||
       !Array.isArray(value.observations) || value.observations.length !== expectedDates.length) return false;
+  const requiredGranuleDates = new Set<string>();
+  for (const acquisitionDate of expectedDates) {
+    const acquisitionTimestamp = Date.parse(acquisitionDate + "T00:00:00Z");
+    for (let offset = 1; offset <= 12; offset += 1) {
+      requiredGranuleDates.add(new Date(acquisitionTimestamp - offset * 86_400_000).toISOString().slice(0, 10));
+    }
+  }
+  if (!value.granules.every((item: Record<string, unknown>) =>
+    typeof item.date === "string" && requiredGranuleDates.has(item.date))) return false;
   const windows: AgricultureRainfallWindow[] = ["1d", "3d", "7d", "12d"];
   return value.observations.every((item, index) => {
     if (!isRecord(item) || item.date !== expectedDates[index] || !isRecord(item.windows)) return false;
