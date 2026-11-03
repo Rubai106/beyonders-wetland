@@ -97,6 +97,18 @@ def main() -> int:
         page.wait_for_selector(".wx-obs", timeout=20_000)
         page.wait_for_selector("path.wx-patch", timeout=20_000)
 
+        # The packaged showcase starts its introductory date animation once
+        # per browser session. Pause it before selecting a candidate: a
+        # playback tick changes the selected date and intentionally clears
+        # challengeOpen, which would race this multi-step interaction test.
+        play_button = page.locator(".wx-play")
+        play_button.wait_for(state="visible", timeout=10_000)
+        if play_button.get_attribute("aria-pressed") == "true":
+            play_button.click()
+        page.wait_for_function(
+            """() => document.querySelector(".wx-play")?.getAttribute("aria-pressed") === "false" """
+        , timeout=10_000)
+
         # Open a real candidate from the packaged Tanguar Haor showcase.
         page.locator("path.wx-patch").nth(40).click(force=True)
         page.wait_for_selector(".wx-drawer", timeout=10_000)
