@@ -180,7 +180,6 @@ export default function InvestigationWorkspace({
         </span>}
         <nav className="wx-nav" aria-label="Earth change topics">
           <Link href="/wetland" aria-label="Open the published wetland investigations" title="Tanguar Haor and Hakaluki Haor studies"><span>Wetlands</span></Link>
-          <Link href="/wetland/global?story=chokwe" aria-label="Open the Chókwè flood event investigation" title="Chókwè · January 2026 event investigation">Chókwè</Link>
           {sections.map((section) => (
             section.id !== "wetland" && <Link key={section.id} href={section.href} aria-current={hazard === section.id ? "page" : undefined}>{section.label}</Link>
           ))}
