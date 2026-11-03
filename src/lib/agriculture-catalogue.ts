@@ -209,6 +209,6 @@ export function groupAgricultureSME2Series(
     right.observation_count - left.observation_count ||
     right.span_days - left.span_days ||
     (left.maximum_gap_days ?? 0) - (right.maximum_gap_days ?? 0) ||
-    left.series_id.localeCompare(right.series_id)
+    right.series_id.localeCompare(left.series_id)
   );
 }
