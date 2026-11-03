@@ -326,7 +326,7 @@ export default function AgricultureWorkbench() {
   const exportCsv = useCallback(() => {
     if (!study) return;
     const columns = [
-      "date", "algorithm", "quality_exclusion_count", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "date_valid_fraction",
+      "date", "algorithm", "quality_exclusions_json", "median_m3_m3", "p05_m3_m3", "p95_m3_m3", "date_valid_fraction",
       "date_valid_pixels", "total_pixels", "uncertainty_median", "same_pixel_median_m3_m3",
       "same_pixel_valid_fraction", "same_pixel_count", "support_composition_gap_m3_m3",
       "surface_flag_total_aoi_pixels", "surface_flag_encoded_pixels", "surface_flag_unflagged_pixels",
@@ -350,7 +350,7 @@ export default function AgricultureWorkbench() {
       const cropCommon = crop?.common_support.observations[index];
       const surface = item.surface_flag_diagnostics;
       return [
-        item.date, study.algorithm ?? "BASELINE", study.quality_exclusions?.length ?? 0,
+        item.date, study.algorithm ?? "BASELINE", JSON.stringify(study.quality_exclusions ?? []),
         item.median, item.p05, item.p95, item.valid_fraction, item.valid_pixels,
         item.total_pixels, item.uncertainty_median, matched?.median ?? "",
         matched?.valid_fraction ?? "", matched?.valid_pixels ?? "",
@@ -1000,6 +1000,9 @@ export default function AgricultureWorkbench() {
               brief={{
                 module: evidenceChain.module,
                 study_id: evidenceChain.study_id,
+                algorithm: study?.algorithm ?? "BASELINE",
+                algorithm_label: study?.algorithm_label ?? "Root baseline product",
+                quality_exclusions: study?.quality_exclusions ?? [],
                 site_name: evidenceChain.site_name,
                 modality: evidenceChain.modality,
                 product: evidenceChain.product,
