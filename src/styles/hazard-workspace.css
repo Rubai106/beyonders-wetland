@@ -75,9 +75,11 @@
   }
 }
 
-/* Shared workspace density pass: reserve space for the map without shrinking evidence text. */
-.wx-root.wx-hazard-shell[data-drawer="open"] {
-  grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) clamp(320px, 23.5vw, 360px);
+/* Shared workspace density pass: desktop columns only. The mobile one-column map grid must win below 960px. */
+@media (min-width: 961px) {
+  .wx-root.wx-hazard-shell[data-drawer="open"] {
+    grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) clamp(320px, 23.5vw, 360px);
+  }
 }
 .wx-root.wx-hazard-shell .wx-mast { gap: 10px; }
 .wx-root.wx-hazard-shell .wx-nav { gap: 2px; min-width: 0; }
