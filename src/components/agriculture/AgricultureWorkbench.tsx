@@ -744,7 +744,7 @@ export default function AgricultureWorkbench() {
                   <div><span>Largest |gap|</span><strong>{formatMoisture(Math.abs(supportDriftStats.largestGap))}</strong><small>{dateLabel(supportDriftStats.largestGapDate)}</small></div>
                 </div>
                 <div className="agri-support-drift__plot">
-                  <svg viewBox="0 0 720 178" role="group" aria-label={"Selectable spatial-support comparison across " + supportDrift.length + " dates. Date-valid and fixed-cohort medians are shown as separate series."}>
+                  <svg viewBox="0 0 720 178" preserveAspectRatio="none" role="img" aria-label={"Date-valid and fixed-cohort median soil moisture across " + supportDrift.length + " dates. Select a nearby button to inspect a footprint."}>
                     <line x1="42" x2="678" y1="18" y2="18" className="agri-support-drift__grid" />
                     <line x1="42" x2="678" y1="79" y2="79" className="agri-support-drift__grid" />
                     <line x1="42" x2="678" y1="140" y2="140" className="agri-support-drift__grid" />
