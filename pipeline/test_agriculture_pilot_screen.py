@@ -1,3 +1,5 @@
+import hashlib
+import json
 import unittest
 
 from agriculture_pilot_screen import screen_sites, summarize_series
@@ -32,6 +34,8 @@ class AgriculturePilotScreenTests(unittest.TestCase):
         self.assertEqual(rows[0]["observation_count"], 6)
         self.assertEqual(rows[0]["span_days"], 60)
         self.assertTrue(rows[0]["meets_preflight_gate"])
+        expected_id = hashlib.sha256(json.dumps(rows[0]["signature"], sort_keys=True).encode("utf-8")).hexdigest()[:12]
+        self.assertEqual(rows[0]["series_id"], expected_id)
 
     def test_does_not_mix_track_or_frame_into_one_series(self):
         rows = summarize_series([
