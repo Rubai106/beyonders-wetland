@@ -2,43 +2,43 @@
   {
     "date": "2026-07-05",
     "index": 0,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_00_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_00_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_024_141_A_014_4005_DHDH_A_20260705T231315_20260705T231350_P05023_N_F_J_001"
   },
   {
     "date": "2026-07-17",
     "index": 1,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_01_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_01_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_025_141_A_014_4005_DHDH_A_20260717T231314_20260717T231349_P05023_N_F_J_001"
   },
   {
     "date": "2026-08-10",
     "index": 2,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_02_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_02_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_027_141_A_014_4005_DHDH_A_20260810T231313_20260810T231348_P05023_N_F_J_001"
   },
   {
     "date": "2026-08-22",
     "index": 3,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_03_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_03_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_028_141_A_014_4005_DHDH_A_20260822T231312_20260822T231347_P05023_N_F_J_001"
   },
   {
     "date": "2026-09-03",
     "index": 4,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_04_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_04_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_029_141_A_014_4005_DHDH_A_20260903T231312_20260903T231347_P05023_N_F_J_001"
   },
   {
     "date": "2026-09-15",
     "index": 5,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_05_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_05_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_030_141_A_014_4005_DHDH_A_20260915T231312_20260915T231347_P05023_N_F_J_001"
   },
   {
     "date": "2026-09-27",
     "index": 6,
-    "patches_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_06_final.geojson",
+    "patches_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/patches_06_final.geojson",
     "scene_name": "NISAR_L2_PR_GCOV_031_141_A_014_4005_DHDH_A_20260927T231312_20260927T231347_P05023_N_F_J_001"
   }
 ]
