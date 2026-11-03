@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   ImageOverlay,
   MapContainer,
@@ -15,7 +15,7 @@ import type { AgricultureAOI } from "@/lib/agriculture-study";
 function FitStudyBounds({ bounds }: { bounds: LatLngBoundsExpression | undefined }) {
   const map = useMap();
   useEffect(() => {
-    if (bounds) map.fitBounds(bounds, { padding: [28, 28], maxZoom: 12 });
+    if (bounds) map.fitBounds(bounds, { padding: [28, 28], maxZoom: 12, animate: false });
   }, [bounds, map]);
   return null;
 }
@@ -36,9 +36,16 @@ export default function AgricultureMap({
   layer: "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
 }) {
   const extent = displayBounds ?? aoi;
-  const bounds: LatLngBoundsExpression | undefined = extent
-    ? [[extent.south, extent.west], [extent.north, extent.east]]
-    : undefined;
+  const west = extent?.west ?? null;
+  const south = extent?.south ?? null;
+  const east = extent?.east ?? null;
+  const north = extent?.north ?? null;
+  const bounds = useMemo<LatLngBoundsExpression | undefined>(() =>
+    west !== null && south !== null && east !== null && north !== null
+      ? [[south, west], [north, east]]
+      : undefined,
+    [west, south, east, north],
+  );
   const center: [number, number] = extent
     ? [(extent.south + extent.north) / 2, (extent.west + extent.east) / 2]
     : [12, 0];
