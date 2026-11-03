@@ -600,6 +600,9 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         fill_ok &= uncertainty != fill
     valid = quality_mask(moisture, uncertainty, retrieval, surface, fill_ok)
     valid &= in_aoi
+    quality_audit = quality_screen_diagnostics(
+        moisture, uncertainty, retrieval, surface, in_aoi, fill_ok,
+    )
     rows, cols = np.where(in_aoi)
     if rows.size == 0 or cols.size == 0:
         raise AgricultureError("The selected AOI does not intersect this SME2 native grid.")
@@ -633,6 +636,7 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
         "signature": signature, "file": path, "fill_excluded": fill_excluded,
         "retrieval_flag_counts": retrieval_counts, "surface_flag_counts": surface_counts,
         "surface_flag_diagnostics": surface_diagnostics,
+        "quality_diagnostics": quality_audit,
     }
 
 
@@ -663,6 +667,58 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
     if fill_ok is not None:
         valid &= np.asarray(fill_ok, dtype=bool)
     return valid
+
+
+def quality_screen_diagnostics(
+    moisture: np.ndarray,
+    uncertainty: np.ndarray,
+    retrieval_flag: np.ndarray,
+    surface_flag: np.ndarray,
+    aoi_mask: np.ndarray,
+    fill_ok: np.ndarray | None = None,
+) -> dict[str, int]:
+    """Count each strict SME2 quality-screen component inside an AOI.
+
+    Counts overlap because they are independent pass criteria. This is an
+    observability aid only; it does not change the quality mask or relax gates.
+    """
+    moisture = np.asarray(moisture, dtype="float64")
+    uncertainty = np.asarray(uncertainty, dtype="float64")
+    retrieval_values = np.asarray(retrieval_flag, dtype="float64")
+    surface_values = np.asarray(surface_flag, dtype="float64")
+    aoi = np.asarray(aoi_mask, dtype=bool)
+    arrays = (uncertainty, retrieval_values, surface_values, aoi)
+    if moisture.ndim != 2 or any(item.shape != moisture.shape for item in arrays):
+        raise AgricultureError("Quality diagnostics require matching two-dimensional arrays.")
+    fill = np.ones(moisture.shape, dtype=bool) if fill_ok is None else np.asarray(fill_ok, dtype=bool)
+    if fill.shape != moisture.shape:
+        raise AgricultureError("Quality diagnostics fill mask must match the SME2 layers.")
+
+    moisture_pass = np.isfinite(moisture) & (moisture >= MOISTURE_MIN) & (moisture <= MOISTURE_MAX)
+    uncertainty_pass = np.isfinite(uncertainty) & (uncertainty >= 0)
+    retrieval_integer = np.where(np.isfinite(retrieval_values), retrieval_values, -1).astype("int64")
+    retrieval_pass = (
+        np.isfinite(retrieval_values)
+        & (retrieval_values >= 0) & (retrieval_values <= 255)
+        & np.isclose(retrieval_values, np.round(retrieval_values))
+        & ((retrieval_integer & 0x0F) == 0x0F)
+        & ((retrieval_integer & 0xF0) == 0)
+    )
+    surface_integer = np.where(np.isfinite(surface_values), surface_values, -1).astype("int64")
+    surface_pass = (
+        np.isfinite(surface_values) & np.isclose(surface_values, np.round(surface_values))
+        & (surface_integer == 0)
+    )
+    final = moisture_pass & uncertainty_pass & retrieval_pass & surface_pass & fill & aoi
+    return {
+        "aoi_pixels": int(np.sum(aoi)),
+        "moisture_range_pass_pixels": int(np.sum(aoi & moisture_pass)),
+        "uncertainty_pass_pixels": int(np.sum(aoi & uncertainty_pass)),
+        "retrieval_flag_pass_pixels": int(np.sum(aoi & retrieval_pass)),
+        "surface_flag_clear_pixels": int(np.sum(aoi & surface_pass)),
+        "fill_pass_pixels": int(np.sum(aoi & fill)),
+        "all_screen_pass_pixels": int(np.sum(final)),
+    }
 
 
 def surface_flag_diagnostics(surface_flag: np.ndarray, aoi_mask: np.ndarray,
@@ -1238,6 +1294,12 @@ def analyze(
         name = f"moisture-{scene['date']}.png"
         preview = output / "previews" / name
         native = output / "native" / f"moisture-{scene['date']}.tif"
+        if not np.any(scene["valid"] & scene["aoi_mask"]):
+            raise AgricultureError(
+                f"Observation {scene['date']} has no valid pixels after the SME2 quality screen; "
+                f"per-gate AOI counts: {json.dumps(scene['quality_diagnostics'], sort_keys=True)}; "
+                f"surface flags: {json.dumps(scene['surface_flag_diagnostics'], sort_keys=True)}"
+            )
         summary = _summary(scene["moisture"], scene["valid"], scene["uncertainty"], scene["aoi_mask"])
         _preview(scene["moisture"], scene["valid"], preview)
         _write_geotiff(native, scene["moisture"], scene["valid"], scene["epsg"], scene["transform"])
