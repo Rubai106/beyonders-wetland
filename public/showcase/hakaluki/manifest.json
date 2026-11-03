@@ -93,19 +93,19 @@
     "Acquisition dates are discrete; no values are interpolated between observations."
   ],
   "source": "NASA/JPL NISAR L2 GCOV PROVISIONAL via NASA CMR / ASF DAAC; published real run d6e65a58802e4cf4907ddefa42a435d6.",
-  "pulse_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/wetland_pulse.json",
-  "boundary_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/site_boundary.geojson",
-  "sensitivity_file": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/sensitivity_results.json",
+  "pulse_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/wetland_pulse.json",
+  "boundary_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/site_boundary.geojson",
+  "sensitivity_file": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/sensitivity_results.json",
   "observations_file": "/showcase/hakaluki/observations.json",
   "reference_file": "/showcase/hakaluki/reference.json",
-  "radar_asset_base": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/",
+  "radar_asset_base": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/",
   "radar_preview_urls": {
-    "2026-07-05": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_00.json",
-    "2026-07-17": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_01.json",
-    "2026-08-10": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_02.json",
-    "2026-08-22": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_03.json",
-    "2026-09-03": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_04.json",
-    "2026-09-15": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_05.json",
-    "2026-09-27": "/public/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_06.json"
+    "2026-07-05": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_00.json",
+    "2026-07-17": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_01.json",
+    "2026-08-10": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_02.json",
+    "2026-08-22": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_03.json",
+    "2026-09-03": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_04.json",
+    "2026-09-15": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_05.json",
+    "2026-09-27": "/studies/releases/2026.10.07/runs/d6e65a58802e4cf4907ddefa42a435d6/radar_preview_06.json"
   }
 }
