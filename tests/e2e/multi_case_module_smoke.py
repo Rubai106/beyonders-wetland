@@ -197,12 +197,11 @@ def main() -> int:
         forest_metrics = page.locator(".forest-comparison").evaluate(
             "(el) => ({map: el.getBoundingClientRect().toJSON(), gridRows: getComputedStyle(el).gridTemplateRows, panels: [...el.querySelectorAll('.forest-comparison-map')].map(node => ({rect: node.getBoundingClientRect().toJSON(), position: getComputedStyle(node).position, minHeight: getComputedStyle(node).minHeight})), rootPosition: getComputedStyle(document.querySelector('.wx-root')).position, drawerPosition: getComputedStyle(document.querySelector('.wx-drawer')).position})"
         )
-        print("FOREST_PHONE_LAYOUT", forest_metrics)
         require(
             forest_maps.count() == 2
             and all(height >= 240 for height in forest_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
             and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
-            "Forest stacks two usable map panels and keeps evidence in page flow on a phone",
+            f"Forest stacks two usable map panels and keeps evidence in page flow on a phone (map heights: {[round(h) for h in forest_maps.evaluate_all('(nodes) => nodes.map(el => el.getBoundingClientRect().height)')]})",
         )
         require(
             page.get_by_label("Processed observation date").count() == 0
@@ -220,12 +219,11 @@ def main() -> int:
         volcano_metrics = page.locator(".deformation-maps").evaluate(
             "(el) => ({map: el.getBoundingClientRect().toJSON(), gridRows: getComputedStyle(el).gridTemplateRows, panels: [...el.querySelectorAll('.deformation-map')].map(node => ({rect: node.getBoundingClientRect().toJSON(), position: getComputedStyle(node).position, minHeight: getComputedStyle(node).minHeight})), rootPosition: getComputedStyle(document.querySelector('.wx-root')).position, drawerPosition: getComputedStyle(document.querySelector('.wx-drawer')).position})"
         )
-        print("VOLCANO_PHONE_LAYOUT", volcano_metrics)
         require(
             volcano_maps.count() == 2
             and all(height >= 240 for height in volcano_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)"))
             and page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position !== 'fixed'"),
-            "Volcano stacks two usable radar maps and keeps evidence in page flow on a phone",
+            f"Volcano stacks two usable radar maps and keeps evidence in page flow on a phone (map heights: {[round(h) for h in volcano_maps.evaluate_all('(nodes) => nodes.map(el => el.getBoundingClientRect().height)')]})",
         )
         require(
             page.locator(".deformation-timeline").count() == 1,
@@ -234,6 +232,42 @@ def main() -> int:
         require(
             page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
             "the Volcano mobile workspace has no horizontal page overflow",
+        )
+
+        # Tablet acceptance: the same single-column investigation flow should
+        # remain usable at 1024px rather than squeezing the map between rails.
+        page.set_viewport_size({"width": 1024, "height": 768})
+        tablet_routes = [
+            ("/wetland", ".wx-map .leaflet-container", "Wetlands"),
+            ("/agriculture", ".agri-map", "Agriculture"),
+            ("/forest", ".forest-comparison", "Forest"),
+            ("/volcano", ".deformation-map-hint", "Volcano"),
+        ]
+        for route, map_selector, label in tablet_routes:
+            page.goto(BASE + route, wait_until="domcontentloaded", timeout=30_000)
+            page.locator(map_selector).wait_for(state="visible", timeout=30_000)
+            root_position = page.locator(".wx-root").evaluate("(el) => getComputedStyle(el).position")
+            drawer_position = page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position")
+            map_height = page.locator(".wx-map").evaluate("(el) => el.getBoundingClientRect().height")
+            require(
+                root_position != "fixed" and drawer_position != "fixed" and map_height >= 380,
+                f"{label} keeps a 380px+ map and an in-flow evidence panel at tablet width (map {round(map_height)}px)",
+            )
+            require(
+                page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+                f"{label} has no horizontal page overflow at tablet width",
+            )
+        forest_tablet_maps = page.locator(".forest-comparison-map")
+        require(
+            forest_tablet_maps.count() == 2
+            and all(h >= 220 for h in forest_tablet_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)")),
+            "Forest keeps two readable side-by-side maps at tablet width",
+        )
+        volcano_tablet_maps = page.locator(".deformation-map")
+        require(
+            volcano_tablet_maps.count() == 2
+            and all(h >= 220 for h in volcano_tablet_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)")),
+            "Volcano keeps two readable side-by-side maps at tablet width",
         )
 
         browser.close()
