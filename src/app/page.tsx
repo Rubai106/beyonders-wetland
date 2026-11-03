@@ -261,8 +261,8 @@ export default function Home() {
           <span className="g3-brand"><em>GeoNexSAR</em> · mission control</span>
           <nav aria-label="Primary">
             <Link href="/wetland">Wetlands</Link>
-            <Link href="/forest/global">Forests</Link>
-            <Link href="/volcano/global">Volcanoes</Link>
+            <Link href="/forest/rondonia">Forests</Link>
+            <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
             <Link href="/wetland/global">NISAR worldwide</Link>
           </nav>
         </header>
@@ -323,6 +323,7 @@ export default function Home() {
           <div className="g3-ctas">
             <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Inspect the Chókwè event case</Link>
             <Link href="/wetland" className="g3-btn g3-btn--ghost">Open the Tanguar Haor case</Link>
+            <Link href="/wetland?case=hakaluki" className="g3-btn g3-btn--ghost">Open the Hakaluki Haor case</Link>
             <button type="button" className={`g3-btn${pinMode ? " g3-btn--armed" : ""}`} onClick={() => { setPinMode((m) => !m); setPin(null); }}>
               {pinMode ? "Cancel pin mode" : "Drop a pin anywhere"}
             </button>
@@ -387,7 +388,7 @@ export default function Home() {
         <Reveal>
           <p className="g3-eyebrow">Anywhere on Earth</p>
           <h2 id="g3-anywhere-t">One planet. Infinite wetlands.</h2>
-          <p className="g3-lede2">The packaged real measurements currently cover Tanguar Haor. Choose another location to inspect real NISAR coverage and check whether compatible observations are available for a new study. A map pin is a proposed study location, not a detection or a claim that data exist there.</p>
+          <p className="g3-lede2">The published Wetlands collection includes seven-date NISAR PROVISIONAL series for Tanguar Haor and Hakaluki Haor, plus a separate January 2026 two-scene BETA event study for Chókwè. These are different releases and are not combined into one timeline. Choose another location to inspect real NISAR coverage; a map pin is a proposed study area, not a detection or a claim that data exist there.</p>
         </Reveal>
         <div className="g3-presets">
           {PRESET_PINS.map((p, i) => (
@@ -438,7 +439,7 @@ export default function Home() {
       <footer className="g3-foot">
         <p><strong>GeoNexSAR</strong></p>
         <p>GeoNexSAR shows observed data and derived results with provenance. A radar-change candidate is never presented as a confirmed flood.</p>
-        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/global">Forests</Link><Link href="/volcano/global">Volcanoes</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
+        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
       </footer>
     </main>
   );
