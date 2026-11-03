@@ -78,6 +78,7 @@ def main() -> int:
 
         agriculture_map = page.locator(".agri-map")
         require(agriculture_map.count() == 1 and agriculture_map.is_visible(), "the Agriculture map renders")
+        page.locator(".agri-map-legend").wait_for(state="visible", timeout=20_000)
         require(
             agriculture_map.locator(".leaflet-image-layer").count() == 1
             and agriculture_map.locator(".agri-map-legend").count() == 1,
