@@ -98,7 +98,7 @@ function DetectiveClicks() {
 }
 
 function RadarOverlay() {
-  const { dataTier, pipelineRunId, pulseData, selectedDateIndex, radarChannel, radarStage, radarOpacity, showcaseId } = useWetlandStore();
+  const { dataTier, pipelineRunId, pulseData, selectedDateIndex, radarChannel, radarStage, radarOpacity, showcaseId, showcase } = useWetlandStore();
   const date = pulseData?.dates[selectedDateIndex]?.date;
   const key = `${dataTier}:${pipelineRunId}:${showcaseId}:${date}`;
   const [loaded, setLoaded] = useState<{ key: string; preview: RadarPreview | null } | null>(null);
@@ -106,12 +106,12 @@ function RadarOverlay() {
   useEffect(() => {
     let live = true;
     if (!date) return;
-    const load = dataTier === "SHOWCASE" ? loadShowcaseRadar(date, showcaseId)
+    const load = dataTier === "SHOWCASE" ? loadShowcaseRadar(date, showcaseId, showcase?.manifest)
       : fetch(`/api/wetland/radar?run=${pipelineRunId}&date=${date}`).then((r) => r.ok ? r.json() as Promise<RadarPreview> : null)
         .then((v) => { if (v) for (const l of Object.values(v.layers)) l.images = Object.fromEntries(Object.entries(l.images).map(([k, f]) => [k, `/api/wetland/artifact?run=${pipelineRunId}&file=${encodeURIComponent(f)}`])); return v; }).catch(() => null);
     void load.then((v) => { if (live) setLoaded({ key, preview: v }); });
     return () => { live = false; };
-  }, [date, dataTier, pipelineRunId, showcaseId, key]);
+  }, [date, dataTier, pipelineRunId, showcaseId, showcase?.manifest, key]);
   const layer = preview?.layers[radarChannel];
   if (!layer || !layer.images[radarStage]) return null;
   return <Pane name="wxRadar" style={{ zIndex: 380 }}><ImageOverlay url={layer.images[radarStage]} bounds={layer.bounds as LatLngBoundsExpression} opacity={radarOpacity} /></Pane>;
