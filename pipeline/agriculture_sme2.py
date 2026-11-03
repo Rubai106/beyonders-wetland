@@ -1560,9 +1560,10 @@ def analyze(
             ],
             "empty_aoi_dates": [scene["date"] for scene in empty_scenes],
             "interpretation": (
-                "Diagnostic only. The unchanged SME2 quality screen found no usable AOI pixels "
-                "on at least one selected date. This file is not an agricultural measurement "
-                "and must not be published as a soil-moisture study."
+                "This file is an operator diagnostic, not an agricultural measurement. Dates with "
+                "zero valid AOI pixels are recorded explicitly. In DSG mode, remaining valid dates "
+                "may be analyzed as a separately labelled candidate stream; excluded dates are never "
+                "interpolated, filled, or interpreted as dry soil."
             ),
             "created_at": datetime.now(timezone.utc).isoformat(),
         })
