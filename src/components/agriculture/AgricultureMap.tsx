@@ -78,17 +78,18 @@ export default function AgricultureMap({
   const selectedTrendPoint = trendPoints.find((point) => point.date === selectedObservation?.date);
   const readoutSummary = displayedSummary ?? selectedObservation;
   const changeLayerActive = layer === "change";
+  const targetObservation = study?.observations[study.observations.length - 1] ?? null;
   const readoutDate = changeLayerActive ? study?.target_date : selectedObservation?.date;
   const readoutLabel = changeLayerActive ? "MEDIAN SOIL-MOISTURE CHANGE"
     : layer === "matched" ? "SAME-PIXEL MEDIAN SOIL MOISTURE"
     : "MEDIAN SOIL MOISTURE";
   const secondaryCoverage = layer === "matched" ? selectedObservation?.valid_fraction
-    : changeLayerActive ? study?.target_summary.valid_fraction
+    : changeLayerActive ? targetObservation?.valid_fraction
     : study?.matched_support.valid_fraction;
   const secondaryCoverageLabel = layer === "matched" ? "date-valid footprint"
     : changeLayerActive ? "target-date footprint"
     : "same pixels · all dates";
-  const contextMetric = changeLayerActive ? study?.target_summary.median : study?.change_summary.median;
+  const contextMetric = changeLayerActive ? targetObservation?.median : study?.change_summary.median;
   const contextMetricLabel = changeLayerActive ? "target-date soil moisture" : "latest − baseline";
 
   return (
@@ -152,7 +153,7 @@ export default function AgricultureMap({
           {!changeLayerActive && <div className="agri-map-readout__time"><span>{trendPoints[0]?.date ?? ""}</span><span>{trendPoints[trendPoints.length - 1]?.date ?? ""}</span></div>}
           <div className="agri-map-readout__metrics">
             <div><strong>{(readoutSummary.valid_fraction * 100).toFixed(1)}%</strong><span>{changeLayerActive ? "change-layer footprint" : layer === "matched" ? "fixed-cohort footprint" : "date-valid footprint"}</span><small>{readoutSummary.valid_pixels.toLocaleString()} / {readoutSummary.total_pixels.toLocaleString()} cells</small></div>
-            <div><strong>{((secondaryCoverage ?? 0) * 100).toFixed(1)}%</strong><span>{secondaryCoverageLabel}</span><small>{layer === "matched" ? selectedObservation.valid_pixels.toLocaleString() + " date-valid cells" : changeLayerActive ? study.target_summary.valid_pixels.toLocaleString() + " target-date cells" : study.matched_support.valid_pixels.toLocaleString() + " fixed cells"}</small></div>
+            <div><strong>{((secondaryCoverage ?? 0) * 100).toFixed(1)}%</strong><span>{secondaryCoverageLabel}</span><small>{layer === "matched" ? selectedObservation.valid_pixels.toLocaleString() + " date-valid cells" : changeLayerActive ? (targetObservation?.valid_pixels ?? 0).toLocaleString() + " target-date cells" : study.matched_support.valid_pixels.toLocaleString() + " fixed cells"}</small></div>
             <div><strong>{(contextMetric ?? 0) > 0 ? "+" : ""}{(contextMetric ?? 0).toFixed(3)}</strong><span>{contextMetricLabel}</span><small>m³/m³ · {study.target_date}</small></div>
           </div>
           <div className="agri-map-readout__actions">
