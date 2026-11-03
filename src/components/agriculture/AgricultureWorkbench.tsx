@@ -1159,6 +1159,8 @@ export default function AgricultureWorkbench() {
         publicationError={loadState === "error" ? loadError : ""}
         study={study}
         selectedObservation={selectedObservation}
+        displayedSummary={displayedSummary}
+        trendObservations={chartObservations}
         onLayerChange={(nextLayer) => {
           setLayer(nextLayer);
           if (nextLayer === "matched") setSeriesSupportMode("same-pixels");
