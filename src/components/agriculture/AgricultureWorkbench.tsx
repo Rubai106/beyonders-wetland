@@ -323,6 +323,7 @@ export default function AgricultureWorkbench() {
       const y = (value: number) => bottom - ((value - min) / range) * (bottom - top);
       return {
         ...item,
+        index,
         x,
         dateValidY: y(item.date_valid_median),
         samePixelY: y(item.same_pixel_median),
@@ -466,6 +467,11 @@ export default function AgricultureWorkbench() {
   const supportCompositionGap = selectedObservation && selectedMatchedObservation
     ? selectedObservation.median - selectedMatchedObservation.median
     : null;
+  const selectSupportDriftPoint = useCallback((index: number, supportMode: SeriesSupportMode) => {
+    setSelectedIndex(index);
+    setSeriesSupportMode(supportMode);
+    setLayer(supportMode === "same-pixels" ? "matched" : "moisture");
+  }, []);
   const surfaceDiagnostics = selectedObservation?.surface_flag_diagnostics ?? null;
   const flagCombinations = surfaceDiagnostics?.flag_combinations ?? null;
   const selectedFlagCombination = flagCombinations?.find((item) => item.mask === selectedFlagMask) ??
@@ -730,7 +736,7 @@ export default function AgricultureWorkbench() {
                   </span>
                 </div>
                 <p className="agri-support-drift__intro">
-                  Each date compares its own valid-pixel median with the median over one fixed cohort that passed quality screening on every date.
+                  Each date compares its own valid-pixel median with the median over one fixed cohort that passed quality screening on every date. Select either point at a date to sync the observation timeline and map to that footprint.
                 </p>
                 <div className="agri-support-drift__stats">
                   <div><span>Median |gap|</span><strong>{formatMoisture(supportDriftStats.medianAbsoluteGap)}</strong></div>
@@ -738,12 +744,16 @@ export default function AgricultureWorkbench() {
                   <div><span>Largest |gap|</span><strong>{formatMoisture(Math.abs(supportDriftStats.largestGap))}</strong><small>{dateLabel(supportDriftStats.largestGapDate)}</small></div>
                 </div>
                 <div className="agri-support-drift__plot">
-                  <svg viewBox="0 0 720 178" role="img" aria-label={"Date-valid and fixed-cohort median soil moisture across " + supportDrift.length + " dates. Vertical connectors show the sample-composition gap."}>
+                  <svg viewBox="0 0 720 178" role="group" aria-label={"Selectable spatial-support comparison across " + supportDrift.length + " dates. Date-valid and fixed-cohort medians are shown as separate series."}>
                     <line x1="42" x2="678" y1="18" y2="18" className="agri-support-drift__grid" />
                     <line x1="42" x2="678" y1="79" y2="79" className="agri-support-drift__grid" />
                     <line x1="42" x2="678" y1="140" y2="140" className="agri-support-drift__grid" />
                     <text x="4" y="22" className="agri-support-drift__axis">{supportDriftPlot.max.toFixed(2)}</text>
                     <text x="4" y="144" className="agri-support-drift__axis">{supportDriftPlot.min.toFixed(2)}</text>
+                    {supportDriftPlot.points.filter((point) => point.index === selectedIndex).map((point) => (
+                      <line key={"selected-" + point.date} x1={point.x} x2={point.x} y1="12" y2="146"
+                        className="agri-support-drift__selection" />
+                    ))}
                     {supportDriftPlot.points.map((point) => (
                       <line
                         key={"gap-" + point.date}
@@ -769,8 +779,38 @@ export default function AgricultureWorkbench() {
                     })}
                     {supportDriftPlot.points.map((point) => (
                       <g key={"point-" + point.date}>
-                        <circle cx={point.x} cy={point.dateValidY} r="4" className="agri-support-drift__point agri-support-drift__point--valid" />
-                        <circle cx={point.x} cy={point.samePixelY} r="4" className="agri-support-drift__point agri-support-drift__point--fixed" />
+                        <circle
+                          cx={point.x} cy={point.dateValidY}
+                          r={selectedIndex === point.index && seriesSupportMode === "date-valid" ? 6 : 4}
+                          className={"agri-support-drift__point agri-support-drift__point--valid" + (selectedIndex === point.index && seriesSupportMode === "date-valid" ? " is-active" : "")}
+                          role="button" tabIndex={0}
+                          aria-label={"Inspect " + dateLabel(point.date) + " using date-valid pixels; median " + formatMoisture(point.date_valid_median) + "; coverage " + formatPercent(point.date_valid_fraction) + "; support gap " + formatDifference(point.gap_m3_m3)}
+                          aria-pressed={selectedIndex === point.index && seriesSupportMode === "date-valid"}
+                          title={"Select date-valid footprint · " + dateLabel(point.date)}
+                          onClick={() => selectSupportDriftPoint(point.index, "date-valid")}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              selectSupportDriftPoint(point.index, "date-valid");
+                            }
+                          }}
+                        />
+                        <circle
+                          cx={point.x} cy={point.samePixelY}
+                          r={selectedIndex === point.index && seriesSupportMode === "same-pixels" ? 6 : 4}
+                          className={"agri-support-drift__point agri-support-drift__point--fixed" + (selectedIndex === point.index && seriesSupportMode === "same-pixels" ? " is-active" : "")}
+                          role="button" tabIndex={0}
+                          aria-label={"Inspect " + dateLabel(point.date) + " using the fixed all-date cohort; median " + formatMoisture(point.same_pixel_median) + "; coverage " + formatPercent(point.same_pixel_fraction) + "; support gap " + formatDifference(point.gap_m3_m3)}
+                          aria-pressed={selectedIndex === point.index && seriesSupportMode === "same-pixels"}
+                          title={"Select fixed all-date cohort · " + dateLabel(point.date)}
+                          onClick={() => selectSupportDriftPoint(point.index, "same-pixels")}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              selectSupportDriftPoint(point.index, "same-pixels");
+                            }
+                          }}
+                        />
                       </g>
                     ))}
                     <text x="42" y="166" className="agri-support-drift__date">{dateLabel(supportDrift[0].date)}</text>
