@@ -783,36 +783,39 @@ export default function AgricultureWorkbench() {
                           cx={point.x} cy={point.dateValidY}
                           r={selectedIndex === point.index && seriesSupportMode === "date-valid" ? 6 : 4}
                           className={"agri-support-drift__point agri-support-drift__point--valid" + (selectedIndex === point.index && seriesSupportMode === "date-valid" ? " is-active" : "")}
-                          role="button" tabIndex={0}
-                          aria-label={"Inspect " + dateLabel(point.date) + " using date-valid pixels; median " + formatMoisture(point.date_valid_median) + "; coverage " + formatPercent(point.date_valid_fraction) + "; support gap " + formatDifference(point.gap_m3_m3)}
-                          aria-pressed={selectedIndex === point.index && seriesSupportMode === "date-valid"}
-                          title={"Select date-valid footprint · " + dateLabel(point.date)}
-                          onClick={() => selectSupportDriftPoint(point.index, "date-valid")}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              selectSupportDriftPoint(point.index, "date-valid");
-                            }
-                          }}
                         />
                         <circle
                           cx={point.x} cy={point.samePixelY}
                           r={selectedIndex === point.index && seriesSupportMode === "same-pixels" ? 6 : 4}
                           className={"agri-support-drift__point agri-support-drift__point--fixed" + (selectedIndex === point.index && seriesSupportMode === "same-pixels" ? " is-active" : "")}
-                          role="button" tabIndex={0}
+                        />
+                      </g>
+                    ))}
+                  </svg>
+                  <div className="agri-support-drift__hit-targets" role="group" aria-label="Select a date and spatial support from the comparison chart">
+                    {supportDriftPlot.points.map((point) => (
+                      <React.Fragment key={"hit-" + point.date}>
+                        <button
+                          type="button"
+                          className="agri-support-drift__point-hit agri-support-drift__point-hit--valid"
+                          style={{ left: (point.x / 720 * 100) + "%", top: (point.dateValidY / 178 * 100) + "%" }}
+                          aria-label={"Inspect " + dateLabel(point.date) + " using date-valid pixels; median " + formatMoisture(point.date_valid_median) + "; coverage " + formatPercent(point.date_valid_fraction) + "; support gap " + formatDifference(point.gap_m3_m3)}
+                          aria-pressed={selectedIndex === point.index && seriesSupportMode === "date-valid"}
+                          title={"Select date-valid footprint · " + dateLabel(point.date)}
+                          onClick={() => selectSupportDriftPoint(point.index, "date-valid")}
+                        ><span /></button>
+                        <button
+                          type="button"
+                          className="agri-support-drift__point-hit agri-support-drift__point-hit--fixed"
+                          style={{ left: (point.x / 720 * 100) + "%", top: (point.samePixelY / 178 * 100) + "%" }}
                           aria-label={"Inspect " + dateLabel(point.date) + " using the fixed all-date cohort; median " + formatMoisture(point.same_pixel_median) + "; coverage " + formatPercent(point.same_pixel_fraction) + "; support gap " + formatDifference(point.gap_m3_m3)}
                           aria-pressed={selectedIndex === point.index && seriesSupportMode === "same-pixels"}
                           title={"Select fixed all-date cohort · " + dateLabel(point.date)}
                           onClick={() => selectSupportDriftPoint(point.index, "same-pixels")}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault();
-                              selectSupportDriftPoint(point.index, "same-pixels");
-                            }
-                          }}
-                        />
-                      </g>
+                        ><span /></button>
+                      </React.Fragment>
                     ))}
+                  </div>
                     <text x="42" y="166" className="agri-support-drift__date">{dateLabel(supportDrift[0].date)}</text>
                     <text x="678" y="166" textAnchor="end" className="agri-support-drift__date">{dateLabel(supportDrift[supportDrift.length - 1].date)}</text>
                   </svg>
