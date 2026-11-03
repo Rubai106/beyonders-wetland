@@ -301,6 +301,7 @@ export default function AgricultureWorkbench() {
         x,
         dateValidY: y(item.date_valid_median),
         samePixelY: y(item.same_pixel_median),
+        gapDays: dateAxis[index].gap_days,
       };
     });
     return {
@@ -707,8 +708,19 @@ export default function AgricultureWorkbench() {
                         className="agri-support-drift__connector"
                       />
                     ))}
-                    <polyline points={supportDriftPlot.dateValidLine} className="agri-support-drift__line agri-support-drift__line--valid" />
-                    <polyline points={supportDriftPlot.samePixelLine} className="agri-support-drift__line agri-support-drift__line--fixed" />
+                    {supportDriftPlot.points.slice(1).map((point, index) => {
+                      const previous = supportDriftPlot.points[index];
+                      const extendedGap = point.gapDays !== null && point.gapDays > LONG_ACQUISITION_GAP_DAYS;
+                      const gapClass = extendedGap ? " is-extended-gap" : "";
+                      return (
+                        <g key={"series-" + point.date}>
+                          <line x1={previous.x} y1={previous.dateValidY} x2={point.x} y2={point.dateValidY}
+                            className={"agri-support-drift__line agri-support-drift__line--valid" + gapClass} />
+                          <line x1={previous.x} y1={previous.samePixelY} x2={point.x} y2={point.samePixelY}
+                            className={"agri-support-drift__line agri-support-drift__line--fixed" + gapClass} />
+                        </g>
+                      );
+                    })}
                     {supportDriftPlot.points.map((point) => (
                       <g key={"point-" + point.date}>
                         <circle cx={point.x} cy={point.dateValidY} r="4" className="agri-support-drift__point agri-support-drift__point--valid" />
@@ -723,6 +735,7 @@ export default function AgricultureWorkbench() {
                   <span><i className="is-valid" />Date-valid footprint median</span>
                   <span><i className="is-fixed" />Fixed all-date cohort median</span>
                   <span><i className="is-gap" />Gap at each acquisition</span>
+                  <span><i className="is-gap-extended" />Dashed segment · extended interval (&gt;{LONG_ACQUISITION_GAP_DAYS} days)</span>
                 </div>
                 <p className="agri-support-drift__note">
                   Gap = date-valid median − fixed-cohort median. A changing gap warns that different valid-pixel footprints may alter the apparent series. It is not another moisture measurement, a correction to the SME2 product, or evidence of crop stress. {study.matched_support.status === "INCONCLUSIVE_COVERAGE" ? "The fixed cohort is below the 20% AOI coverage floor, so this comparison remains inconclusive." : ""}
@@ -1055,15 +1068,33 @@ export default function AgricultureWorkbench() {
               <strong>Same pixels across dates</strong><span>{formatPercent(study.matched_support.valid_fraction)} of AOI · {study.matched_support.status.replaceAll("_", " ")}</span>
             </button>
           </div>
-          <div className="agri-timeline-strip" role="group" aria-label="Select soil-moisture observation date">
-            {study.observations.map((item, index) => {
-              const shown = chartObservations[index];
-              const matched = study.matched_support.observations[index];
-              return <button key={item.date} type="button" className={index === selectedIndex ? "is-active" : ""} aria-pressed={index === selectedIndex} onClick={() => { setSelectedIndex(index); if (layer === "change") setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}>
-                <span>{dateLabel(item.date)}</span><strong>{formatMoisture(shown?.median ?? item.median)}</strong><small>{formatPercent(shown?.valid_fraction ?? item.valid_fraction)} valid</small>
-                {matched && seriesSupportMode === "date-valid" && <em>Same pixels: {formatMoisture(matched.median)}</em>}
-              </button>;
-            })}
+          <div className="agri-date-rail" role="group" aria-label="Select an SME2 acquisition on the elapsed calendar-time axis">
+            <svg className="agri-date-rail__track" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+              {chartPoints.slice(1).map((point, index) => {
+                const previous = chartPoints[index];
+                const extendedGap = point.gapDays !== null && point.gapDays > LONG_ACQUISITION_GAP_DAYS;
+                return <line key={point.date} x1={previous.x} y1="10" x2={point.x} y2="10"
+                  className={extendedGap ? "is-extended-gap" : ""} />;
+              })}
+            </svg>
+            {chartPoints.map((point, index) => (
+              <button key={point.date} type="button"
+                className={index === selectedIndex ? "is-active" : ""}
+                style={{ left: point.x + "%" }}
+                aria-pressed={index === selectedIndex}
+                aria-label={"Select " + dateLabel(point.date) + "; " + formatMoisture(point.median) + "; " + formatPercent(point.valid_fraction) + " valid coverage" + (point.gapDays === null ? "; first acquisition" : "; " + point.gapDays + " days since previous acquisition")}
+                title={point.gapDays === null ? "First acquisition" : point.gapDays + " days since previous acquisition"}
+                onClick={() => { setSelectedIndex(index); if (layer === "change") setLayer(seriesSupportMode === "same-pixels" ? "matched" : "moisture"); }}>
+                <span />
+              </button>
+            ))}
+            <div className="agri-date-rail__axis" aria-hidden="true">
+              {chartDateTicks.map((tick, index) => (
+                <span key={tick.position}
+                  className={chartDateTicks.length === 1 ? "is-center" : index === 0 ? "is-start" : index === chartDateTicks.length - 1 ? "is-end" : ""}
+                  style={{ left: tick.position + "%" }}>{shortDateLabel(tick.date)}</span>
+              ))}
+            </div>
           </div>
           <div className="agri-chart" role="group" aria-label={"Median soil moisture with fifth to ninety-fifth percentile range using " + (seriesSupportMode === "same-pixels" ? "the same pixels across all dates" : "each date's quality-valid pixels") + "; the horizontal axis is proportional to elapsed calendar time; select a point to inspect a date"}>
             <div className="agri-chart-axis"><span>m³/m³</span><span>{chartRange.max.toFixed(2)}</span><span>{chartRange.min.toFixed(2)}</span></div>
@@ -1092,7 +1123,7 @@ export default function AgricultureWorkbench() {
             </div>
             <div className="agri-chart-time-axis" aria-hidden="true">
               {chartDateTicks.map((tick, index) => (
-                <span key={tick.position} className={index === 0 ? "is-start" : index === chartDateTicks.length - 1 ? "is-end" : ""}
+                <span key={tick.position} className={chartDateTicks.length === 1 ? "is-center" : index === 0 ? "is-start" : index === chartDateTicks.length - 1 ? "is-end" : ""}
                   style={{ left: tick.position + "%" }}>{shortDateLabel(tick.date)}</span>
               ))}
             </div>

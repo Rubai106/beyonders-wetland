@@ -63,6 +63,10 @@ def main() -> int:
             page.locator(".agri-chart").count() == 0,
             "the acquisition timeline and moisture trajectory are withheld when no real SME2 observations exist",
         )
+        require(
+            page.locator(".agri-date-rail").count() == 0,
+            "the calendar-spaced acquisition rail is withheld when no real SME2 observations exist",
+        )
         agriculture_map = page.locator(".agri-map")
         require(
             agriculture_map.count() == 1 and agriculture_map.is_visible(),
