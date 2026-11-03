@@ -476,7 +476,7 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
         typeof item.concept_id === "string" && item.concept_id.length > 0 &&
         typeof item.filename === "string" && !item.filename.includes("/") &&
         !item.filename.includes(String.fromCharCode(92)) &&
-        (item.filename.endsWith(".nc4") || item.filename.endsWith(".nc")) &&
+        [".nc4", ".nc", ".hdf5", ".h5"].some((extension) => item.filename.endsWith(extension)) &&
         Number.isInteger(item.bytes) && Number(item.bytes) > 0 && isSha256(item.sha256)) ||
       new Set(value.granules.map((item: Record<string, unknown>) => item.date)).size !== value.granules.length ||
       Number(value.source_bytes) !== value.granules.reduce((sum: number, item: Record<string, unknown>) => sum + Number(item.bytes), 0) ||
