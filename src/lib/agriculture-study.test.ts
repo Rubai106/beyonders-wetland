@@ -451,7 +451,7 @@ test("rejects mismatched IMERG dates, incomplete windows with numeric totals and
   wrongDate.rainfall_context.observations[1].date = "2026-06-24";
   assert.equal(isAgricultureStudy(wrongDate), false);
   const wrongGranuleDate = structuredClone(changed);
-  wrongGranuleDate.rainfall_context.granules[0].date = "2026-06-20";
+  wrongGranuleDate.rainfall_context.granules[0].date = "2026-06-01";
   assert.equal(isAgricultureStudy(wrongGranuleDate), false);
   const unsupportedSpatialCoverage = structuredClone(changed);
   unsupportedSpatialCoverage.rainfall_context.observations[0].windows["1d"].spatial_coverage_fraction = 0.5;
