@@ -627,7 +627,7 @@ def _resolve_measurement_layers(
 ) -> tuple[dict[str, h5py.Dataset], str]:
     """Resolve a specific SME2 algorithm without conflating its flag semantics."""
     if algorithm == "baseline":
-        return baseline_layers, "baseline-bitmask"
+        return baseline_layers, "root-zero-clear"
     if algorithm != "DSG":
         raise AgricultureError(f"Unsupported SME2 algorithm {algorithm!r}; choose 'baseline' or 'DSG'.")
 
@@ -833,13 +833,12 @@ def _read_scene(path: Path, aoi: dict[str, float], expected_signature: dict[str,
 
 def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: np.ndarray,
                  surface_flag: np.ndarray, fill_ok: np.ndarray | None = None,
-                 retrieval_mode: str = "baseline-bitmask") -> np.ndarray:
-    """Apply the product-specific SME2 retrieval and shared surface-quality screen.
+                 retrieval_mode: str = "root-zero-clear") -> np.ndarray:
+    """Apply NASA/JPL D-107677 Rev C retrieval flag semantics to SME2 layers.
 
-    The root baseline layer uses the existing low-nibble status-bit rule.
-    NASA/JPL D-107677 Rev C separately defines DSG algorithmCandidates
-    retrievalQualityFlag as zero=clear and non-zero=anomaly. The latter rule
-    must never be substituted onto the root baseline layer.
+    Both root baseline and algorithm-candidate retrievalQualityFlag layers
+    define zero as clear and non-zero as anomaly. The algorithm selector remains
+    explicit because the measurement arrays and provenance are distinct streams.
     """
     moisture = np.asarray(moisture, dtype="float64")
     uncertainty = np.asarray(uncertainty, dtype="float64")
@@ -856,11 +855,7 @@ def quality_mask(moisture: np.ndarray, uncertainty: np.ndarray, retrieval_flag: 
         & (retrieval_values >= 0) & (retrieval_values <= 255)
         & np.isclose(retrieval_values, np.round(retrieval_values))
     )
-    if retrieval_mode == "baseline-bitmask":
-        valid &= retrieval_integer_ok
-        valid &= (retrieval_integer & 0x0F) == 0x0F
-        valid &= (retrieval_integer & 0xF0) == 0
-    elif retrieval_mode == "candidate-zero-clear":
+    if retrieval_mode in {"root-zero-clear", "candidate-zero-clear"}:
         valid &= retrieval_integer_ok & (retrieval_values == 0)
     else:
         raise AgricultureError(f"Unsupported SME2 retrieval-flag interpretation: {retrieval_mode!r}.")
@@ -903,7 +898,7 @@ def quality_screen_diagnostics(
     surface_flag: np.ndarray,
     aoi_mask: np.ndarray,
     fill_ok: np.ndarray | None = None,
-    retrieval_mode: str = "baseline-bitmask",
+    retrieval_mode: str = "root-zero-clear",
 ) -> dict[str, int]:
     """Count each strict SME2 quality-screen component inside an AOI.
 
@@ -930,15 +925,9 @@ def quality_screen_diagnostics(
         & (retrieval_values >= 0) & (retrieval_values <= 255)
         & np.isclose(retrieval_values, np.round(retrieval_values))
     )
-    if retrieval_mode == "baseline-bitmask":
-        retrieval_pass = (
-            retrieval_integer_ok
-            & ((retrieval_integer & 0x0F) == 0x0F)
-            & ((retrieval_integer & 0xF0) == 0)
-        )
-    elif retrieval_mode == "candidate-zero-clear":
-        # NASA/JPL D-107677 Rev C explicitly describes the DSG/TSR
-        # algorithmCandidates retrievalQualityFlag as 0=clear, non-zero=anomaly.
+    if retrieval_mode in {"root-zero-clear", "candidate-zero-clear"}:
+        # NASA/JPL D-107677 Rev C defines both root and candidate retrieval flags
+        # as zero=clear and non-zero=anomaly; selected measurement path stays explicit.
         retrieval_pass = retrieval_integer_ok & (retrieval_values == 0)
     else:
         raise AgricultureError(f"Unsupported SME2 retrieval-flag interpretation: {retrieval_mode!r}.")
@@ -1676,18 +1665,17 @@ def analyze(
             "crs": f"EPSG:{target['epsg']}", "native_grid_shape": list(target["moisture"].shape),
             "pixel_spacing": [abs(float(target["transform"].a)), abs(float(target["transform"].e))],
             "quality_protocol": (
-                "DSG candidate: retrievalQualityFlag == 0 (NASA/JPL D-107677 Rev C zero=clear; non-zero=anomaly); "
-                "baseline: lower retrieval bits 0-3 set and bits 4-7 clear; both require soilMoisture in "
-                "[0.02,0.60] m3/m3, finite non-negative uncertainty, surfaceQualityFlag == 0, valid fill and AOI."
-                if algorithm == "DSG" else
-                "Root baseline: retrievalQualityFlag bits 0-3 set and bits 4-7 clear; soilMoisture in "
-                "[0.02,0.60] m3/m3; finite non-negative uncertainty; surfaceQualityFlag == 0; fill and AOI valid."
+                "NASA/JPL D-107677 Rev C retrievalQualityFlag == 0 (zero=clear; non-zero=anomaly); "
+                + ("measurement layers selected from algorithmCandidates/DSG; " if algorithm == "DSG" else
+                   "measurement layers selected from the root SME2 grid; ")
+                + "soilMoisture in [0.02,0.60] m3/m3; finite non-negative uncertainty; "
+                + "surfaceQualityFlag == 0; valid fill and AOI."
             ),
         },
         "limitations": [
             "SME2 PROVISIONAL soil-moisture estimates are not fully calibrated; this is exploratory evidence.",
             *(
-                ["This study uses the DSG algorithmCandidates output, not the root baseline layer. Its retrievalQualityFlag is interpreted using the NASA/JPL zero-clear rule; dates with no valid DSG AOI retrieval are listed in quality_exclusions."]
+                ["This study uses the separate DSG algorithmCandidates output rather than the root baseline measurement arrays. Both paths use the NASA/JPL zero-clear retrieval flag rule; dates with no valid DSG AOI retrieval are listed in quality_exclusions."]
                 if algorithm == "DSG" else []
             ),
             "A soil-moisture difference is not a crop-stress, drought, irrigation, yield, crop-type, or field-boundary assessment.",
