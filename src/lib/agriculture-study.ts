@@ -475,8 +475,7 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
       !value.granules.every((item) => isRecord(item) && isoDay(item.date) &&
         typeof item.concept_id === "string" && item.concept_id.length > 0 &&
         typeof item.filename === "string" && !item.filename.includes("/") &&
-        !item.filename.includes(String.fromCharCode(92)) &&
-        [".nc4", ".nc", ".hdf5", ".h5"].some((extension) => item.filename.endsWith(extension)) &&
+        !item.filename.includes(String.fromCharCode(92)) && /\.(nc4?|hdf5?)$/i.test(item.filename) &&
         Number.isInteger(item.bytes) && Number(item.bytes) > 0 && isSha256(item.sha256)) ||
       new Set(value.granules.map((item: Record<string, unknown>) => item.date)).size !== value.granules.length ||
       Number(value.source_bytes) !== value.granules.reduce((sum: number, item: Record<string, unknown>) => sum + Number(item.bytes), 0) ||
@@ -493,8 +492,9 @@ function validRainfallContext(value: unknown, expectedDates: string[]): value is
   const windows: AgricultureRainfallWindow[] = ["1d", "3d", "7d", "12d"];
   return value.observations.every((item, index) => {
     if (!isRecord(item) || item.date !== expectedDates[index] || !isRecord(item.windows)) return false;
+    const rainfallWindows = item.windows;
     return windows.every((window) => {
-      const entry = item.windows[window];
+      const entry = rainfallWindows[window];
       const expected = Number(window.slice(0, -1));
       if (!isRecord(entry) || entry.expected_days !== expected ||
           !Number.isInteger(entry.valid_days) || Number(entry.valid_days) < 0 ||
@@ -657,6 +657,8 @@ export interface AgricultureRainfallPlotPoint {
   rainfall_mm: number | null;
   valid_days: number;
   expected_days: number;
+  spatial_coverage_fraction: number;
+  mean_half_hourly_samples: number | null;
 }
 
 /** Align only complete, date-matched daily IMERG windows to the real SME2 elapsed-time axis. */
@@ -678,6 +680,8 @@ export function buildAgricultureRainfallSeries(
       rainfall_mm: sample.valid_days === sample.expected_days ? sample.rainfall_mm : null,
       valid_days: sample.valid_days,
       expected_days: sample.expected_days,
+      spatial_coverage_fraction: sample.spatial_coverage_fraction,
+      mean_half_hourly_samples: sample.mean_half_hourly_samples,
     };
   }).filter((point): point is AgricultureRainfallPlotPoint => point !== null);
 }
