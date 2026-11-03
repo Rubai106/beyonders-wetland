@@ -28,7 +28,6 @@ export default function AgricultureMap({
   noStudy,
   layer,
   publicationError,
-  onRetry,
   study,
   selectedObservation,
   onLayerChange,
@@ -40,7 +39,6 @@ export default function AgricultureMap({
   noStudy: boolean;
   layer: "moisture" | "change" | "matched" | "crop" | "crop-common" | "crop-source";
   publicationError: string;
-  onRetry: () => void;
   study: AgricultureStudy | null;
   selectedObservation: AgricultureObservation | null;
   onLayerChange: (layer: "moisture" | "change" | "matched") => void;
@@ -141,11 +139,10 @@ export default function AgricultureMap({
         </aside>
       )}
       {publicationError && (
-        <div className="agri-map-integrity" role="alert">
-          <span>PUBLICATION INTEGRITY CHECK</span>
-          <strong>Measurements withheld</strong>
-          <p>{publicationError}</p>
-          <button type="button" onClick={onRetry}>Retry verification</button>
+        <div className="agri-map-integrity" role="status">
+          <span>PUBLICATION NOT VERIFIED</span>
+          <strong>Measured layers are withheld</strong>
+          <p>Open the publication status in the evidence drawer for the exact integrity error. No map values are being substituted.</p>
         </div>
       )}
       {noStudy && (
