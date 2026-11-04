@@ -6,7 +6,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { PHENOMENA } from "@/phenomena/registry";
 import type { GlobeCaseMarker, GlobeHazard, GlobePin } from "@/components/landing/Globe3D";
 import { listGlobeStudies } from "@/lib/globe-studies";
@@ -55,6 +55,10 @@ function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: num
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setVal(to);
+      return;
+    }
     let raf = 0; let started = false;
     const io = new IntersectionObserver((entries) => {
       if (!entries[0].isIntersecting || started) return;
@@ -82,6 +86,7 @@ function Tilt({ children, className = "" }: { children: React.ReactNode; classNa
     <div
       ref={ref} className={`tilt ${className}`}
       onMouseMove={(e) => {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
         const el = ref.current; if (!el) return;
         const r = el.getBoundingClientRect();
         const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
@@ -207,6 +212,9 @@ export default function Home() {
   const router = useRouter();
   const [pinMode, setPinMode] = useState(false);
   const [pin, setPin] = useState<GlobePin | null>(null);
+  const [pinLatitude, setPinLatitude] = useState("");
+  const [pinLongitude, setPinLongitude] = useState("");
+  const [pinError, setPinError] = useState("");
   const [hover, setHover] = useState<GlobePin | null>(null);
   const [caseMarkers, setCaseMarkers] = useState<GlobeCaseMarker[]>([]);
   const [selectedHazard, setSelectedHazard] = useState<GlobeHazard>("wetland");
@@ -232,6 +240,24 @@ export default function Home() {
     return () => { live = false; };
   }, []);
 
+  function submitPinCoordinates(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const latitudeText = pinLatitude.trim();
+    const longitudeText = pinLongitude.trim();
+    const latitude = Number(latitudeText);
+    const longitude = Number(longitudeText);
+    if (
+      !latitudeText || !longitudeText ||
+      !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+      latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180
+    ) {
+      setPinError("Enter a latitude from −90 to 90 and a longitude from −180 to 180.");
+      return;
+    }
+    setPin({ lat: latitude, lng: longitude });
+    setPinError("");
+  }
+
   const selectedCaseMarkers = caseMarkers.filter((marker) => marker.hazard === selectedHazard);
   const focusedCase = selectedCaseMarkers.find((marker) => marker.id === focusedCaseId);
   const focusLocation = focusedCase ?? centerOfStudyLocations(selectedCaseMarkers);
@@ -249,7 +275,12 @@ export default function Home() {
           pin={pin}
           caseMarkers={selectedCaseMarkers}
           focusLocation={focusLocation}
-          onPin={(lat, lng) => setPin({ lat, lng })}
+          onPin={(lat, lng) => {
+            setPin({ lat, lng });
+            setPinLatitude(lat.toFixed(5));
+            setPinLongitude(lng.toFixed(5));
+            setPinError("");
+          }}
           onCaseClick={(id) => {
             const selected = selectedCaseMarkers.find((marker) => marker.id === id);
             if (selected) router.push(selected.href);
@@ -324,7 +355,7 @@ export default function Home() {
               </div>
             </details>
           )}
-          <p className="g3-map-filter__note">Use the location list to center a case. Markers show study sites, not detections.</p>
+          <p className="g3-map-filter__note">Use the location list to center a case. Rotate the globe by dragging or with the arrow keys. Markers show study sites, not detections.</p>
         </section>
 
         <div className="g3-title">
@@ -335,7 +366,21 @@ export default function Home() {
             <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Inspect the Chókwè event case</Link>
             <Link href="/wetland" className="g3-btn g3-btn--ghost">Open the Tanguar Haor case</Link>
             <Link href="/wetland?case=hakaluki" className="g3-btn g3-btn--ghost">Open the Hakaluki Haor case</Link>
-            <button type="button" className={`g3-btn${pinMode ? " g3-btn--armed" : ""}`} onClick={() => { setPinMode((m) => !m); setPin(null); }}>
+            <button
+              type="button"
+              className={`g3-btn${pinMode ? " g3-btn--armed" : ""}`}
+              aria-pressed={pinMode}
+              onClick={() => {
+                const nextMode = !pinMode;
+                setPinMode(nextMode);
+                setPin(null);
+                setPinError("");
+                if (!nextMode) {
+                  setPinLatitude("");
+                  setPinLongitude("");
+                }
+              }}
+            >
               {pinMode ? "Cancel pin mode" : "Drop a pin anywhere"}
             </button>
             <Link href="#g3-phen" className="g3-btn g3-btn--ghost g3-btn--features">Explore all study features ↓</Link>
@@ -343,9 +388,45 @@ export default function Home() {
         </div>
 
         {pinMode && (
-          <div className="g3-pinbar" role="status">
-            <span className="g3-pinbar-dot" />
-            <p><strong>Location selection active.</strong> Click the globe to choose coordinates, then check real NISAR coverage before analysing the area.</p>
+          <div className="g3-pinbar">
+            <span className="g3-pinbar-dot" aria-hidden="true" />
+            <p><strong>Choose a study location.</strong> Select a point on the globe, or enter coordinates below. The pin is a proposed search area—not a detection.</p>
+            <form className="g3-pinbar__form" onSubmit={submitPinCoordinates}>
+              <label>
+                Latitude
+                <input
+                  type="number"
+                  name="latitude"
+                  min="-90"
+                  max="90"
+                  step="any"
+                  required
+                  value={pinLatitude}
+                  onChange={(event) => { setPinLatitude(event.target.value); setPinError(""); }}
+                  aria-invalid={Boolean(pinError)}
+                  aria-describedby={pinError ? "g3-pin-error" : undefined}
+                  placeholder="e.g. 23.8103"
+                />
+              </label>
+              <label>
+                Longitude
+                <input
+                  type="number"
+                  name="longitude"
+                  min="-180"
+                  max="180"
+                  step="any"
+                  required
+                  value={pinLongitude}
+                  onChange={(event) => { setPinLongitude(event.target.value); setPinError(""); }}
+                  aria-invalid={Boolean(pinError)}
+                  aria-describedby={pinError ? "g3-pin-error" : undefined}
+                  placeholder="e.g. 90.4125"
+                />
+              </label>
+              <button type="submit" className="g3-btn g3-btn--primary g3-btn--sm">Use coordinates</button>
+              {pinError && <span id="g3-pin-error" className="g3-pinbar__error" role="alert">{pinError}</span>}
+            </form>
             {pin && <Link className="g3-btn g3-btn--primary g3-btn--sm" href={`/wetland/global?latitude=${pin.lat.toFixed(5)}&longitude=${pin.lng.toFixed(5)}&analyze=1&site=${encodeURIComponent("Pinned study area")}`}>Check real observations at {fmt(pin)} →</Link>}
           </div>
         )}

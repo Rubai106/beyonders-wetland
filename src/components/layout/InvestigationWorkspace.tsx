@@ -179,7 +179,7 @@ export default function InvestigationWorkspace({
           <span className="wx-tier__short">NISAR</span>
         </span>}
         <nav className="wx-nav" aria-label="Earth change topics">
-          <Link href="/wetland" aria-label="Open the published wetland investigations" title="Tanguar Haor and Hakaluki Haor studies"><span>Wetlands</span></Link>
+          <Link href="/wetland" aria-current={hazard === "wetland" ? "page" : undefined} aria-label="Open the published wetland investigations" title="Tanguar Haor and Hakaluki Haor studies"><span>Wetlands</span></Link>
           {sections.map((section) => (
             section.id !== "wetland" && <Link key={section.id} href={section.href} aria-current={hazard === section.id ? "page" : undefined}>{section.label}</Link>
           ))}
