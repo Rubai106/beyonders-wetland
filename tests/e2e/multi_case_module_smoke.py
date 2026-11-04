@@ -20,6 +20,22 @@ def require(condition: bool, message: str) -> None:
     print(f"PASS {message}")
 
 
+def ensure_drawer_open(page) -> None:
+    drawer = page.locator(".wx-drawer")
+    if drawer.count() and drawer.is_visible():
+        return
+
+    reopen = page.locator(".wx-drawer-reopen")
+    if reopen.count() and reopen.first.is_visible():
+        reopen.first.click()
+    else:
+        map_tabs = page.locator(".wx-tabs .wx-tab")
+        if map_tabs.count() and map_tabs.first.is_visible():
+            map_tabs.first.click()
+
+    drawer.wait_for(state="visible", timeout=10_000)
+
+
 def main() -> int:
     errors: list[str] = []
     with sync_playwright() as playwright:
@@ -295,6 +311,7 @@ def main() -> int:
         for route, map_selector, label in tablet_routes:
             page.goto(BASE + route, wait_until="domcontentloaded", timeout=30_000)
             page.locator(map_selector).wait_for(state="visible", timeout=30_000)
+            ensure_drawer_open(page)
             root_position = page.locator(".wx-root").evaluate("(el) => getComputedStyle(el).position")
             drawer_position = page.locator(".wx-drawer").evaluate("(el) => getComputedStyle(el).position")
             map_height = page.locator(".wx-map").evaluate("(el) => el.getBoundingClientRect().height")
