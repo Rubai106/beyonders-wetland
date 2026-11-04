@@ -10,6 +10,7 @@ import {
   useMap,
 } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
+import { buildAgricultureDateAxis } from "@/lib/agriculture-study";
 import type { AgricultureAOI, AgricultureObservation, AgricultureStudy, AgricultureSummary } from "@/lib/agriculture-study";
 
 function FitStudyBounds({ bounds }: { bounds: LatLngBoundsExpression | undefined }) {
@@ -67,16 +68,22 @@ export default function AgricultureMap({
 
   const trendPoints = useMemo(() => {
     if (trendObservations.length === 0 || layer === "change") return [];
+    const dateAxis = buildAgricultureDateAxis(trendObservations.map((item) => item.date));
+    if (dateAxis.length !== trendObservations.length) return [];
     const values = trendObservations.map((item) => item.median);
     const low = Math.min(...values);
     const high = Math.max(...values);
     const span = high - low || 0.01;
-    return trendObservations.map((item, index) => ({
-      date: item.date,
-      median: item.median,
-      x: trendObservations.length === 1 ? 50 : (index / (trendObservations.length - 1)) * 100,
-      y: 34 - ((item.median - low) / span) * 27,
-    }));
+    return trendObservations.flatMap((item, index) => {
+      const axisPoint = dateAxis[index];
+      if (!axisPoint || axisPoint.date !== item.date) return [];
+      return [{
+        date: item.date,
+        median: item.median,
+        x: axisPoint.position,
+        y: 34 - ((item.median - low) / span) * 27,
+      }];
+    });
   }, [trendObservations, layer]);
   const selectedTrendPoint = trendPoints.find((point) => point.date === selectedObservation?.date);
   const readoutSummary = displayedSummary ?? selectedObservation;
