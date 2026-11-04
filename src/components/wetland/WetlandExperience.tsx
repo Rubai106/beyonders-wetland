@@ -41,11 +41,42 @@ export function ModeSwitch({ value, onChange }: { value?: ViewMode; onChange?: (
   const setViewMode = onChange ?? store.setViewMode;
   return (
     <div className="wx-modebar">
-      <div className="wx-modes" role="radiogroup" aria-label="Map view">
+      <div className="wx-modes" role="radiogroup" aria-label="Map view" aria-orientation="horizontal">
         {MODES.map((m, i) => (
-          <button key={m.id} role="radio" aria-checked={viewMode === m.id} tabIndex={viewMode === m.id ? 0 : -1} onClick={() => setViewMode(m.id)}
-            onKeyDown={(e) => { if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); const n = MODES[(i + (e.key === "ArrowRight" ? 1 : MODES.length - 1)) % MODES.length]; setViewMode(n.id); (e.currentTarget.parentElement?.querySelector(`[data-mode="${n.id}"]`) as HTMLElement | null)?.focus(); } }}
-            data-mode={m.id} title={m.purpose} aria-label={`${m.label}: ${m.purpose}`}>{m.icon}<span>{m.label}</span></button>
+          <button
+            key={m.id}
+            type="button"
+            role="radio"
+            aria-checked={viewMode === m.id}
+            tabIndex={viewMode === m.id ? 0 : -1}
+            onClick={() => setViewMode(m.id)}
+            onKeyDown={(event) => {
+              let nextIndex: number;
+              switch (event.key) {
+                case "ArrowRight":
+                  nextIndex = (i + 1) % MODES.length;
+                  break;
+                case "ArrowLeft":
+                  nextIndex = (i - 1 + MODES.length) % MODES.length;
+                  break;
+                case "Home":
+                  nextIndex = 0;
+                  break;
+                case "End":
+                  nextIndex = MODES.length - 1;
+                  break;
+                default:
+                  return;
+              }
+              event.preventDefault();
+              const nextMode = MODES[nextIndex];
+              setViewMode(nextMode.id);
+              (event.currentTarget.parentElement?.querySelector(`[data-mode="${nextMode.id}"]`) as HTMLButtonElement | null)?.focus();
+            }}
+            data-mode={m.id}
+            title={m.purpose}
+            aria-label={`${m.label}: ${m.purpose}`}
+          >{m.icon}<span>{m.label}</span></button>
         ))}
       </div>
     </div>

@@ -110,6 +110,30 @@ def main() -> int:
             and "Tanguar Haor" in page.inner_text(".wx-rail"),
             "Tanguar Haor remains the original default case",
         )
+        wetland_modes = page.locator(".wx-modes button[role='radio']")
+        require(
+            wetland_modes.count() == 3
+            and wetland_modes.nth(0).get_attribute("aria-checked") == "true"
+            and wetland_modes.nth(0).get_attribute("type") == "button",
+            "Wetlands exposes a three-option radio mode selector with one selected mode",
+        )
+        wetland_modes.first.focus()
+        wetland_modes.first.press("ArrowRight")
+        require(
+            wetland_modes.nth(1).get_attribute("aria-checked") == "true"
+            and wetland_modes.nth(1).evaluate("(element) => element === document.activeElement"),
+            "right arrow changes and focuses the next Wetland map mode",
+        )
+        wetland_modes.nth(1).press("End")
+        require(
+            wetland_modes.nth(2).get_attribute("aria-checked") == "true",
+            "End selects Detection in the Wetland map-mode radio group",
+        )
+        wetland_modes.nth(2).press("Home")
+        require(
+            wetland_modes.nth(0).get_attribute("aria-checked") == "true",
+            "Home restores Motion in the Wetland map-mode radio group",
+        )
         play = page.locator(".wx-play")
         if play.count() and play.get_attribute("aria-pressed") == "true":
             play.click()
