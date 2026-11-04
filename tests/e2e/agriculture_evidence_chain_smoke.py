@@ -436,9 +436,14 @@ def main() -> int:
             and "not yet validated for this AOI" in page.locator(".agri-dw-artifacts").inner_text(),
             "the Operator discovers only the retained successful artifact option and explains that AOI matching is still pending",
         )
+        run_id_input = page.get_by_label("Dynamic World successful run ID", exact=False)
+        require(
+            "NOT ASSESSED" in page.locator("#agri-run-id-help").inner_text(),
+            "crop observability remains explicitly not assessed until a source workflow run is selected",
+        )
         page.get_by_role("button", name="Run #512").click()
         require(
-            page.get_by_label("Dynamic World successful run ID", exact=False).input_value() == "41835012345",
+            run_id_input.input_value() == "41835012345",
             "selecting a discovered artifact fills the SME2 handoff run ID",
         )
         require(
@@ -465,11 +470,6 @@ def main() -> int:
             and "minimum_observations=3" in crop_inputs
             and "probability_threshold=0.5" in crop_inputs,
             "the first-stage handoff copies the matching AOI/date window and explicit Dynamic World quality settings",
-        )
-        run_id_input = page.get_by_label("Dynamic World successful run ID", exact=False)
-        require(
-            "NOT ASSESSED" in page.locator("#agri-run-id-help").inner_text(),
-            "crop observability remains explicitly not assessed until a source workflow run is selected",
         )
         run_id_input.fill("not-a-run")
         cloud_copy = page.get_by_role("button", name="Copy SME2 workflow inputs")
