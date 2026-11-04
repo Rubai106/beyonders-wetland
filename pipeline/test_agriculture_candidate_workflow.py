@@ -49,7 +49,10 @@ class AgricultureCandidateWorkflowTests(unittest.TestCase):
         self.assertIn("agriculture_sme2.py download", run_scripts)
         self.assertIn("agriculture_sme2_inspect.py", run_scripts)
         self.assertNotRegex(run_scripts, r"agriculture_sme2\.py\s+(?:analyze|publish)")
-        self.assertNotRegex(run_scripts, r"(?m)^\\s*(?:git\\s+add|cp|mv)\\b.*public/agriculture/current")
+        write_commands = [line.strip() for line in run_scripts.splitlines()
+                         if line.strip().startswith(("git add ", "cp ", "mv ", "install "))
+                         and "public/agriculture/current" in line]
+        self.assertEqual(write_commands, [])
         self.assertIn("No winner is selected automatically", run_scripts)
 
     def test_every_shell_block_passes_bash_syntax_check(self):
