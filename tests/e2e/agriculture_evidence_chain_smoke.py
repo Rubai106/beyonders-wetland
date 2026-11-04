@@ -117,6 +117,24 @@ def main() -> int:
             and "21.3%" in readout.inner_text(),
             "the map displays real soil-moisture, valid-footprint and same-pixel evidence",
         )
+        map_trend_points = readout.locator(".agri-map-readout__signal svg polyline").get_attribute("points") or ""
+        try:
+            actual_trend_positions = [
+                float(point.split(",", 1)[0]) for point in map_trend_points.split()
+            ]
+        except (TypeError, ValueError, IndexError):
+            actual_trend_positions = []
+        expected_trend_positions = [
+            0.0, 100.0 / 6.0, 50.0, 200.0 / 3.0, 250.0 / 3.0, 100.0,
+        ]
+        require(
+            len(actual_trend_positions) == EXPECTED_DATES
+            and all(
+                abs(actual - expected) <= 0.1
+                for actual, expected in zip(actual_trend_positions, expected_trend_positions)
+            ),
+            "the map readout sparkline spaces acquisitions by real elapsed time (12/24/12/12/12 days), not equal index steps",
+        )
         change_action = readout.get_by_role("button", name="View change layer")
         same_pixels_action = readout.get_by_role("button", name="Inspect same pixels")
         require(
