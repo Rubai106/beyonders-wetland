@@ -185,7 +185,39 @@ test("validates an independently sourced, area-weighted crop-support audit", () 
     preview: "previews/crop-support.png",
     source_coverage_preview: "previews/crop-source-coverage.png",
   };
+  changed.crop_observability.source_temporal_coverage = {
+    dataset: "GOOGLE/DYNAMICWORLD/V1",
+    band: "crops",
+    sme2_series_id: "c5f219dd7bbc",
+    requested_window: { start: "2026-06-17", end: "2026-10-31" },
+    acquisition_dates: ["2026-06-19", "2026-07-07", "2026-08-11", "2026-09-03"],
+    unique_acquisition_dates: 4,
+    maximum_gap_between_acquisition_dates_days: 35,
+    minimum_valid_dates_per_pixel: 3,
+    valid_probability_fraction: 0.82,
+    latest_scene_recency: {
+      days_from_latest_scene_to_requested_end: 58,
+      cue_days: 18,
+      status: "STALE_MORE_THAN_18_DAYS_BEFORE_WINDOW_END",
+    },
+    manifest_sha256: "c".repeat(64),
+    probability_sha256: "b".repeat(64),
+    observation_count_sha256: "d".repeat(64),
+    validation_sha256: "e".repeat(64),
+  };
   assert.equal(isAgricultureStudy(changed), true);
+
+  const duplicateSourceDate = structuredClone(changed);
+  duplicateSourceDate.crop_observability.source_temporal_coverage.acquisition_dates[1] = "2026-06-19";
+  assert.equal(isAgricultureStudy(duplicateSourceDate), false);
+
+  const tamperedProbabilityReceipt = structuredClone(changed);
+  tamperedProbabilityReceipt.crop_observability.source_temporal_coverage.probability_sha256 = "f".repeat(64);
+  assert.equal(isAgricultureStudy(tamperedProbabilityReceipt), false);
+
+  const wrongSourceGap = structuredClone(changed);
+  wrongSourceGap.crop_observability.source_temporal_coverage.latest_scene_recency.days_from_latest_scene_to_requested_end = 1;
+  assert.equal(isAgricultureStudy(wrongSourceGap), false);
 
   const wrongArea = structuredClone(changed);
   wrongArea.crop_observability.observations[0].valid_crop_area_fraction = 0.99;

@@ -817,8 +817,22 @@ export default function AgricultureWorkbench() {
                   <div><dt>Probability threshold</dt><dd>{cropObservability.probability_threshold.toFixed(2)}</dd></div>
                   <div><dt>Within-cell source coverage floor</dt><dd>{formatPercent(cropObservability.minimum_cell_coverage)}</dd></div>
                   <div><dt>Source average coverage</dt><dd>{formatPercent(cropObservability.mean_source_data_coverage_fraction)}</dd></div>
+                  {cropObservability.source_temporal_coverage && (
+                    <>
+                      <div><dt>Acquisition window</dt><dd>{dateLabel(cropObservability.source_temporal_coverage.requested_window.start)} – {dateLabel(cropObservability.source_temporal_coverage.requested_window.end)}</dd></div>
+                      <div><dt>Distinct source dates</dt><dd>{cropObservability.source_temporal_coverage.unique_acquisition_dates} · latest {dateLabel(cropObservability.source_temporal_coverage.acquisition_dates[cropObservability.source_temporal_coverage.acquisition_dates.length - 1])}</dd></div>
+                      <div><dt>Largest source-date gap</dt><dd>{cropObservability.source_temporal_coverage.maximum_gap_between_acquisition_dates_days === null ? "Not measurable" : cropObservability.source_temporal_coverage.maximum_gap_between_acquisition_dates_days + " days"}</dd></div>
+                      <div><dt>Latest-scene recency</dt><dd>{cropObservability.source_temporal_coverage.latest_scene_recency.days_from_latest_scene_to_requested_end} days before window end · {cropObservability.source_temporal_coverage.latest_scene_recency.status.replaceAll("_", " ")}</dd></div>
+                      <div><dt>Valid probability grid</dt><dd>{formatPercent(cropObservability.source_temporal_coverage.valid_probability_fraction)} · at least {cropObservability.source_temporal_coverage.minimum_valid_dates_per_pixel} dates per pixel</dd></div>
+                    </>
+                  )}
                   <div><dt>Mask checksum</dt><dd><code>{cropObservability.source_sha256.slice(0, 18)}…</code></dd></div>
                 </dl>
+                {cropObservability.source_temporal_coverage && (
+                  <p className="agri-crop-gate__note">
+                    The retained source calendar describes a window-level median, not a crop observation on every individual SME2 acquisition date. The largest date gap and latest-scene recency are review cues, not validated scientific acceptance thresholds.
+                  </p>
+                )}
                 <p className="agri-crop-gate__note">
                   Crop weights are the area share of source pixels meeting the selected probability threshold within each native SME2 cell. SME2 still measures the complete native cell, which may mix crop and non-crop land; area weighting does not isolate moisture inside cropped sub-pixels. This is not crop-species identification, a verified parcel boundary, root-zone moisture, or a crop-stress diagnosis. Per-date and fixed-cohort summaries preserve the existing strict SME2 quality screen; missing mask area is not labelled non-crop.
                 </p>

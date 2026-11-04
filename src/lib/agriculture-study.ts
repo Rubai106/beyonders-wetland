@@ -100,6 +100,27 @@ export interface AgricultureCropCommonSupport {
   preview: string | null;
 }
 
+export interface AgricultureCropSourceTemporalCoverage {
+  dataset: "GOOGLE/DYNAMICWORLD/V1";
+  band: "crops";
+  sme2_series_id: string;
+  requested_window: { start: string; end: string };
+  acquisition_dates: string[];
+  unique_acquisition_dates: number;
+  maximum_gap_between_acquisition_dates_days: number | null;
+  minimum_valid_dates_per_pixel: number;
+  valid_probability_fraction: number;
+  latest_scene_recency: {
+    days_from_latest_scene_to_requested_end: number;
+    cue_days: 18;
+    status: "RECENT_WITHIN_18_DAY_WINDOW" | "STALE_MORE_THAN_18_DAYS_BEFORE_WINDOW_END";
+  };
+  manifest_sha256: string;
+  probability_sha256: string;
+  observation_count_sha256: string;
+  validation_sha256: string;
+}
+
 export interface AgricultureCropObservability {
   method: "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1";
   source: string;
@@ -119,6 +140,8 @@ export interface AgricultureCropObservability {
   crop_supported_cells: number;
   crop_area_equivalent_pixels: number;
   weighted_statistic: "AREA_WEIGHTED_EMPIRICAL_CDF_LEFT_CONTINUOUS_V1";
+  /** Optional for older/manual masks; validated Dynamic World sources retain their temporal audit. */
+  source_temporal_coverage?: AgricultureCropSourceTemporalCoverage;
   observations: AgricultureCropSupportObservation[];
   common_support: AgricultureCropCommonSupport;
   preview: string | null;
@@ -376,6 +399,47 @@ function validCropSupportObservation(
       ["COMPARABLE", "INCONCLUSIVE_COVERAGE", "NO_CROP_SUPPORT", "INSUFFICIENT_MASK_COVERAGE", "NO_VALID_CROP_SUPPORT"].includes(value.status)));
 }
 
+function validCropSourceTemporalCoverage(
+  value: unknown,
+  expectedProbabilitySha256: string,
+): value is AgricultureCropSourceTemporalCoverage {
+  if (!isRecord(value) || value.dataset !== "GOOGLE/DYNAMICWORLD/V1" || value.band !== "crops") return false;
+  const window = isRecord(value.requested_window) ? value.requested_window : null;
+  const dates = Array.isArray(value.acquisition_dates) ? value.acquisition_dates : null;
+  const recency = isRecord(value.latest_scene_recency) ? value.latest_scene_recency : null;
+  if (!window || !isoDay(window.start) || !isoDay(window.end) || window.start > window.end ||
+      !dates || dates.length < 1 || !dates.every(isoDay) ||
+      Number(value.unique_acquisition_dates) !== dates.length ||
+      !Number.isInteger(value.unique_acquisition_dates) ||
+      !Number.isInteger(value.minimum_valid_dates_per_pixel) ||
+      Number(value.minimum_valid_dates_per_pixel) < 1 ||
+      Number(value.minimum_valid_dates_per_pixel) > dates.length ||
+      !finiteRange(value.valid_probability_fraction, Number.MIN_VALUE, 1) ||
+      typeof value.sme2_series_id !== "string" || !/^[a-f0-9]{12}$/.test(value.sme2_series_id) ||
+      !recency || !Number.isInteger(recency.days_from_latest_scene_to_requested_end) ||
+      Number(recency.days_from_latest_scene_to_requested_end) < 0 || recency.cue_days !== 18 ||
+      !["RECENT_WITHIN_18_DAY_WINDOW", "STALE_MORE_THAN_18_DAYS_BEFORE_WINDOW_END"].includes(String(recency.status)) ||
+      !isSha256(value.manifest_sha256) || !isSha256(value.probability_sha256) ||
+      !isSha256(value.observation_count_sha256) || !isSha256(value.validation_sha256) ||
+      value.probability_sha256 !== expectedProbabilitySha256) return false;
+
+  if (new Set(dates).size !== dates.length ||
+      dates.some((item, index) => index > 0 && dates[index - 1] >= item) ||
+      dates.some((item) => item < window.start || item > window.end)) return false;
+  const expectedMaximumGap = dates.length < 2 ? null : Math.max(
+    ...dates.slice(1).map((item, index) =>
+      (Date.parse(item + "T00:00:00Z") - Date.parse(dates[index] + "T00:00:00Z")) / 86_400_000),
+  );
+  if (value.maximum_gap_between_acquisition_dates_days !== expectedMaximumGap) return false;
+  const latestGap = (Date.parse(window.end + "T00:00:00Z") -
+    Date.parse(dates[dates.length - 1] + "T00:00:00Z")) / 86_400_000;
+  const expectedRecency = latestGap <= 18
+    ? "RECENT_WITHIN_18_DAY_WINDOW"
+    : "STALE_MORE_THAN_18_DAYS_BEFORE_WINDOW_END";
+  return recency.days_from_latest_scene_to_requested_end === latestGap &&
+    recency.status === expectedRecency;
+}
+
 function validCropObservability(value: unknown, expectedDates: unknown[]): value is AgricultureCropObservability {
   if (!isRecord(value) || value.method !== "AREA_WEIGHTED_INDEPENDENT_CROP_MASK_TO_SME2_NATIVE_GRID_V1") return false;
   const common = isRecord(value.common_support) ? value.common_support : null;
@@ -422,7 +486,9 @@ function validCropObservability(value: unknown, expectedDates: unknown[]): value
       !commonObservations ||
       (common.preview !== null && !safeRelativeAssetPath(common.preview, "previews/")) ||
       (value.preview !== null && !safeRelativeAssetPath(value.preview, "previews/")) ||
-      !safeRelativeAssetPath(value.source_coverage_preview, "previews/")) return false;
+      !safeRelativeAssetPath(value.source_coverage_preview, "previews/") ||
+      (value.source_temporal_coverage !== undefined &&
+        !validCropSourceTemporalCoverage(value.source_temporal_coverage, String(value.source_sha256)))) return false;
 
   const commonArea = Number(common.valid_crop_area_equivalent_pixels);
   const expectedStatus = Number(value.mask_coverage_fraction) < 0.2 ? "INSUFFICIENT_MASK_COVERAGE" :
