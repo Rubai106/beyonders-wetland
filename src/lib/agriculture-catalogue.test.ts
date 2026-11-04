@@ -111,6 +111,12 @@ test("rejects a catalogue series whose acquisition count disagrees with its date
   assert.equal(isAgricultureCatalogueResult(payload), false);
 });
 
+test("rejects a catalogue hit count smaller than the listed unique acquisitions", () => {
+  const payload = catalogueResultFixture();
+  payload.catalogue_granules = 5;
+  assert.equal(isAgricultureCatalogueResult(payload), false);
+});
+
 test("rejects a catalogue recommendation that points to a below-gate series", () => {
   const payload = catalogueResultFixture();
   payload.preflight_gate.minimum_unique_acquisitions = 7;
