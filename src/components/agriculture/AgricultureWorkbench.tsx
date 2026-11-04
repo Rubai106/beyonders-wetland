@@ -1008,12 +1008,12 @@ export default function AgricultureWorkbench() {
                 <button type="button" className="agri-online-next__copy" onClick={() => void copyWorkflowInputs()}>
                   {copiedWorkflowInputs === workflowInputsText ? "Inputs copied" : "Copy workflow inputs"}
                 </button>
-                <a className="agri-online-next__launch" href="https://github.com/Rubai106/beyonders-wetland/actions/workflows/agriculture-cloud.yml?ref=Rubai-dev" target="_blank" rel="noreferrer">
+                <a className="agri-online-next__launch" href="https://github.com/Rubai106/beyonders-wetland/actions/workflows/agriculture-cloud.yml?ref=master" target="_blank" rel="noreferrer">
                   Open secure cloud workflow <span aria-hidden="true">↗</span>
                 </a>
               </div>
               <p className="agri-online-next__feedback" role="status">
-                {clipboardUnavailable ? "Clipboard access is unavailable here; use the input summary above." : copiedWorkflowInputs === workflowInputsText ? "Inputs copied. In GitHub Actions, select Rubai-dev and choose Run workflow." : "Copy the inputs, then open the workflow and select Run workflow on Rubai-dev."}
+                {clipboardUnavailable ? "Clipboard access is unavailable here; use the input summary above." : copiedWorkflowInputs === workflowInputsText ? "Inputs copied. In GitHub Actions, select master and choose Run workflow." : "Copy the inputs, then open the workflow and select Run workflow on master."}
               </p>
               <p className="agri-online-next__footnote">The runner uses the repository secret EARTH_DATA. Do not paste an Earthdata token here. Missing IMERG windows are allowed to remain unavailable; they are never replaced with zero rainfall.</p>
             </div> : <div className="agri-online-next agri-online-next--blocked" role="status">
