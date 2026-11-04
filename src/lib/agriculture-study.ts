@@ -397,8 +397,10 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
       previousValue = rawValue;
     }
     if (value.unsupported_values_truncated) {
+      // A truncated top-16 histogram must omit at least one positive-count
+      // raw code, so retained pixels must be strictly below the full total.
       if (value.unsupported_values.length !== 16 ||
-          retainedPixels > Number(value.unsupported_encoding_pixels)) return false;
+          retainedPixels >= Number(value.unsupported_encoding_pixels)) return false;
     } else if (retainedPixels !== Number(value.unsupported_encoding_pixels)) {
       return false;
     }

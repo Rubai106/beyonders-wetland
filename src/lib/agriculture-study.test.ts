@@ -153,6 +153,12 @@ test("validates the per-date SME2 surface-flag observability audit", () => {
   );
   boundedHistogram.observations[0].surface_flag_diagnostics.unsupported_values_truncated = true;
   assert.equal(isAgricultureStudy(boundedHistogram), true);
+
+  const falselyTruncated = structuredClone(boundedHistogram);
+  falselyTruncated.observations[0].surface_flag_diagnostics.encoded_pixels = 80;
+  falselyTruncated.observations[0].surface_flag_diagnostics.unflagged_pixels = 55;
+  falselyTruncated.observations[0].surface_flag_diagnostics.unsupported_encoding_pixels = 16;
+  assert.equal(isAgricultureStudy(falselyTruncated), false);
 });
 
 test("validates an independently sourced, area-weighted crop-support audit", () => {
