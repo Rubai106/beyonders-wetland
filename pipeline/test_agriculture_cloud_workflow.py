@@ -1,6 +1,9 @@
 """Static security contract tests for the GitHub-hosted Agriculture worker."""
 from pathlib import Path
+import subprocess
 import unittest
+
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +42,31 @@ class AgricultureCloudWorkflowTests(unittest.TestCase):
         self.assertIn("exceeds 366 days", self.source)
         self.assertIn("printf 'series_id=%s\\n' \"$SERIES_ID\"", self.source)
         self.assertIn("printf 'allow_missing_imerg=%s\\n' \"$ALLOW_MISSING\"", self.source)
+
+    def test_every_cloud_workflow_shell_block_passes_bash_syntax_check(self):
+        workflow = yaml.load(self.source, Loader=yaml.BaseLoader)
+        jobs = workflow.get("jobs", {})
+        self.assertTrue(jobs, "workflow must define at least one job")
+        checked = 0
+        for job_name, job in jobs.items():
+            for step in job.get("steps", []):
+                script = step.get("run")
+                if not script:
+                    continue
+                checked += 1
+                result = subprocess.run(
+                    ["bash", "-n"],
+                    input=script,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(
+                    result.returncode,
+                    0,
+                    f"Invalid shell syntax in {job_name} / {step.get('name')}: {result.stderr}",
+                )
+        self.assertGreater(checked, 0, "workflow must contain shell steps to validate")
 
     def test_worker_keeps_earthdata_secret_out_of_inputs(self):
         self.assertIn("EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}", self.source)
