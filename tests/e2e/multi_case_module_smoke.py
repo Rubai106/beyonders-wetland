@@ -183,6 +183,28 @@ def main() -> int:
             page.locator(".wx-nav a[href='/forest/rondonia']").get_attribute("aria-current") == "page",
             "Forests is identified as the current workspace in shared navigation",
         )
+        forest_tabs = page.locator(".wx-drawer__tabs button[role='tab']")
+        require(
+            forest_tabs.count() == 3 and forest_tabs.nth(0).get_attribute("aria-selected") == "true",
+            "Forest drawer starts with one selected tab and exposes its tab panel",
+        )
+        forest_tabs.first.focus()
+        forest_tabs.first.press("ArrowRight")
+        require(
+            forest_tabs.nth(1).get_attribute("aria-selected") == "true"
+            and forest_tabs.nth(1).evaluate("(element) => element === document.activeElement"),
+            "right arrow selects and focuses the next Forest investigation tab",
+        )
+        forest_tabs.nth(1).press("End")
+        require(
+            forest_tabs.nth(2).get_attribute("aria-selected") == "true",
+            "End moves to the last Forest investigation tab",
+        )
+        forest_tabs.nth(2).press("Home")
+        require(
+            forest_tabs.nth(0).get_attribute("aria-selected") == "true",
+            "Home returns to the first Forest investigation tab",
+        )
         require(
             "What changed in the forest?" in page.inner_text(".wx-quest")
             and page.locator(".forest-comparison-map").count() == 2
