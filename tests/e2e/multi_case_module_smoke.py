@@ -62,12 +62,42 @@ def main() -> int:
             and all(footer_nav.get_by_role("link", name=name).count() == 1 for name in ("Wetlands", "Forests", "Volcanoes", "Agriculture")),
             "the landing footer provides a direct route to all four workspaces",
         )
+        globe_canvas = page.locator(".globe-mount canvas")
+        globe_canvas.wait_for(state="visible", timeout=30_000)
+        require(
+            globe_canvas.get_attribute("tabindex") == "0"
+            and "arrow keys" in (globe_canvas.get_attribute("aria-label") or "").lower(),
+            "the 3D globe exposes keyboard rotation and zoom instructions",
+        )
+        require(
+            page.locator(".g3-chapter").first.evaluate("(element) => getComputedStyle(element).opacity") == "1",
+            "reduced-motion preference keeps landing content visible without scroll-reveal animation",
+        )
+        globe_canvas.focus()
+        globe_canvas.press("ArrowLeft")
+
+        # Pin selection supports exact coordinate entry as well as globe taps.
+        page.get_by_role("button", name="Drop a pin anywhere").click()
+        pin_form = page.locator(".g3-pinbar__form")
+        pin_form.get_by_label("Latitude").fill("23.8103")
+        pin_form.get_by_label("Longitude").fill("90.4125")
+        pin_form.get_by_role("button", name="Use coordinates").click()
+        pin_href = page.locator(".g3-pinbar a.g3-btn").get_attribute("href") or ""
+        require(
+            "latitude=23.81030" in pin_href and "longitude=90.41250" in pin_href,
+            "keyboard and touch users can set an exact study location without dragging or tapping the globe",
+        )
+        page.get_by_role("button", name="Cancel pin mode").click()
 
         # Both seven-date wetland publications must use the same genuine
         # observation/timeline/map interaction, while keeping Tanguar default.
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
         case_picker = page.locator(".wx-casepick")
         case_picker.wait_for(state="visible", timeout=30_000)
+        require(
+            page.locator(".wx-nav a[href='/wetland']").get_attribute("aria-current") == "page",
+            "Wetlands is identified as the current workspace in shared navigation",
+        )
         require(
             case_picker.locator("option").count() == 3
             and case_picker.locator("option[value='featured']").count() == 1
@@ -150,6 +180,10 @@ def main() -> int:
         page.wait_for_url("**/forest/rondonia", timeout=20_000)
         page.locator(".forest-comparison").wait_for(state="visible", timeout=30_000)
         require(
+            page.locator(".wx-nav a[href='/forest/rondonia']").get_attribute("aria-current") == "page",
+            "Forests is identified as the current workspace in shared navigation",
+        )
+        require(
             "What changed in the forest?" in page.inner_text(".wx-quest")
             and page.locator(".forest-comparison-map").count() == 2
             and page.locator(".forest-date-ribbon button").count() >= 4,
@@ -159,6 +193,10 @@ def main() -> int:
         page.goto(BASE + "/volcano", wait_until="domcontentloaded", timeout=30_000)
         page.wait_for_url("**/volcano/hayli-gubbi", timeout=20_000)
         page.locator(".deformation-map-hint").wait_for(state="visible", timeout=30_000)
+        require(
+            page.locator(".wx-nav a[href='/volcano/hayli-gubbi']").get_attribute("aria-current") == "page",
+            "Volcanoes is identified as the current workspace in shared navigation",
+        )
         require(
             "What moved beneath Erta Ale?" in page.inner_text(".wx-quest")
             and page.locator(".deformation-timeline button").count() >= 3,
@@ -176,6 +214,10 @@ def main() -> int:
         page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
         agriculture_map = page.locator(".agri-map")
         agriculture_map.wait_for(state="visible", timeout=30_000)
+        require(
+            page.locator(".wx-nav a[href='/agriculture']").get_attribute("aria-current") == "page",
+            "Agriculture is identified as the current workspace in shared navigation",
+        )
         require(
             agriculture_map.locator(".agri-map-integrity button").count() == 0
             and page.get_by_role("button", name="Retry publication verification").count() == 0,
