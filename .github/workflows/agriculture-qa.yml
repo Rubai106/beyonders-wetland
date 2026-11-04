@@ -4,17 +4,18 @@ on:
   push:
     branches: [master, Rubai-dev]
     paths:
-      - '.github/workflows/agriculture-qa.yml'
-      - '.github/workflows/agriculture-cloud.yml'
+      - '.github/workflows/**'
       - 'pipeline/**'
       - 'src/**'
       - 'tests/**'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
+      - 'scripts/**'
+      - 'README.md'
       - 'docs/agriculture-*.md'
   pull_request:
-    branches: [master]
+    branches: [master, Rubai-dev]
 
 permissions:
   contents: read
@@ -58,7 +59,7 @@ jobs:
         run: python -m unittest discover -s pipeline -p 'test_*.py' -v
 
       - name: Run all TypeScript unit regression tests
-        run: npm run test:unit
+        run: npm test
 
       - name: Run ESLint
         run: npm run lint
