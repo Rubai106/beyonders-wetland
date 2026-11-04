@@ -32,7 +32,7 @@ const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
   loading: () => <div className="agri-map-loading">Loading interactive map…</div>,
 });
 
-const MIN_DATE = "2026-01-01";
+const MIN_DATE = "2026-06-17";
 const MAX_DATE = new Date().toISOString().slice(0, 10);
 // NISAR repeats the same orbit geometry every 12 days; >18 days is a visual extended-gap cue only.
 const LONG_ACQUISITION_GAP_DAYS = 18;
@@ -111,12 +111,15 @@ export default function AgricultureWorkbench() {
   const [south, setSouth] = useState("24.3533");
   const [east, setEast] = useState("91.4467");
   const [north, setNorth] = useState("24.4133");
-  const [start, setStart] = useState("2026-01-01");
-  const [end, setEnd] = useState("2026-10-31");
+  const [start, setStart] = useState(MIN_DATE);
+  const [end, setEnd] = useState(MAX_DATE);
   const [catalogueStatus, setCatalogueStatus] = useState<CatalogueSearchStatus>("idle");
   const [catalogueResult, setCatalogueResult] = useState<AgricultureCatalogueResult | null>(null);
   const [catalogueError, setCatalogueError] = useState("");
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
+  const [processingAlgorithm, setProcessingAlgorithm] = useState<"baseline" | "DSG">("baseline");
+  const [copiedWorkflowInputs, setCopiedWorkflowInputs] = useState<string | null>(null);
+  const [clipboardUnavailable, setClipboardUnavailable] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -221,6 +224,38 @@ export default function AgricultureWorkbench() {
 
   const form = useMemo(() => ({ west, south, east, north, start, end }), [west, south, east, north, start, end]);
   const formValid = useMemo(() => validSearchForm(form), [form]);
+  const catalogueResultMatchesCurrentForm = Boolean(
+    catalogueResult &&
+    catalogueResult.date_range.start === form.start &&
+    catalogueResult.date_range.end === form.end &&
+    catalogueResult.aoi.west === Number(form.west) &&
+    catalogueResult.aoi.south === Number(form.south) &&
+    catalogueResult.aoi.east === Number(form.east) &&
+    catalogueResult.aoi.north === Number(form.north),
+  );
+  const selectedCatalogueSeries = catalogueResultMatchesCurrentForm
+    ? catalogueResult?.series.find((series) => series.series_id === selectedSeriesId) ?? null
+    : null;
+  const workflowInputsText = [
+    `west=${form.west.trim()}`,
+    `south=${form.south.trim()}`,
+    `east=${form.east.trim()}`,
+    `north=${form.north.trim()}`,
+    `start=${form.start}`,
+    `end=${form.end}`,
+    `series_id=${selectedCatalogueSeries?.series_id ?? ""}`,
+    `algorithm=${processingAlgorithm}`,
+    "allow_missing_imerg=true",
+  ].join("\n");
+  const copyWorkflowInputs = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(workflowInputsText);
+      setCopiedWorkflowInputs(workflowInputsText);
+      setClipboardUnavailable(false);
+    } catch {
+      setClipboardUnavailable(true);
+    }
+  }, [workflowInputsText]);
   const chartRange = useMemo(() => {
     if (!chartObservations.length) return { min: 0, max: 1 };
     const lows = chartObservations.map((item) => item.p05);
@@ -845,7 +880,11 @@ export default function AgricultureWorkbench() {
             {catalogueStatus === "searching" ? "Searching NASA catalogue…" : "Discover SME2 observations"}
           </button>
           {catalogueStatus === "error" && <p className="agri-alert" role="alert">{catalogueError}</p>}
-          {catalogueResult && <section className="agri-online-results" aria-label="NASA SME2 catalogue results">
+          {catalogueResult && !catalogueResultMatchesCurrentForm && <div className="agri-online-stale" role="status">
+            <strong>Catalogue results are out of date.</strong>
+            <span>The AOI or date window changed after this search. Run discovery again before selecting a processing series.</span>
+          </div>}
+          {catalogueResult && catalogueResultMatchesCurrentForm && <section className="agri-online-results" aria-label="NASA SME2 catalogue results">
             <div className="agri-online-results__header">
               <div><span className="agri-eyebrow">LIVE NASA CMR RESULT</span><strong>{catalogueResult.catalogue_granules.toLocaleString()} catalogue granules</strong></div>
               <span className={"agri-online-results__status " + (catalogueResult.status === "ELIGIBLE_FOR_OPERATOR_REVIEW" ? "is-ready" : "is-warning")}>
@@ -888,12 +927,43 @@ export default function AgricultureWorkbench() {
               </div>
             )}
             {catalogueResult.interpretation_limits.map((note) => <small className="agri-online-results__note" key={note}>• {note}</small>)}
-            {selectedSeriesId && catalogueResult.series.some((series) => series.series_id === selectedSeriesId) && <div className="agri-online-next">
-              <span className="agri-eyebrow">NEXT · SECURE PROCESSING</span>
-              <strong>Series selected: {selectedSeriesId}</strong>
-              <p>Catalogue discovery now runs on the website. Downloading original HDF5 granules and producing a checksum-verified study will run through a hosted worker with NASA Earthdata authorization. That worker is the next integration; it will not require Python on your PC or expose your NASA password to this site.</p>
-              <div className="agri-online-next__status"><i aria-hidden="true" />Hosted processing service not connected yet</div>
-            </div>}
+            {selectedCatalogueSeries && (selectedCatalogueSeries.meets_preflight_gate ? <div className="agri-online-next">
+              <div className="agri-online-next__header">
+                <span className="agri-eyebrow">NEXT · SECURE CLOUD PROCESSING</span>
+                <span className="agri-online-next__status is-ready"><i aria-hidden="true" />REMOTE WORKER AVAILABLE</span>
+              </div>
+              <strong>Queue this compatible series for SME2 analysis</strong>
+              <p>The GitHub-hosted worker downloads the selected CMR granules, applies the real HDF5 and quality checks, and publishes only the checksum-verified display package. Raw granules stay on the runner.</p>
+              <div className="agri-online-next__facts" aria-label="Cloud workflow inputs">
+                <div><span>WGS84 · WEST / SOUTH</span><strong>{form.west} / {form.south}</strong></div>
+                <div><span>WGS84 · EAST / NORTH</span><strong>{form.east} / {form.north}</strong></div>
+                <div><span>ACQUISITION WINDOW</span><strong>{form.start} → {form.end}</strong></div>
+                <div><span>SELECTED CMR SERIES</span><strong>{selectedCatalogueSeries.series_id}</strong></div>
+              </div>
+              <label className="agri-online-next__algorithm">
+                <span>Analysis stream</span>
+                <select value={processingAlgorithm} onChange={(event) => setProcessingAlgorithm(event.target.value as "baseline" | "DSG")}>
+                  <option value="baseline">Root baseline product</option>
+                  <option value="DSG">DSG algorithm candidate</option>
+                </select>
+              </label>
+              <div className="agri-online-next__actions">
+                <button type="button" className="agri-online-next__copy" onClick={() => void copyWorkflowInputs()}>
+                  {copiedWorkflowInputs === workflowInputsText ? "Inputs copied" : "Copy workflow inputs"}
+                </button>
+                <a className="agri-online-next__launch" href="https://github.com/Rubai106/beyonders-wetland/actions/workflows/agriculture-cloud.yml?ref=Rubai-dev" target="_blank" rel="noreferrer">
+                  Open secure cloud workflow <span aria-hidden="true">↗</span>
+                </a>
+              </div>
+              <p className="agri-online-next__feedback" role="status">
+                {clipboardUnavailable ? "Clipboard access is unavailable here; use the input summary above." : copiedWorkflowInputs === workflowInputsText ? "Inputs copied. In GitHub Actions, select Rubai-dev and choose Run workflow." : "Copy the inputs, then open the workflow and select Run workflow on Rubai-dev."}
+              </p>
+              <p className="agri-online-next__footnote">The runner uses the repository secret EARTH_DATA. Do not paste an Earthdata token here. Missing IMERG windows are allowed to remain unavailable; they are never replaced with zero rainfall.</p>
+            </div> : <div className="agri-online-next agri-online-next--blocked" role="status">
+              <span className="agri-eyebrow">PRE-FLIGHT · NOT READY</span>
+              <strong>This series is below the processing gate</strong>
+              <p>{selectedCatalogueSeries.observation_count} acquisitions across {selectedCatalogueSeries.span_days} days. The worker requires at least {catalogueResult?.preflight_gate.minimum_unique_acquisitions ?? 6} unique dates across {catalogueResult?.preflight_gate.minimum_temporal_span_days ?? 60} days. Expand the date window or review another compatible series.</p>
+            </div>)}
           </section>}
           <p className="agri-small-note">This online step reads public NASA catalogue metadata only. It does not download HDF5 files or claim that the returned pixels pass the SME2 quality screen. No local setup is needed for discovery.</p>
         </div>
