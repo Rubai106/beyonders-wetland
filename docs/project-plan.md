@@ -1,12 +1,13 @@
 # Project status and next work
 
-Updated 29 October 2026. The project now contains three separate NISAR-oriented modules and five processed study areas: Hakaluki and Tanguar in Bangladesh, Chókwè in Mozambique, Rondônia in Brazil, and Hayli Gubbi/Erta Ale in Ethiopia. The global views are for observation discovery and coverage; they do not imply global change classifications.
+Updated 4 November 2026. The project contains four separate NISAR-oriented workspaces: Wetlands, Forests, Volcanoes and Agriculture. Published cases cover Hakaluki and Tanguar in Bangladesh, Chókwè in Mozambique, Rondônia in Brazil, Hayli Gubbi in Ethiopia, Kīlauea in Hawaiʻi, and the Naogaon SME2 soil-moisture study in Bangladesh. The global views are for observation discovery and coverage; they do not imply global change classifications.
 
 ## Implemented
 
 - **Wetlands:** global NISAR imagery and acquisition footprints; real HH/HV GCOV studies for Hakaluki and Tanguar; date series, study boundaries, candidate layers, evidence panels, HLS checks, and local processing tools.
 - **Forests:** global historical ESA WorldCover 2021 context and NISAR footprints; a seven-date Rondônia GCOV study with an independent HLS optical support comparison. The result remains unverified radar-change candidates.
-- **Volcanoes:** global Smithsonian directory and NISAR GUNW coverage; a Hayli Gubbi/Erta Ale NISAR phase/coherence case with Sentinel-1 contextual comparison.
+- **Volcanoes:** global Smithsonian directory and NISAR GUNW coverage; the Hayli Gubbi/Erta Ale phase/coherence case and the separate Kīlauea Episode 36 investigation, with Sentinel-1 contextual comparison.
+- **Agriculture:** a published Naogaon NISAR L3 SME2 PROVISIONAL DSG study with six valid acquisition dates (12 August–23 October 2026), four dated quality exclusions, checksum-verified previews, per-date quality audits, a baseline-change view, and a strict all-date pixel cohort. The website supports public CMR discovery and a guided manual handoff to the master-only GitHub Actions processing workflow.
 - **Mozambique event story:** NASA’s published NISAR before/during imagery for Chókwè, the project's own run on the matching BETA pair, CIMA event context, and a measured later-date spatial overlap with UNOSAT Sentinel-1 water extents. The HLS check remains inconclusive and the local result is still an unverified candidate map.
 - **User experience:** place and coordinate search, layer controls, time selection, evidence cards, case walkthrough, comparative imagery, provenance, and explicit no-result states.
 
@@ -22,13 +23,16 @@ See [evidence-report.md](evidence-report.md) for the full data, offsets, and lim
 2. **Wetland references:** seek a clearer independent observation window for Tanguar and inspect Hakaluki radar-only regions. Until coverage improves, keep both interpretations unverified.
 3. **Forest reference:** if a dated authoritative alert or mapped loss reference overlaps the Rondônia box, import it with its date/confidence and keep absent alerts unassessed. Do not treat WorldCover 2021 or no-alert pixels as current forest truth.
 4. **Volcano attribution:** pursue correction/reference data and a surveyed stable area before narrowing apparent LOS candidates to eruption-caused deformation.
-5. **Reproducibility:** continue recording exact input IDs, maturity, dates, boundary provenance, method version, masks, checksums, reference status, and per-case limitations.
+5. **Agriculture references:** the Naogaon SME2 study is exploratory and does not contain independent field validation. Add an independently sourced crop mask and matched field/soil measurements before making crop-area or agricultural-accuracy claims; attach IMERG only when complete spatially supported windows are available.
+6. **Reproducibility:** continue recording exact input IDs, maturity, dates, boundary provenance, method version, masks, checksums, reference status, and per-case limitations.
 
 ## Deliberate limits
 
 This release does not claim worldwide flood or forest-loss detection, validated hazard maps, operational alerts, flood prediction, earthquake processing, or eruption forecasting. It presents worldwide observation coverage and a small set of local studies. A blank map area means no result is available.
 
 
-## Agriculture / soil-moisture feasibility
+## Agriculture / soil-moisture release
 
-The /agriculture workspace and isolated SME2 PROVISIONAL operator pipeline are implemented on the development branch. No real Agriculture result is published. The browser shows a verified no-publication state until genuine granules are processed and published. The product is not fully calibrated; the module is a soil-moisture measurement explorer, not crop-stress/drought/irrigation/yield detection. Live Earthdata processing and full project regression remain release gates. See [Agriculture method](agriculture-method.md) and [Agriculture release status](agriculture-release.md).
+The public index points to the immutable Naogaon release `agri-41647231453`. It contains six valid DSG acquisition dates from 12 August through 23 October 2026; four other dates are recorded as quality exclusions rather than interpolated. The latest target-date footprint has 57.9% valid AOI coverage. The target-minus-baseline change layer has 21.31% valid coverage, and the strict all-date cohort contains 21.28% of AOI pixels. The latter two values are only slightly above the fixed 20% policy floor and should be interpreted cautiously.
+
+The package is checksum-verified and is published on `master`. The processing workflow uses a GitHub-hosted runner and the repository `EARTH_DATA` Actions secret; the browser performs public CMR discovery and prepares a guided, manual workflow handoff, but does not receive credentials or silently start processing. The current release has no Dynamic World crop mask, IMERG rainfall context, field reference, or independent agricultural accuracy estimate. SME2 PROVISIONAL estimates are not fully calibrated; keep all results exploratory and do not infer crop stress, drought, irrigation need, crop type, field boundaries or yield. See [Agriculture method](agriculture-method.md) and [Agriculture release status](agriculture-release.md).
