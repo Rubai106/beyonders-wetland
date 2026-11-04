@@ -338,6 +338,12 @@ def main() -> int:
             "valid Volcano coordinates clear the validation error and can be inspected",
         )
 
+        # Kīlauea is deliberately a single-observation 3D view: one interval
+        # must not be presented as a fabricated time series.
+        page.goto(BASE + "/volcano/kilauea", wait_until="domcontentloaded", timeout=30_000)
+        page.locator(".kilauea-map-surface").wait_for(state="visible", timeout=30_000)
+        verify_field_volume(page, ".field-volume-disclosure--volcano", "Kīlauea", minimum_dates=1)
+
         # Agriculture must explain an integrity failure without an inert retry
         # button floating on the map.
         page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
@@ -378,6 +384,12 @@ def main() -> int:
         require(True, "the mobile Agriculture navigation opens the published workspace")
 
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
+        page.get_by_role("tab", name="Explore").click()
+        verify_field_volume(page, ".field-volume-disclosure--wetland", "Wetlands mobile", minimum_dates=7)
+        require(
+            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+            "opening the optional Wetland 3D view does not introduce phone-width overflow",
+        )
         mobile_case_picker = page.locator(".wx-casepick")
         mobile_case_picker.wait_for(state="visible", timeout=30_000)
         require(
