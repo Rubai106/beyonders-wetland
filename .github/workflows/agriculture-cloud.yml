@@ -31,6 +31,10 @@ on:
         description: Optional compatible SME2 series ID from a previous search (leave blank for unique best series)
         required: false
         type: string
+      dynamic_world_run_id:
+        description: Optional successful Dynamic World crop-evidence workflow run ID; leave blank to skip crop-area analysis
+        required: false
+        type: string
       algorithm:
         description: Root baseline product or explicit DSG algorithm candidate
         required: true
@@ -48,6 +52,7 @@ on:
       - 'pipeline/agriculture-cloud-request.json'
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -83,6 +88,7 @@ jobs:
           INPUT_SERIES_ID: ${{ inputs.series_id }}
           INPUT_ALGORITHM: ${{ inputs.algorithm }}
           INPUT_ALLOW_MISSING_IMERG: ${{ inputs.allow_missing_imerg }}
+          INPUT_DYNAMIC_WORLD_RUN_ID: ${{ inputs.dynamic_world_run_id }}
         run: |
           if [ "$EVENT_NAME" = "push" ]; then
             REQUEST_FILE="pipeline/agriculture-cloud-request.json"
@@ -99,6 +105,7 @@ jobs:
             SERIES_ID=$(jq -r '.series_id // empty' "$REQUEST_FILE")
             ALGORITHM=$(jq -r '.algorithm // "baseline"' "$REQUEST_FILE")
             ALLOW_MISSING=$(jq -r 'if has("allow_missing_imerg") then .allow_missing_imerg else true end' "$REQUEST_FILE")
+            DYNAMIC_WORLD_RUN_ID=$(jq -r '.dynamic_world_run_id // empty' "$REQUEST_FILE")
           else
             WEST="$INPUT_WEST"
             SOUTH="$INPUT_SOUTH"
@@ -109,6 +116,7 @@ jobs:
             SERIES_ID="$INPUT_SERIES_ID"
             ALGORITHM="$INPUT_ALGORITHM"
             ALLOW_MISSING="$INPUT_ALLOW_MISSING_IMERG"
+            DYNAMIC_WORLD_RUN_ID="$INPUT_DYNAMIC_WORLD_RUN_ID"
           fi
           for name in WEST SOUTH EAST NORTH START_DATE END_DATE; do
             if [ -z "${!name}" ]; then
@@ -126,6 +134,10 @@ jobs:
           fi
           if [ "$ALLOW_MISSING" != "true" ] && [ "$ALLOW_MISSING" != "false" ]; then
             echo "::error::ALLOW_MISSING_IMERG must be true or false."
+            exit 1
+          fi
+          if [ -n "$DYNAMIC_WORLD_RUN_ID" ] && [[ ! "$DYNAMIC_WORLD_RUN_ID" =~ ^[0-9]{6,20}$ ]]; then
+            echo "::error::DYNAMIC_WORLD_RUN_ID must be a numeric GitHub Actions run ID."
             exit 1
           fi
           python - "$WEST" "$SOUTH" "$EAST" "$NORTH" "$START_DATE" "$END_DATE" <<'PY'
@@ -157,6 +169,7 @@ jobs:
             printf 'series_id=%s\n' "$SERIES_ID"
             printf 'algorithm=%s\n' "$ALGORITHM"
             printf 'allow_missing_imerg=%s\n' "$ALLOW_MISSING"
+            printf 'dynamic_world_run_id=%s\n' "$DYNAMIC_WORLD_RUN_ID"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
@@ -206,10 +219,84 @@ jobs:
             python pipeline/agriculture_sme2.py download --run-id "$RUN_ID"
           fi
 
+      - name: Resolve and verify optional Dynamic World workflow run
+        id: crop-mask
+        env:
+          DYNAMIC_WORLD_RUN_ID: ${{ steps.request.outputs.dynamic_world_run_id }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DYNAMIC_WORLD_RUN_ID" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No independent crop mask selected; Agriculture will remain NOT ASSESSED for crop observability."
+            exit 0
+          fi
+          if [[ ! "$DYNAMIC_WORLD_RUN_ID" =~ ^[0-9]{6,20}$ ]]; then
+            echo "::error::Dynamic World run ID is not a numeric GitHub Actions run ID."
+            exit 1
+          fi
+          workflow_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/agriculture-dynamic-world.yml" --jq '.id')"
+          if [[ ! "$workflow_id" =~ ^[0-9]+$ ]]; then
+            echo "::error::Could not resolve the Dynamic World acquisition workflow ID."
+            exit 1
+          fi
+          run_json="$RUNNER_TEMP/dynamic-world-source-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$DYNAMIC_WORLD_RUN_ID" > "$run_json"
+          if ! jq --exit-status --arg repo "$GITHUB_REPOSITORY" --argjson workflow_id "$workflow_id" '
+            .workflow_id == $workflow_id
+            and .event == "workflow_dispatch"
+            and .head_branch == "master"
+            and .status == "completed"
+            and .conclusion == "success"
+            and .repository.full_name == $repo
+            and .head_repository.full_name == $repo
+          ' "$run_json" > /dev/null; then
+            echo "::error::The supplied run is not a successful master-branch Dynamic World acquisition in this repository."
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Download the selected Dynamic World evidence artifact
+        if: steps.crop-mask.outputs.enabled == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: agriculture-dynamic-world-crop-evidence-${{ steps.request.outputs.dynamic_world_run_id }}
+          path: ${{ runner.temp }}/dynamic-world-crop-mask
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.request.outputs.dynamic_world_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Validate Dynamic World evidence against the selected SME2 series
+        id: crop-mask-evidence
+        if: steps.crop-mask.outputs.enabled == 'true'
+        env:
+          MASK_DIR: ${{ runner.temp }}/dynamic-world-crop-mask
+          SME2_RUN_ID: ${{ env.RUN_ID }}
+        run: |
+          set -euo pipefail
+          python pipeline/validate_dynamic_world_crop_artifact.py \
+            --artifact-dir "$MASK_DIR" \
+            --search-manifest "pipeline/output/agriculture/$SME2_RUN_ID/search.json" \
+            --download-receipt "pipeline/output/agriculture/$SME2_RUN_ID/download.json" \
+            --output "$RUNNER_TEMP/dynamic-world-crop-mask/validation.json" \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Analyze real SME2 observations
         env:
           ALGORITHM: ${{ steps.request.outputs.algorithm }}
-        run: python pipeline/agriculture_sme2.py analyze --run-id "$RUN_ID" --algorithm "$ALGORITHM"
+          CROP_MASK_ENABLED: ${{ steps.crop-mask.outputs.enabled }}
+          CROP_MASK_PATH: ${{ runner.temp }}/dynamic-world-crop-mask/dynamic-world-crops-probability.tif
+          CROP_MASK_SOURCE: ${{ steps.crop-mask-evidence.outputs.source_label }}
+          CROP_PROBABILITY_THRESHOLD: ${{ steps.crop-mask-evidence.outputs.probability_threshold }}
+        run: |
+          set -euo pipefail
+          analyze_args=(--run-id "$RUN_ID" --algorithm "$ALGORITHM")
+          if [ "$CROP_MASK_ENABLED" = "true" ]; then
+            analyze_args+=(--crop-mask "$CROP_MASK_PATH")
+            analyze_args+=(--crop-mask-source "$CROP_MASK_SOURCE")
+            analyze_args+=(--crop-probability-threshold "$CROP_PROBABILITY_THRESHOLD")
+          fi
+          python pipeline/agriculture_sme2.py analyze "${analyze_args[@]}"
 
       - name: Attach NASA GPM IMERG Final rainfall context
         shell: bash
@@ -271,6 +358,7 @@ jobs:
             pipeline/output/agriculture/${{ env.RUN_ID }}/result/study.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/result/quality-diagnostics.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/result/web-checksums.json
+            ${{ runner.temp }}/dynamic-world-crop-mask/validation.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/imerg/receipt.json
             pipeline/output/agriculture/${{ env.RUN_ID }}/imerg/daily-diagnostics.json
 

@@ -119,6 +119,49 @@ class AgricultureCloudWorkflowTests(unittest.TestCase):
         )
         self.assertEqual(commit_step["env"]["GITHUB_TOKEN"], "${{ github.token }}")
 
+    def test_optional_dynamic_world_artifact_is_pinned_validated_and_fail_closed(self):
+        workflow = yaml.load(self.source, Loader=yaml.BaseLoader)
+        self.assertIn("actions", workflow["permissions"])
+        self.assertEqual(workflow["permissions"]["actions"], "read")
+        dispatch_inputs = workflow["on"]["workflow_dispatch"]["inputs"]
+        self.assertEqual(dispatch_inputs["dynamic_world_run_id"]["required"], "false")
+        self.assertIn("DYNAMIC_WORLD_RUN_ID: ${{ steps.request.outputs.dynamic_world_run_id }}", self.source)
+        self.assertIn('[[ ! "$DYNAMIC_WORLD_RUN_ID" =~ ^[0-9]{6,20}$ ]]', self.source)
+
+        job = workflow["jobs"]["process-and-publish"]
+        steps = job["steps"]
+        names = [step.get("name") for step in steps]
+        resolve_index = names.index("Resolve and verify optional Dynamic World workflow run")
+        download_index = names.index("Download the selected Dynamic World evidence artifact")
+        validate_index = names.index("Validate Dynamic World evidence against the selected SME2 series")
+        analyze_index = names.index("Analyze real SME2 observations")
+        self.assertLess(resolve_index, download_index)
+        self.assertLess(download_index, validate_index)
+        self.assertLess(validate_index, analyze_index)
+
+        resolve = steps[resolve_index]
+        self.assertIn(".workflow_id == $workflow_id", resolve["run"])
+        self.assertIn('.head_branch == "master"', resolve["run"])
+        self.assertIn('.status == "completed"', resolve["run"])
+        self.assertIn('.conclusion == "success"', resolve["run"])
+        self.assertIn('.repository.full_name == $repo', resolve["run"])
+        self.assertIn('.head_repository.full_name == $repo', resolve["run"])
+
+        download = steps[download_index]
+        self.assertEqual(download["if"], "steps.crop-mask.outputs.enabled == 'true'")
+        self.assertEqual(download["with"]["run-id"], "${{ steps.request.outputs.dynamic_world_run_id }}")
+        self.assertIn("agriculture-dynamic-world-crop-evidence-", download["with"]["name"])
+        self.assertEqual(download["with"]["repository"], "${{ github.repository }}")
+        self.assertEqual(download["with"]["github-token"], "${{ github.token }}")
+
+        validate = steps[validate_index]
+        self.assertEqual(validate["if"], "steps.crop-mask.outputs.enabled == 'true'")
+        self.assertIn("validate_dynamic_world_crop_artifact.py", validate["run"])
+        analyze = steps[analyze_index]
+        self.assertIn("CROP_MASK_ENABLED", analyze["env"])
+        self.assertIn("--crop-mask", analyze["run"])
+        self.assertIn("--crop-probability-threshold", analyze["run"])
+
     def test_worker_keeps_earthdata_secret_out_of_inputs(self):
         self.assertIn("EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}", self.source)
         self.assertNotIn("INPUT_EARTHDATA_TOKEN", self.source)
