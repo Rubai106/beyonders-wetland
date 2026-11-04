@@ -107,10 +107,13 @@ export function isAgricultureCatalogueResult(value: unknown): value is Agricultu
   const endDate = value.date_range.end;
   const series = value.series;
   if (!series.every((item) => isSeries(item, minimumObservations, minimumSpanDays, startDate, endDate))) return false;
+  const validatedSeries = series as AgricultureSME2Series[];
+  const uniqueGranuleCount = validatedSeries.reduce((total, item) => total + item.observation_count, 0);
+  if (value.catalogue_granules < uniqueGranuleCount) return false;
 
-  const ids = series.map((item) => item.series_id);
+  const ids = validatedSeries.map((item) => item.series_id);
   if (new Set(ids).size !== ids.length) return false;
-  const eligible = series.filter((item) => item.meets_preflight_gate);
+  const eligible = validatedSeries.filter((item) => item.meets_preflight_gate);
   const status = eligible.length > 0
     ? "ELIGIBLE_FOR_OPERATOR_REVIEW"
     : series.length > 0 ? "INSUFFICIENT_TEMPORAL_COVERAGE" : "NO_COMPATIBLE_SERIES";
