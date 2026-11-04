@@ -60,7 +60,7 @@ function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: num
       if (!entries[0].isIntersecting || started) return;
       started = true;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        setVal(to);
+        raf = requestAnimationFrame(() => setVal(to));
         io.disconnect();
         return;
       }
@@ -367,23 +367,21 @@ export default function Home() {
             <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Inspect the Chókwè event case</Link>
             <Link href="/wetland" className="g3-btn g3-btn--ghost">Open the Tanguar Haor case</Link>
             <Link href="/wetland?case=hakaluki" className="g3-btn g3-btn--ghost">Open the Hakaluki Haor case</Link>
-            <button
-              type="button"
-              className={`g3-btn${pinMode ? " g3-btn--armed" : ""}`}
-              aria-pressed={pinMode}
-              onClick={() => {
-                const nextMode = !pinMode;
-                setPinMode(nextMode);
-                setPin(null);
-                setPinError("");
-                if (!nextMode) {
+            {!pinMode && (
+              <button
+                type="button"
+                className="g3-btn"
+                onClick={() => {
+                  setPinMode(true);
+                  setPin(null);
+                  setPinError("");
                   setPinLatitude("");
                   setPinLongitude("");
-                }
-              }}
-            >
-              {pinMode ? "Cancel pin mode" : "Drop a pin anywhere"}
-            </button>
+                }}
+              >
+                Drop a pin anywhere
+              </button>
+            )}
             <Link href="#g3-phen" className="g3-btn g3-btn--ghost g3-btn--features">Explore all study features ↓</Link>
           </div>
         </div>
