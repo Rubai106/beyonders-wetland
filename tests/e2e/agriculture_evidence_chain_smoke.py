@@ -424,8 +424,8 @@ def main() -> int:
         crop_inputs = page.evaluate("navigator.clipboard.readText()")
         require(
             "west=91.3867" in crop_inputs
-            and "start=2026-06-17" in crop_inputs
-            and "end=2026-10-31" in crop_inputs
+            and f"start={request_dates['start']}" in crop_inputs
+            and f"end={request_dates['end']}" in crop_inputs
             and "minimum_observations=3" in crop_inputs
             and "probability_threshold=0.5" in crop_inputs,
             "the first-stage handoff copies the matching AOI/date window and explicit Dynamic World quality settings",
