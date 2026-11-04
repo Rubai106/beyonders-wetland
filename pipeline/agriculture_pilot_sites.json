@@ -3,7 +3,7 @@
   "study_intent": "Baniachong rice-area SME2 pilot preflight",
   "collection": "NISAR_L3_SME2_PROVISIONAL_V1",
   "default_date_range": {
-    "start": "2026-01-01",
+    "start": "2026-06-17",
     "end": "2026-10-31"
   },
   "minimum_series_gate": {
