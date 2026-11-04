@@ -35,7 +35,7 @@ class DynamicWorldArtifactTests(unittest.TestCase):
         self.aoi = {"west": 91.3867, "south": 24.3533, "east": 91.4467, "north": 24.4133}
         self.series_id = "c5f219dd7bbc"
         self.probabilities = np.array([[0.2, 0.6], [-9999.0, 0.9]], dtype=np.float32)
-        self.counts = np.array([[2, 3], [1, 3]], dtype=np.uint16)
+        self.counts = np.array([[2, 2], [1, 2]], dtype=np.uint16)
         self._write_rasters()
         self._write_context()
         self._write_manifest()
@@ -236,6 +236,13 @@ class DynamicWorldArtifactTests(unittest.TestCase):
         self._write_rasters(count_transform=shifted)
         self._write_manifest()
         with self.assertRaisesRegex(ArtifactValidationError, "not on the identical grid"):
+            validate_dynamic_world_artifact(self.artifact, self.search_path, self.receipt_path)
+
+    def test_rejects_observation_count_greater_than_distinct_source_dates(self):
+        invalid_counts = np.array([[2, 3], [1, 2]], dtype=np.uint16)
+        self._write_rasters(counts=invalid_counts)
+        self._write_manifest()
+        with self.assertRaisesRegex(ArtifactValidationError, "exceeds the number of source dates"):
             validate_dynamic_world_artifact(self.artifact, self.search_path, self.receipt_path)
 
     def test_rejects_probability_mask_that_disagrees_with_per_pixel_counts(self):
