@@ -44,6 +44,11 @@ Catalog availability can change, so verify NASA CMR before each new study. Chók
 - Use Node.js 20.9.0 or newer for the Next.js application (`npm run dev`, `npm run build`, and `npm run start`).
 - Run the deterministic unit/regression suite with `npm test` (alias: `npm run test:unit`).
 - Run `npm run lint` before publishing changes.
-- The production-browser suite is `python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140`; it checks published evidence when present and explicitly checks the honest no-publication or integrity-error state when no study is available.
+- Run the production-browser checks against a built public viewer at `http://127.0.0.1:3140`:
+  - `python tests/e2e/explore_smoke.py http://127.0.0.1:3140` — landing globe, global NISAR map, coordinates, layers, scene catalogue and mobile layout.
+  - `python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140` — cross-workspace navigation, published case interactions, accessibility and responsive layouts.
+  - `python tests/e2e/chokwe_deep_link_smoke.py http://127.0.0.1:3140` — Chókwè deep-link and evidence navigation.
+  - `python tests/e2e/scattering_hypothesis_smoke.py http://127.0.0.1:3140` — scattering hypothesis exploration and evidence boundaries.
+  - `python tests/e2e/agriculture_evidence_chain_smoke.py http://127.0.0.1:3140` — Agriculture publication integrity and evidence-chain behaviour.
 
-GitHub Actions runs lint, unit tests, the production build, and the production-browser suite on pushes and pull requests to `master` and `Rubai-dev`.
+GitHub Actions runs Python and TypeScript regression tests, lint, the public production build, type checking and all five production-browser checks on pushes to `master` and pull requests targeting `master`.
