@@ -50,7 +50,7 @@ export default function ForestCase() {
         valueLabel: number(item.stats.candidate_area_km2) + " km²",
         context: item.stats.study_area_km2 > 0 ? item.stats.assessed_area_km2 / item.stats.study_area_km2 : 0,
     })), [study]);
-    const base = publication?.study_url.replace(/study.json$/, "") ?? "";    const base = publication?.study_url.replace(/study.json$/, "") ?? "";
+    const base = publication?.study_url.replace(/study.json$/, "") ?? "";
     const layers = { ...(study?.layers ?? {}), ...(frame?.layers ?? {}) };
     const layerLeft = layers[left];
     const layerRight = layers[right];
