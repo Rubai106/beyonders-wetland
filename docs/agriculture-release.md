@@ -69,32 +69,28 @@ For DSG, dates with no valid AOI pixels are excluded from the plotted and statis
 
 - Product: `NISAR_L3_SME2_PROVISIONAL_V1`, PROVISIONAL maturity.
 - SME2 PROVISIONAL measurements are not fully calibrated; outputs remain exploratory.
-- No real Agriculture case is currently published.
-- No claim is made about crop stress, drought, irrigation need, crop type, field boundaries, yield or agricultural accuracy.
-- The baseline is the first three unique observations in a compatible series; the target is the latest observation.
-- The 20% AOI coverage floor is fixed. Below-floor target or change coverage is inconclusive.
-- The reported change-layer uncertainty is currently the target observation's product uncertainty, not a propagated uncertainty for the difference.
-- Synthetic HDF5 fixtures are test-only and never published.
+- The current public index points to immutable release `agri-41647231453`, a checksum-verified Naogaon study using the separate DSG algorithm-candidate stream.
+- The release contains six valid acquisition dates: 12 August, 24 August, 17 September, 29 September, 11 October and 23 October 2026. Four other dates are explicitly recorded as exclusions because no valid DSG AOI retrieval remained; they are not interpolated.
+- Its change summary has 21.31% valid AOI coverage and its fixed all-date cohort has 21.28% coverage, only slightly above the fixed 20% policy floor. These are exploratory sup## QA execution status
 
-## QA execution status
+The previously recorded full QA run [#162](https://github.com/Rubai106/beyonders-wetland/actions/runs/41510560042) completed successfully on the earlier `Rubai-dev` commit `9b4f62e7c010dde15a5d47eb682463c03e295e71`. Its Python compilation, Python regression suite, TypeScript tests, ESLint, production build, TypeScript check and Chromium smoke job all passed. That run predates the currently published Naogaon release and therefore does not verify the present `master` head or the newer published-study browser assertions.
 
-The latest complete **Agriculture and project QA** GitHub Actions run is [run #162](https://github.com/Rubai106/beyonders-wetland/actions/runs/41510560042), on commit `9b4f62e7c010dde15a5d47eb682463c03e295e71` on `Rubai-dev`. All automated steps passed:
+The current `.github/workflows/agriculture-qa.yml` workflow runs the full Python suite, `npm test`, ESLint, the public production build, `npx tsc --noEmit`, and the Chromium browser checks on pushes to `master` and `Rubai-dev` and pull requests to either branch. The browser suite now includes both the six-date published Naogaon evidence-chain check and a state-aware module smoke test for Agriculture's verified-publication, no-publication and integrity-error states. The result for the latest `master` run has not yet been independently confirmed; do not treat the older run #162 as proof that the current head is green.
 
-| Automated check | Result |
+The active QA concurrency policy no longer cancels a running regression job just because a newer commit arrives. This prevents a long test run from being interrupted mid-suite by the next commit.
+
+| Current real-data check | Status |
 |---|---|
-| Python module and browser-test syntax compilation | PASS |
-| Full offline Python regression suite | PASS |
-| TypeScript unit/schema regression tests | PASS |
-| ESLint | PASS |
-| Next.js public-viewer production build | PASS |
-| Whole-project TypeScript check | PASS |
-| Chromium production-browser smoke tests: Chókwè, Scattering and Agriculture unpublished-state guard | PASS |
+| NASA CMR discovery and Earthdata-authenticated SME2 granule download | COMPLETED in cloud run [#41647231453](https://github.com/Rubai106/beyonders-wetland/actions/runs/41647231453) |
+| SME2 analysis, web-package validation and public Next.js build | COMPLETED in cloud run [#41647231453](https://github.com/Rubai106/beyonders-wetland/actions/runs/41647231453) |
+| Six-date Naogaon study publication | PUBLISHED as `agri-41647231453`; checksum manifest and immutable release path are referenced by the public index |
+| Independent crop-mask processing on this SME2 series | NOT INCLUDED — no independent crop mask is published |
+| IMERG rainfall context | NOT INCLUDED in this release |
+| Independent field validation and precision/recall/F1 | NOT RECORDED — no matched field reference is published |
 
-These are code, fixture and browser-workflow checks. They do **not** establish that a genuine Agriculture SME2 pilot has been processed or validated.
+The cloud run's download, analyze, publish and website-build steps completed successfully. That establishes a processed, checksum-verified exploratory SME2 package; it does not establish independent agricultural accuracy or validate the scientific interpretation against field measurements.
 
-| Real-data/operator check | Status |
-|---|---|
-| Live NASA CMR discovery and Earthdata-authenticated granule download | NOT RUN — Earthdata credentials and operator-selected AOI required |
+iscovery and Earthdata-authenticated granule download | NOT RUN — Earthdata credentials and operator-selected AOI required |
 | Real PROVISIONAL SME2 HDF5 hierarchy, units, projection, fill values and flag verification | NOT RUN — no authenticated operator granule review is claimed |
 | Independent crop-mask processing on a real SME2 series | NOT RUN — no real crop mask/pilot is published |
 | Interactive overlap-atlas review using a real published Agriculture study | NOT RUN — the production-browser check verifies that the atlas is withheld when no study is published |
@@ -125,4 +121,4 @@ The example operator commands and current schema are in [Agriculture method and 
 
 A cloud workflow is now available on `Rubai-dev`. To preserve the rule against modifying the default branch, its browser trigger is a push to `pipeline/agriculture-cloud-request.json` (create/edit that file in GitHub's web editor). It requires the repository Actions secret `EARTH_DATA` (a NASA Earthdata Login token) and WGS84 AOI/date inputs in that request file. It runs the SME2 and optional IMERG stages on GitHub-hosted compute, builds the public site, then commits only the verified website publication package to `Rubai-dev`. Raw source granules remain ephemeral on the runner; non-sensitive receipts are retained as a 30-day Actions artifact.
 
-The cloud workflow itself has not yet completed a real-data run. It cannot authenticate until the repository secret is configured, and it cannot select a meaningful study area without AOI/date inputs.
+The cloud workflow completed the real-data run that produced the current Naogaon release: [run #41647231453](https://github.com/Rubai106/beyonders-wetland/actions/runs/41647231453). The job validated the request, used the `EARTH_DATA` Actions secret, discovered and downloaded the selected SME2 series, analyzed the real granules, verified and published the display package, built the public website and committed the package to `Rubai-dev`. Further runs still require an operator-selected AOI/date range and the repository secret. The workflow is operator-controlled; it is not a browser-side Earthdata credential or upload flow.
