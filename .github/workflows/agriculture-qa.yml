@@ -8,7 +8,13 @@ on:
       - '.github/workflows/agriculture-cloud.yml'
       - 'pipeline/**'
       - 'src/**'
+      - 'public/**'
       - 'tests/**'
+      - 'next.config.ts'
+      - '*.config.*'
+      - 'vercel.json'
+      - 'README.md'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
@@ -21,7 +27,7 @@ permissions:
 
 concurrency:
   group: agriculture-qa-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   offline-regression:
