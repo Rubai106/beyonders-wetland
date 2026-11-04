@@ -4,7 +4,7 @@ A NISAR Earth-change explorer with separate **Wetlands**, **Forests**, **Volcano
 
 ## Run locally
 
-- Install Node.js 20.9.0 or newer and Python 3.13. see [installation](docs/operator-guide.md).
+- Install Node.js 20.9.0 or newer and Python 3.13; see [installation](docs/operator-guide.md).
 - In the repository, run `npm ci`, create `pipeline/venv`, and install `pipeline/requirements.txt`.
 - Start `npm run dev -- --port 3015` and open `http://localhost:3015/wetland/global`.
 - Wetlands: the map-first Time Machine is at `/wetland`; global discovery and processing are at `/wetland/global`.
