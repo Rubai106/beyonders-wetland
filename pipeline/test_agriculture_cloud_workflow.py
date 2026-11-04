@@ -36,6 +36,23 @@ class AgricultureCloudWorkflowTests(unittest.TestCase):
             self.source,
         )
 
+    def test_jq_preserves_explicit_false_for_missing_imerg(self):
+        expression = 'if has("allow_missing_imerg") then .allow_missing_imerg else true end'
+        for payload, expected in (
+            ('{"allow_missing_imerg": false}', "false"),
+            ('{"allow_missing_imerg": true}', "true"),
+            ("{}", "true"),
+        ):
+            result = subprocess.run(
+                ["jq", "-r", expression],
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), expected)
+
     def test_request_values_are_validated_before_github_outputs(self):
         self.assertIn("Dates must use the exact YYYY-MM-DD format.", self.source)
         self.assertIn("AOI must not exceed 2 degrees in either dimension.", self.source)
