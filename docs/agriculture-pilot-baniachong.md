@@ -107,3 +107,13 @@ python pipeline/agriculture_sme2.py download --run-id baniachong-2026 --series-i
 To inspect the second track, use a separate run ID (for example `baniachong-track069-2026`) and series ID `540e079403d5`. Downloading requires a local interactive Earthdata Login through the existing terminal workflow; do not put credentials in GitHub Actions, the website or this preflight. Start with the better-supported track only after checking the actual HDF5 metadata and native-grid AOI support from the downloaded receipt. The CMR count alone cannot rank track 141 versus track 069.
 
 Next gate: supply a dated independent fine-resolution crop-probability GeoTIFF, verify its source and alignment against the actual SME2 grid, and run the existing crop-support audit. If the actual crop-covered valid common support is inadequate, keep the study unpublished or revise the AOI/date window transparently.
+
+
+## Dynamic World independent crop-evidence acquisition — 4 November 2026
+
+- The official Dynamic World V1 catalogue currently lists source imagery through 31 October 2026. It provides 10 m class probabilities from cloud-masked Sentinel-2 scenes; the crops band is a generic land-cover probability and does not identify rice or field boundaries.
+- A new manual, master-only workflow acquires the selected Baniachong AOI and date window through Earth Engine. It exports a 10 m EPSG:6933 single-band median crop-probability GeoTIFF and a separate per-pixel count of distinct valid UTC acquisition dates.
+- The daily-median step prevents overlapping Sentinel-2 granules acquired on the same day from satisfying the minimum-observation requirement multiple times. Pixels with fewer than three valid acquisition dates remain NoData in the probability raster; the count raster retains zero and low-count locations for review.
+- The export is buffered by 600 m so the later SME2 native-grid alignment can test complete spatial coverage. It is an acquisition artifact only: no SME2 analysis, rainfall attachment, automatic track selection or public publication runs.
+- Cloud access requires a registered Earth Engine Cloud project, the Earth Engine API enabled, and a service account with Earth Engine Resource Viewer permission (plus Service Usage Consumer where required). The JSON key and project ID belong in repository Actions secrets EARTH_ENGINE_SERVICE_ACCOUNT_JSON and EARTH_ENGINE_PROJECT; they are only injected into the acquisition step.
+- Use limitation: the window-level median is not the crop state on every individual SME2 date. Inspect source acquisition dates, latest-scene gap, probability distribution and per-pixel observation counts before using the raster. It remains generic cropland likelihood, not rice validation or ground truth.

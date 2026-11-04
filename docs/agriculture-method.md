@@ -228,3 +228,16 @@ The workflow discovers compatible SME2 series, downloads exact granules, analyze
 If the IMERG Final product has no matching granules or no complete 90%-coverage rainfall window, the default workflow setting permits the valid SME2 package to publish without rainfall context and records that limitation in the workflow summary. Other rainfall processing errors still fail the run. Disable **allow_missing_imerg** when rainfall context is mandatory.
 
 The workflow is deliberately restricted to `master`. A run can fail if the selected AOI/date range yields no compatible SME2 series, or if multiple equally ranked series require an explicit series ID. Do not weaken the quality gates to force a publication.
+
+
+## Cloud acquisition of independent Dynamic World crop evidence
+
+The manual Agriculture Dynamic World crop observability workflow provides a cloud-only source-acquisition path for the Baniachong pilot. It reads GOOGLE/DYNAMICWORLD/V1 from Earth Engine and exports a 10 m EPSG:6933 median of the generic crops probability band, plus a separate count of distinct valid UTC acquisition dates per pixel. Daily median mosaics are built before the across-window median/count so overlapping tiles from one date do not count as multiple observations.
+
+The probability raster requires at least three valid acquisition dates per pixel by default. Cells below that floor are NoData in the probability GeoTIFF; the count raster keeps zeros and lower counts to expose gaps. A 600 m buffer is exported around the requested WGS84 AOI so the existing SME2 crop-mask alignment can verify complete native-grid coverage. The workflow records source image IDs, unique acquisition dates, latest-scene recency, raster checksums, grid metadata and the exact requested time window.
+
+Credentials: create or select a Google Cloud project, register it for Earth Engine, enable the Earth Engine API, and create a service account. Grant the narrow Earth Engine Resource Viewer role and Service Usage Consumer only if the project requires it. Store the JSON key as EARTH_ENGINE_SERVICE_ACCOUNT_JSON and the project ID as EARTH_ENGINE_PROJECT in repository Actions secrets. The credentials are passed only to the acquisition step and are never written to the repository or uploaded as an artifact.
+
+Evidence boundary: Dynamic World is near-real-time 10 m Sentinel-2-derived land-cover probability. The crops band is generic crops likelihood, not rice-species identification, a verified parcel boundary, or ground truth. A window-level median is not a date-specific crop state for each SME2 acquisition. Review its date range, the gap from the latest valid scene to the requested window end, and the separate valid-observation-count raster before using it. The workflow only creates a private 30-day Actions artifact; it does not call agriculture_sme2.py analyze, rainfall, or publish, and it does not modify public/agriculture/current.
+
+A successful download is not an automatic go decision. The existing probability range, CRS, 10 m pixel support, buffered-coverage, area-weighting and all-date SME2 quality checks remain mandatory.

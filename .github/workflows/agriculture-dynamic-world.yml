@@ -1,0 +1,115 @@
+name: Agriculture Dynamic World crop observability
+
+on:
+  workflow_dispatch:
+    inputs:
+      west:
+        description: AOI west longitude (WGS84)
+        required: true
+        default: "91.3867"
+        type: string
+      south:
+        description: AOI south latitude (WGS84)
+        required: true
+        default: "24.3533"
+        type: string
+      east:
+        description: AOI east longitude (WGS84)
+        required: true
+        default: "91.4467"
+        type: string
+      north:
+        description: AOI north latitude (WGS84)
+        required: true
+        default: "24.4133"
+        type: string
+      start:
+        description: First Dynamic World date (inclusive; YYYY-MM-DD)
+        required: true
+        default: "2026-06-17"
+        type: string
+      end:
+        description: Last Dynamic World date (inclusive; YYYY-MM-DD)
+        required: true
+        default: "2026-10-31"
+        type: string
+      minimum_observations:
+        description: Minimum distinct clear acquisition dates per output pixel
+        required: true
+        default: "3"
+        type: choice
+        options: ["2", "3", "4", "5"]
+      probability_threshold:
+        description: Threshold recorded for the later SME2 crop-area audit
+        required: true
+        default: "0.5"
+        type: choice
+        options: ["0.4", "0.5", "0.6", "0.7"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agriculture-dynamic-world-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  acquire-independent-crop-evidence:
+    if: github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pipeline/requirements.txt
+
+      - name: Install Agriculture and Earth Engine dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r pipeline/requirements.txt
+
+      - name: Acquire and validate Dynamic World crop probability
+        shell: bash
+        env:
+          WEST: ${{ inputs.west }}
+          SOUTH: ${{ inputs.south }}
+          EAST: ${{ inputs.east }}
+          NORTH: ${{ inputs.north }}
+          START_DATE: ${{ inputs.start }}
+          END_DATE: ${{ inputs.end }}
+          MINIMUM_OBSERVATIONS: ${{ inputs.minimum_observations }}
+          PROBABILITY_THRESHOLD: ${{ inputs.probability_threshold }}
+          EARTH_ENGINE_PROJECT: ${{ secrets.EARTH_ENGINE_PROJECT }}
+          EARTH_ENGINE_SERVICE_ACCOUNT_JSON: ${{ secrets.EARTH_ENGINE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          set -euo pipefail
+          if [ -z "${EARTH_ENGINE_PROJECT:-}" ] || [ -z "${EARTH_ENGINE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "::error::Configure EARTH_ENGINE_PROJECT and EARTH_ENGINE_SERVICE_ACCOUNT_JSON in repository Actions secrets before running this workflow."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/dynamic-world-crop-mask"
+          python pipeline/download_dynamic_world_crop_mask.py \
+            --west "$WEST" --south "$SOUTH" --east "$EAST" --north "$NORTH" \
+            --start "$START_DATE" --end "$END_DATE" \
+            --buffer-m 600 \
+            --minimum-observations "$MINIMUM_OBSERVATIONS" \
+            --probability-threshold "$PROBABILITY_THRESHOLD" \
+            --output-dir "$RUNNER_TEMP/dynamic-world-crop-mask"
+
+      - name: Save private, non-publishing crop evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: agriculture-dynamic-world-crop-evidence-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            ${{ runner.temp }}/dynamic-world-crop-mask/dynamic-world-source-manifest.json
+            ${{ runner.temp }}/dynamic-world-crop-mask/dynamic-world-crops-probability.tif
+            ${{ runner.temp }}/dynamic-world-crop-mask/dynamic-world-valid-observation-count.tif
