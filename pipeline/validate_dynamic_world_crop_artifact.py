@@ -393,7 +393,7 @@ def validate_dynamic_world_artifact(
         "aoi_wgs84": manifest["aoi_wgs84"],
         "source_acquisition_dates": acquisition_dates,
         "unique_acquisition_dates": len(acquisition_dates),
-        "maximum_gap_between_acquisition_dates_days": observations["maximum_gap_between_acquisition_dates_days"],
+        "maximum_gap_between_acquisition_dates_days": manifest["source_observations"]["maximum_gap_between_acquisition_dates_days"],
         "minimum_valid_dates_per_pixel": minimum,
         "probability_threshold": threshold,
         "valid_probability_pixels": valid_pixels,
