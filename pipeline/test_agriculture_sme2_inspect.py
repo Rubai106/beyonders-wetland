@@ -82,6 +82,52 @@ class AgricultureSME2InspectionTests(unittest.TestCase):
         self.assertIn("no independently dated crop mask", " ".join(report["interpretation_limits"]).lower())
         self.assertEqual([item["date"] for item in report["observations"]], ["2026-06-20", "2026-07-02"])
 
+    def test_dsg_candidate_report_calculates_matched_support_over_usable_dates_only(self):
+        days = [
+            "2026-06-20", "2026-07-02", "2026-07-14", "2026-07-26", "2026-08-07",
+        ]
+        masks = [
+            [[True, True], [True, False]],
+            [[True, False], [True, False]],
+            [[True, False], [False, True]],
+            [[True, True], [True, False]],
+            [[False, False], [False, False]],
+        ]
+        scenes = [scene(day, mask) for day, mask in zip(days, masks)]
+        sources = {
+            item["file"].name: {"bytes": 100 + index, "sha256": str(index + 1) * 64}
+            for index, item in enumerate(scenes)
+        }
+        signature = scenes[0]["signature"]
+        manifest = {
+            "collection": "NISAR_L3_SME2_PROVISIONAL_V1",
+            "aoi": {"west": 91.38, "south": 24.35, "east": 91.44, "north": 24.41},
+            "date_range": {"start": days[0], "end": days[-1]},
+            "compatible_series": [{
+                "series_id": "c5f219dd7bbc",
+                "signature": signature,
+                "observation_count": len(days),
+                "dates": days,
+                "granules": [{"date": day} for day in days],
+            }],
+        }
+        report = build_inspection_report(
+            "agri-cmp-test-141", "Track 141 / frame 014", "DSG",
+            manifest, {"series_id": "c5f219dd7bbc"}, scenes, sources,
+        )
+        candidate = report["candidate_analysis"]
+        self.assertEqual(candidate["usable_observation_count"], 4)
+        self.assertEqual(candidate["usable_dates"], days[:4])
+        self.assertTrue(candidate["meets_existing_minimum_date_gate"])
+        self.assertEqual(candidate["matched_support"]["status"], "COMPARABLE")
+        self.assertEqual(candidate["matched_support"]["valid_pixels"], 1)
+        self.assertEqual(candidate["matched_support"]["total_pixels"], 4)
+        self.assertEqual(candidate["matched_support"]["valid_fraction"], 0.25)
+        self.assertEqual(
+            [item["date"] for item in candidate["matched_support"]["observations"]],
+            days[:4],
+        )
+
     def test_observation_refuses_mismatched_array_shapes(self):
         item = scene("2026-06-20", [[True, False], [False, True]])
         item["uncertainty"] = np.ones((1, 4))
