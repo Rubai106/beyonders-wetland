@@ -448,7 +448,7 @@ def main() -> int:
         )
         cloud_copy.click()
         page.wait_for_function(
-            "() => document.querySelector('.agri-pipeline-step--sme2 .agri-online-next__feedback:last-of-type')?.textContent?.includes('Inputs copied')",
+            "() => document.querySelector('.agri-pipeline-step--sme2 .agri-online-next__actions + .agri-online-next__feedback')?.textContent?.includes('Inputs copied')",
             timeout=5_000,
         )
         copied_inputs = page.evaluate("navigator.clipboard.readText()")
