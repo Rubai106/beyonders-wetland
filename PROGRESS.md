@@ -35,7 +35,7 @@
 - Added the isolated pipeline/agriculture_sme2.py search/download/analyze/publish workflow and unit fixtures. Quality screening handles uint8 bit fields safely under NumPy 2.x, and AOI coverage uses all pixels inside the AOI as its denominator.
 - Added study schema and checksum validators with TypeScript tests.
 - Added a date-by-date spatial-support drift profile that compares each acquisition's own valid-footprint median with the fixed all-date cohort median. The visual gap and first-to-last gap shift expose when changing valid-pixel composition could alter the apparent time series; low coverage remains inconclusive and no pixels are filled.
-- No Agriculture data are published. Live SME2 search/download, real-HDF5 metadata verification and local Earthdata processing remain not run in this connected session.
+- A checksum-verified Naogaon SME2 DSG study is now published as `agri-41647231453`, with six valid dates and four dated exclusions. The cloud processing, publication and public build completed in [run #41647231453](https://github.com/Rubai106/beyonders-wetland/actions/runs/41647231453). The release remains exploratory and has no independent crop mask, IMERG context or field-validation metrics.
 
 
 ## Agriculture observability gate — Steps 1A and 1B
@@ -46,4 +46,4 @@
 - Added provenance (date/source/filename/SHA-256/CRS/areas/thresholds), per-date crop-area-weighted moisture summaries, and an exact fixed all-date intersection using the unchanged SME2 valid masks.
 - Added interactive crop-area, per-cell Mask QA and all-date crop-cohort map layers, clickable date coverage bars, common-support status, source provenance and crop-support columns in CSV export. The mask coverage preview distinctly shows adequate, partial and absent source pixels. Published assets remain display-only previews and summaries; source GeoTIFFs/HDF5/native rasters stay local.
 - Historical packages without crop observability remain valid. Missing masks display NOT ASSESSED; no AOI is assumed cropland.
-- The strict surfaceQualityFlag == 0 and all other existing SME2 quality checks are unchanged. No real crop mask or Earthdata pilot has yet been processed/published; synthetic raster fixtures are test-only.
+- The strict surfaceQualityFlag == 0 and all other existing SME2 quality checks are unchanged. No independent crop mask or field-validation dataset is published; synthetic raster fixtures remain test-only.
