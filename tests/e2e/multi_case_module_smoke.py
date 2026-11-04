@@ -47,18 +47,19 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
     toggle.click()
     canvas = disclosure.locator("canvas.field-volume-canvas")
     canvas.wait_for(state="visible", timeout=20_000)
-    dates = disclosure.locator(".field-volume-scene__dates button")
+    date_list = disclosure.locator(".field-volume-scene__dates")
+    dates = date_list.locator("button")
     require(
         canvas.is_visible() and dates.count() >= minimum_dates,
         f"{label} opens its data-bound 3D scene and exposes {minimum_dates}+ selectable observations",
     )
-    selectable = dates.locator("button:not([disabled])")
+    selectable = date_list.locator("button:not([disabled])")
     if selectable.count() > 1:
         target = selectable.nth(1)
         target.click()
         require(
             target.get_attribute("aria-pressed") == "true"
-            and dates.locator("button[aria-pressed='true']").count() == 1,
+            and date_list.locator("button[aria-pressed='true']").count() == 1,
             f"{label} synchronizes a selected 3D observation with its module state",
         )
         if selectable.count() > 2:
@@ -75,7 +76,7 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
                 timeout=5_000,
             )
             require(
-                dates.locator("button[aria-pressed='true']").count() == 1,
+                date_list.locator("button[aria-pressed='true']").count() == 1,
                 f"{label} supports keyboard date navigation inside the 3D scene",
             )
     disclosure.get_by_role("button", name="Close 3D view").click()
