@@ -202,7 +202,7 @@ def _validate_manifest_and_series(
         raise ArtifactValidationError("Dynamic World recency status does not match its source dates.")
     # A stale cue is deliberately reported, not rejected: 18 days is descriptive,
     # not a scientifically validated acceptance threshold.
-    return window, [item.isoformat() for item in parsed_dates], threshold, minimum
+    return window, [item.isoformat() for item in parsed_dates], threshold, minimum, run_id, series_id
 
 
 def _check_grid(dataset: rasterio.DatasetReader, grid: dict[str, Any], label: str) -> None:
@@ -232,7 +232,9 @@ def validate_dynamic_world_artifact(
     manifest = _read_json(manifest_path, "Dynamic World source manifest")
     search = _read_json(Path(search_manifest_path), "SME2 search manifest")
     receipt = _read_json(Path(download_receipt_path), "SME2 download receipt")
-    window, acquisition_dates, threshold, minimum = _validate_manifest_and_series(manifest, search, receipt)
+    window, acquisition_dates, threshold, minimum, run_id, series_id = _validate_manifest_and_series(
+        manifest, search, receipt,
+    )
 
     export = manifest.get("export")
     if not isinstance(export, dict):

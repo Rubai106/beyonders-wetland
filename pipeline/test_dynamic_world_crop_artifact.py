@@ -204,6 +204,8 @@ class DynamicWorldArtifactTests(unittest.TestCase):
         self.assertIn("2026-08-01 to 2026-08-15", result["source_label"])
         self.assertEqual(result["source_acquisition_dates"], ["2026-08-01", "2026-08-15"])
         self.assertEqual(result["aoi_wgs84"]["west"], 91.3867)
+        self.assertEqual(result["sme2_run_id"], "agri-test-01")
+        self.assertEqual(result["sme2_series_id"], self.series_id)
 
     def test_rejects_aoi_mismatch(self):
         manifest = self._manifest()
