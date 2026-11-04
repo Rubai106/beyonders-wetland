@@ -55,14 +55,15 @@ function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: num
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setVal(to);
-      return;
-    }
     let raf = 0; let started = false;
     const io = new IntersectionObserver((entries) => {
       if (!entries[0].isIntersecting || started) return;
       started = true;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        setVal(to);
+        io.disconnect();
+        return;
+      }
       const t0 = performance.now(); const dur = 1400;
       const tick = (t: number) => {
         const k = Math.min(1, (t - t0) / dur);
