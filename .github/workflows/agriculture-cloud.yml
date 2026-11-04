@@ -221,7 +221,7 @@ jobs:
             echo "IMERG rainfall context attached." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          if [ "$ALLOW_MISSING_IMERG" = "true"  && grep -Eq "no GPM IMERG Final daily V07 granules|no complete rainfall window met the 90% native-cell spatial coverage rule" "$RUNNER_TEMP/imerg.log"; then
+          if [ "$ALLOW_MISSING_IMERG" = "true" ] && grep -Eq "no GPM IMERG Final daily V07 granules|no complete rainfall window met the 90% native-cell spatial coverage rule" "$RUNNER_TEMP/imerg.log"; then
             echo "### IMERG not yet available" >> "$GITHUB_STEP_SUMMARY"
             echo "SME2 evidence will be published without rainfall context. No missing rainfall values were fabricated." >> "$GITHUB_STEP_SUMMARY"
             exit 0
