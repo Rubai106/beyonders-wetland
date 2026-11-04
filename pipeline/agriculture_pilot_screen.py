@@ -197,7 +197,7 @@ def screen_sites(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sites", type=Path, default=DEFAULT_SITES)
-    parser.add_argument("--start-date", default="2026-01-01")
+    parser.add_argument("--start-date", default="2026-06-17")
     parser.add_argument("--end-date", default="2026-10-31")
     parser.add_argument("--min-observations", type=int, default=6)
     parser.add_argument("--min-span-days", type=int, default=60)
