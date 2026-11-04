@@ -93,7 +93,7 @@ The cloud run's download, analyze, publish and website-build steps completed suc
 iscovery and Earthdata-authenticated granule download | NOT RUN — Earthdata credentials and operator-selected AOI required |
 | Real PROVISIONAL SME2 HDF5 hierarchy, units, projection, fill values and flag verification | NOT RUN — no authenticated operator granule review is claimed |
 | Independent crop-mask processing on a real SME2 series | NOT RUN — no real crop mask/pilot is published |
-| Interactive overlap-atlas review using a real published Agriculture study | NOT RUN — the production-browser check verifies that the atlas is withheld when no study is published |
+| Interactive overlap-atlas review using the current published Naogaon study | Covered by the current master Chromium evidence-chain test; latest master Actions result not yet verified |
 
 Do not represent synthetic regression fixtures or a passing production build as a real-data agricultural validation result.
 
