@@ -217,6 +217,8 @@
 .rv.is-visible { opacity: 1; transform: none; }
 .tilt { transition: transform .18s ease; will-change: transform; }
 
+.g3-mobile-nav { display: none; }
+
 @media (max-width: 860px) {
   .g3-title { left: 18px; right: 18px; top: 44%; max-width: none; }
   .g3-coord { display: none; }
@@ -297,4 +299,3 @@
   outline: 2px solid var(--cyan);
   outline-offset: 3px;
 }
-.g3-mobile-nav { display: none; }
