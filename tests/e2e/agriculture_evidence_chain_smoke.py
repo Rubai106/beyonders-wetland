@@ -53,6 +53,24 @@ def main() -> int:
         response = page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
         require(response is not None and response.ok, "Agriculture route responds successfully")
 
+        unsupported_date = page.request.post(
+            BASE + "/api/agriculture/catalogue",
+            data={
+                "west": 91.3867,
+                "south": 24.3533,
+                "east": 91.4467,
+                "north": 24.4133,
+                "startDate": "2026-06-16",
+                "endDate": "2026-08-22",
+            },
+        )
+        unsupported_date_body = unsupported_date.json()
+        require(
+            unsupported_date.status == 400
+            and "2026-06-17" in unsupported_date_body.get("error", ""),
+            "the public catalogue API rejects dates older than the cloud worker's supported SME2 boundary",
+        )
+
         status = page.locator(".agri-drawer-status")
         status.wait_for(state="visible", timeout=20_000)
         page.wait_for_function(
