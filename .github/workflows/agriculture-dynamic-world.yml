@@ -60,13 +60,13 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Check out master
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -104,7 +104,7 @@ jobs:
             --output-dir "$RUNNER_TEMP/dynamic-world-crop-mask"
 
       - name: Save non-committed, non-publishing crop evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agriculture-dynamic-world-crop-evidence-${{ github.run_id }}
           if-no-files-found: error

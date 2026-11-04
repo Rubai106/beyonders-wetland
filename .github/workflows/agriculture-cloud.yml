@@ -69,7 +69,7 @@ jobs:
 
     steps:
       - name: Check out master
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master
           persist-credentials: false
@@ -173,7 +173,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
           cache: pip
@@ -258,7 +258,7 @@ jobs:
 
       - name: Download the selected Dynamic World evidence artifact
         if: steps.crop-mask.outputs.enabled == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: agriculture-dynamic-world-crop-evidence-${{ steps.request.outputs.dynamic_world_run_id }}
           path: ${{ runner.temp }}/dynamic-world-crop-mask
@@ -349,7 +349,7 @@ jobs:
 
       - name: Save non-sensitive processing receipts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agriculture-cloud-receipts-${{ github.run_id }}
           if-no-files-found: warn
