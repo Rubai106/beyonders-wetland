@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { groupAgricultureSME2Series, parseAgricultureSME2Granule } from "./agriculture-catalogue";
+import { isAgricultureCatalogueResult } from "./agriculture-catalogue-schema";
 
 function granule(date: string, track = "141", frame = "014", updated = "2026-11-01T00:00:00Z", id?: string) {
   const stamp = date.replaceAll("-", "");
@@ -71,4 +72,67 @@ test("uses the same deterministic tie-break ordering as the Python pilot screene
   ]);
   assert.equal(rows[0].series_id, "c5f219dd7bbc");
   assert.equal(rows[1].series_id, "540e079403d5");
+});
+
+function catalogueResultFixture() {
+  const dates = [
+    "2026-06-23", "2026-07-05", "2026-07-17",
+    "2026-07-29", "2026-08-10", "2026-08-22",
+  ];
+  const series = groupAgricultureSME2Series(dates.map((date) => granule(date)));
+  return {
+    schema_version: 1,
+    collection: "NISAR_L3_SME2_PROVISIONAL_V1",
+    date_range: { start: "2026-06-17", end: "2026-08-30" },
+    aoi: { west: 91.3, south: 24.3, east: 91.4, north: 24.4 },
+    catalogue_granules: 6,
+    preflight_gate: {
+      minimum_unique_acquisitions: 6,
+      minimum_temporal_span_days: 60,
+      meaning: "Catalogue feasibility only; not scientific validation.",
+    },
+    series,
+    recommended_series_id: series[0].series_id,
+    status: "ELIGIBLE_FOR_OPERATOR_REVIEW",
+    interpretation_limits: [
+      "CMR footprint intersection is not valid SME2 pixel coverage.",
+      "Catalogue matches do not establish crop identity or field boundaries.",
+    ],
+  };
+}
+
+test("accepts a complete and internally consistent Agriculture catalogue response", () => {
+  assert.equal(isAgricultureCatalogueResult(catalogueResultFixture()), true);
+});
+
+test("rejects a catalogue series whose acquisition count disagrees with its dates", () => {
+  const payload = catalogueResultFixture();
+  payload.series[0].observation_count += 1;
+  assert.equal(isAgricultureCatalogueResult(payload), false);
+});
+
+test("rejects a catalogue recommendation that points to a below-gate series", () => {
+  const payload = catalogueResultFixture();
+  payload.preflight_gate.minimum_unique_acquisitions = 7;
+  payload.recommended_series_id = payload.series[0].series_id;
+  payload.status = "INSUFFICIENT_TEMPORAL_COVERAGE";
+  assert.equal(isAgricultureCatalogueResult(payload), false);
+});
+
+test("rejects catalogue responses before the cloud worker's supported start date", () => {
+  const payload = catalogueResultFixture();
+  payload.date_range.start = "2026-06-16";
+  assert.equal(isAgricultureCatalogueResult(payload), false);
+});
+
+test("rejects a catalogue series containing dates outside the requested window", () => {
+  const payload = catalogueResultFixture();
+  payload.series[0].dates[0] = "2026-06-16";
+  assert.equal(isAgricultureCatalogueResult(payload), false);
+});
+
+test("rejects a catalogue response with an impossible WGS84 area", () => {
+  const payload = catalogueResultFixture();
+  payload.aoi.east = 193;
+  assert.equal(isAgricultureCatalogueResult(payload), false);
 });
