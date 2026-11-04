@@ -4,9 +4,9 @@ import "./globals.css";
 import "@/styles/atlas.css";
 import "@/components/wetland/experience.css";
 import "@/styles/hazard-workspace.css";
+import "@/components/agriculture/agriculture.css";
 import "@/components/shared/field-volume-scene.css";
 import "@/styles/platform-visual-refresh.css";
-import "@/components/agriculture/agriculture.css";
 import HazardNavigation from "@/components/layout/HazardNavigation";
 
 export const metadata: Metadata = {
