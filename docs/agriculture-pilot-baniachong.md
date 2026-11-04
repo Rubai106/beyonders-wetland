@@ -54,7 +54,7 @@ Then run the existing local workflow for the chosen AOI (example shown for the p
 python pipeline/agriculture_sme2.py search --run-id baniachong-2026 --west 91.3867 --south 24.3533 --east 91.4467 --north 24.4133 --start 2026-06-17 --end 2026-10-31
 ```
 
-Inspect `pipeline/output/agriculture/baniachong-2026/search.json`, select the exact series ID if more than one is returned, and only then proceed to the authenticated download step. Earthdata Login remains local in the terminal.
+Inspect `pipeline/output/agriculture/baniachong-2026/search.json` and select the exact series ID if more than one is returned. The preferred website handoff opens the secure `master` cloud workflow, which reads the repository Actions secret `EARTH_DATA`; the browser and workflow inputs never receive the token. The local CLI remains an optional maintainer fallback and uses local Earthdata authentication.
 
 ## Crop-mask gate
 
@@ -73,7 +73,9 @@ Passing the build and catalogue preflight is not a real-data agricultural valida
 
 ## Live CMR preflight result — 3 November 2026
 
-The historical [Agriculture pilot preflight run #3](https://github.com/Rubai106/beyonders-wetland/actions/runs/41578135246) completed successfully on `Rubai-dev`; it predates the master-only branch policy and is retained here as a historical catalogue record. The same catalogue search is now being exposed in the website Operator tab through `/api/agriculture/catalogue`; users no longer need Python to discover the series. It queried the public NASA CMR catalogue for `NISAR_L3_SME2_PROVISIONAL_V1` over 2026-01-01 through 2026-10-31. Both configured Baniachong AOIs returned the same 30 compatible granules and the same four product-identity series. The primary AOI is therefore a workflow priority, not a catalogue-coverage winner.
+The historical [Agriculture pilot preflight run #3](https://github.com/Rubai106/beyonders-wetland/actions/runs/41578135246) completed successfully on `Rubai-dev`; it predates the master-only branch policy and is retained here as a historical catalogue record. It queried the public NASA CMR catalogue for `NISAR_L3_SME2_PROVISIONAL_V1` over 2026-01-01 through 2026-10-31. Both configured Baniachong AOIs returned the same 30 compatible granules and the same four product-identity series. The primary AOI is therefore a workflow priority, not a catalogue-coverage winner.
+
+The updated [master-branch preflight run #6](https://github.com/Rubai106/beyonders-wetland/actions/runs/41791107089) completed successfully on 4 November 2026 using 2026-06-17 through 2026-10-31, the date window supported by the current cloud worker. Both AOIs were `ELIGIBLE_FOR_OPERATOR_REVIEW`; each returned the same two qualifying ascending series (tracks 141 and 069), with 10 acquisitions over 120 days and 12-day median / 24-day maximum gaps. Two descending track-091 series had five acquisitions and remained below the six-date gate. The workflow checked out `master`, generated a metadata-only JSON artifact and did not download or validate any HDF5 granules.
 
 Two series pass the six-date / 60-day preflight:
 
