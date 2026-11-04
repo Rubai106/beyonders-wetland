@@ -31,9 +31,10 @@
 
 - Added Agriculture to the phenomenon registry and shared investigation navigation without replacing the current Wetland, Forest or Volcano workspaces.
 - Added /agriculture with interactive Leaflet map, basemap toggle, moisture/change layers, dated timeline, keyboard-operable percentile chart, Explore/Operator/Evidence drawers, CSV export and integrity-checked preview loading.
-- Added WGS84/date/run-ID validation and terminal command generation. Earthdata credentials remain in the terminal; the browser does not execute processing.
+- Added online NASA CMR catalogue discovery with WGS84/date validation and deterministic compatible-series grouping. Eligible series now prepare a secure `master` GitHub Actions handoff with copyable AOI/date/series/algorithm inputs; the user explicitly confirms `Run workflow` in GitHub. The runner uses the `EARTH_DATA` secret; the browser never receives Earthdata credentials or launches processing silently.
 - Added the isolated pipeline/agriculture_sme2.py search/download/analyze/publish workflow and unit fixtures. Quality screening handles uint8 bit fields safely under NumPy 2.x, and AOI coverage uses all pixels inside the AOI as its denominator.
 - Added study schema and checksum validators with TypeScript tests.
+- Added preflight safeguards to the website handoff: the worker's 17 June 2026 minimum date is reflected in the form, catalogue results are invalidated when AOI/date values change, and series below six unique acquisitions or 60 days cannot be prepared for processing. The production-browser regression covers eligible, below-gate, clipboard and stale-result states.
 - Added a date-by-date spatial-support drift profile that compares each acquisition's own valid-footprint median with the fixed all-date cohort median. The visual gap and first-to-last gap shift expose when changing valid-pixel composition could alter the apparent time series; low coverage remains inconclusive and no pixels are filled.
 - A checksum-verified Naogaon SME2 DSG study is now published as `agri-41647231453`, with six valid dates and four dated exclusions. The cloud processing, publication and public build completed in [run #41647231453](https://github.com/Rubai106/beyonders-wetland/actions/runs/41647231453). The release remains exploratory and has no independent crop mask, IMERG context or field-validation metrics.
 
