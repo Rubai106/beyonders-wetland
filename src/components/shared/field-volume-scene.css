@@ -55,6 +55,14 @@
 }
 .field-volume-scene__footer { display: flex; justify-content: space-between; gap: 8px; padding: 0 2px; letter-spacing: .02em; text-transform: none; }
 .field-volume-scene__footer span:first-child { color: var(--field-accent); }
+.field-volume-scene__legend {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+  padding: 0 2px; color: #9fb1b3; font: .66rem/1.4 var(--font-sans, sans-serif);
+}
+.field-volume-scene__legend span { display: inline-flex; align-items: center; gap: 6px; }
+.field-volume-scene__legend i { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 2px; }
+.field-volume-scene__legend .is-measure { background: var(--field-accent); box-shadow: 0 0 8px color-mix(in srgb, var(--field-accent) 40%, transparent); }
+.field-volume-scene__legend .is-context { background: #5c9da7; }
 .field-volume-scene__dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); gap: 6px; }
 .field-volume-scene__dates button {
   display: grid; gap: 4px; min-width: 0; padding: 8px 9px; border: 1px solid rgba(161, 190, 192, .14);

@@ -367,6 +367,10 @@ export default function FieldVolumeScene({
         <span>Interactive measured series</span>
         <span>Drag to rotate · scroll to zoom · select a column</span>
       </div>
+      <div className="field-volume-scene__legend" role="group" aria-label="3D scene legend">
+        <span><i className="is-measure" />{metricLabel}</span>
+        <span><i className="is-context" />{contextLabel}</span>
+      </div>
       <div className="field-volume-scene__dates" aria-label="Select an observation date">
         {observations.map((datum) => (
           <button key={datum.id} type="button" className={datum.id === selectedId ? "is-active" : ""}

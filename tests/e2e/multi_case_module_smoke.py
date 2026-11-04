@@ -61,6 +61,23 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
             and dates.locator("button[aria-pressed='true']").count() == 1,
             f"{label} synchronizes a selected 3D observation with its module state",
         )
+        if selectable.count() > 2:
+            previous_label = target.inner_text()
+            canvas.focus()
+            canvas.press("ArrowRight")
+            page.wait_for_function(
+                """({selector, previous}) => {
+                    const root = document.querySelector(selector);
+                    const active = root?.querySelector(".field-volume-scene__dates button[aria-pressed='true']");
+                    return Boolean(active && active.textContent.trim() !== previous);
+                }""",
+                arg={"selector": selector, "previous": previous_label},
+                timeout=5_000,
+            )
+            require(
+                dates.locator("button[aria-pressed='true']").count() == 1,
+                f"{label} supports keyboard date navigation inside the 3D scene",
+            )
     disclosure.get_by_role("button", name="Close 3D view").click()
     require(
         disclosure.locator("canvas.field-volume-canvas").count() == 0,
