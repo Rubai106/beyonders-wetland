@@ -323,17 +323,28 @@ def main() -> int:
                 page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
                 f"{label} has no horizontal page overflow at tablet width",
             )
+        page.goto(BASE + "/forest", wait_until="domcontentloaded", timeout=30_000)
         forest_tablet_maps = page.locator(".forest-comparison-map")
+        forest_tablet_maps.first.wait_for(state="visible", timeout=30_000)
+        forest_tablet_heights = forest_tablet_maps.evaluate_all(
+            "(nodes) => nodes.map(el => el.getBoundingClientRect().height)"
+        )
         require(
             forest_tablet_maps.count() == 2
-            and all(h >= 220 for h in forest_tablet_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)")),
-            "Forest keeps two readable side-by-side maps at tablet width",
+            and all(height >= 220 for height in forest_tablet_heights),
+            f"Forest keeps two readable side-by-side maps at tablet width (heights: {[round(height) for height in forest_tablet_heights]})",
         )
+
+        page.goto(BASE + "/volcano", wait_until="domcontentloaded", timeout=30_000)
         volcano_tablet_maps = page.locator(".deformation-map")
+        volcano_tablet_maps.first.wait_for(state="visible", timeout=30_000)
+        volcano_tablet_heights = volcano_tablet_maps.evaluate_all(
+            "(nodes) => nodes.map(el => el.getBoundingClientRect().height)"
+        )
         require(
             volcano_tablet_maps.count() == 2
-            and all(h >= 220 for h in volcano_tablet_maps.evaluate_all("(nodes) => nodes.map(el => el.getBoundingClientRect().height)")),
-            "Volcano keeps two readable side-by-side maps at tablet width",
+            and all(height >= 220 for height in volcano_tablet_heights),
+            f"Volcano keeps two readable side-by-side maps at tablet width (heights: {[round(height) for height in volcano_tablet_heights]})",
         )
 
         browser.close()
