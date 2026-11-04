@@ -18,7 +18,7 @@ import sys
 import urllib.parse
 import urllib.request
 import zipfile
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -99,6 +99,150 @@ def sha256_file(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _crop_mask_temporal_provenance(
+    validation_path: Path,
+    mask_path: Path,
+    *,
+    run_id: str,
+    series_id: str,
+    source_label: str,
+    probability_threshold: float,
+    expected_dates: list[str],
+) -> dict[str, Any]:
+    """Bind the published crop-mask audit to its validated source receipt and raster bytes."""
+    validation_path = Path(validation_path).expanduser().resolve()
+    mask_path = Path(mask_path).expanduser().resolve()
+    if not validation_path.is_file() or not mask_path.is_file():
+        raise AgricultureError("Crop-mask validation receipt and probability raster must both exist.")
+    evidence = json_read(validation_path)
+    if not isinstance(evidence, dict):
+        raise AgricultureError("Crop-mask validation receipt must be a JSON object.")
+    if (
+        evidence.get("status") != "VALIDATED_FOR_OPTIONAL_SME2_AREA_AUDIT"
+        or evidence.get("dataset") != "GOOGLE/DYNAMICWORLD/V1"
+        or evidence.get("class") != "crops"
+        or evidence.get("sme2_run_id") != run_id
+        or evidence.get("sme2_series_id") != series_id
+        or evidence.get("source_label") != source_label
+    ):
+        raise AgricultureError("Crop-mask validation receipt does not match this SME2 run, series, or source label.")
+
+    probability_sha256 = evidence.get("probability_sha256")
+    if (
+        not isinstance(probability_sha256, str)
+        or not re.fullmatch(r"[a-f0-9]{64}", probability_sha256)
+        or sha256_file(mask_path) != probability_sha256
+    ):
+        raise AgricultureError("Crop-mask validation receipt checksum does not match the probability raster.")
+
+    window = evidence.get("requested_window")
+    if not isinstance(window, dict):
+        raise AgricultureError("Crop-mask validation receipt has no requested source window.")
+    try:
+        window_start = date.fromisoformat(window.get("start", ""))
+        window_end = date.fromisoformat(window.get("end", ""))
+    except (TypeError, ValueError) as exc:
+        raise AgricultureError("Crop-mask source window must contain exact ISO dates.") from exc
+    if window_start.isoformat() != window.get("start") or window_end.isoformat() != window.get("end") or window_start > window_end:
+        raise AgricultureError("Crop-mask source window is malformed or reversed.")
+
+    acquisition_dates = evidence.get("source_acquisition_dates")
+    if (
+        not isinstance(acquisition_dates, list)
+        or not acquisition_dates
+        or any(not isinstance(value, str) for value in acquisition_dates)
+    ):
+        raise AgricultureError("Crop-mask validation receipt has no source acquisition-date list.")
+    try:
+        parsed_dates = [date.fromisoformat(value) for value in acquisition_dates]
+        parsed_expected_dates = [date.fromisoformat(value) for value in expected_dates]
+    except (TypeError, ValueError) as exc:
+        raise AgricultureError("Crop-mask and SME2 dates must use exact ISO dates.") from exc
+    if (
+        any(item.isoformat() != value for item, value in zip(parsed_dates, acquisition_dates))
+        or parsed_dates != sorted(set(parsed_dates))
+        or any(item < window_start or item > window_end for item in parsed_dates)
+        or any(item.isoformat() != value for item, value in zip(parsed_expected_dates, expected_dates))
+        or any(item < window_start or item > window_end for item in parsed_expected_dates)
+    ):
+        raise AgricultureError("Crop-mask source dates are inconsistent with the window or selected SME2 dates.")
+
+    unique_count = evidence.get("unique_acquisition_dates")
+    if isinstance(unique_count, bool) or unique_count != len(parsed_dates):
+        raise AgricultureError("Crop-mask unique acquisition-date count is inconsistent.")
+    gaps = [(right - left).days for left, right in zip(parsed_dates, parsed_dates[1:])]
+    maximum_gap = max(gaps) if gaps else None
+    recorded_gap = evidence.get("maximum_gap_between_acquisition_dates_days")
+    if (isinstance(recorded_gap, bool) or recorded_gap != maximum_gap):
+        raise AgricultureError("Crop-mask maximum source-date gap is inconsistent.")
+
+    minimum_observations = evidence.get("minimum_valid_dates_per_pixel")
+    if (
+        isinstance(minimum_observations, bool)
+        or not isinstance(minimum_observations, int)
+        or not 1 <= minimum_observations <= len(parsed_dates)
+    ):
+        raise AgricultureError("Crop-mask minimum valid-observation count is invalid.")
+    valid_fraction = evidence.get("valid_probability_fraction")
+    if (
+        isinstance(valid_fraction, bool)
+        or not isinstance(valid_fraction, (int, float))
+        or not math.isfinite(float(valid_fraction))
+        or not 0 < float(valid_fraction) <= 1
+    ):
+        raise AgricultureError("Crop-mask valid probability fraction must be in (0, 1].")
+    recorded_threshold = evidence.get("probability_threshold")
+    if (
+        isinstance(recorded_threshold, bool)
+        or not isinstance(recorded_threshold, (int, float))
+        or not math.isfinite(float(recorded_threshold))
+        or not math.isclose(float(recorded_threshold), probability_threshold, rel_tol=0.0, abs_tol=1e-9)
+    ):
+        raise AgricultureError("Crop-mask validation threshold does not match the SME2 analysis threshold.")
+
+    latest_gap = (window_end - parsed_dates[-1]).days
+    recency = evidence.get("latest_scene_recency")
+    expected_recency_status = (
+        "RECENT_WITHIN_18_DAY_WINDOW" if latest_gap <= 18
+        else "STALE_MORE_THAN_18_DAYS_BEFORE_WINDOW_END"
+    )
+    if (
+        not isinstance(recency, dict)
+        or recency.get("days_from_latest_scene_to_requested_end") != latest_gap
+        or recency.get("cue_days") != 18
+        or recency.get("status") != expected_recency_status
+    ):
+        raise AgricultureError("Crop-mask latest-scene recency metadata is inconsistent with its source dates.")
+
+    hashes = {
+        key: evidence.get(key)
+        for key in ("manifest_sha256", "probability_sha256", "observation_count_sha256")
+    }
+    if any(not isinstance(value, str) or not re.fullmatch(r"[a-f0-9]{64}", value) for value in hashes.values()):
+        raise AgricultureError("Crop-mask source provenance contains an invalid SHA-256 value.")
+
+    return {
+        "dataset": "GOOGLE/DYNAMICWORLD/V1",
+        "band": "crops",
+        "sme2_series_id": series_id,
+        "requested_window": {"start": window_start.isoformat(), "end": window_end.isoformat()},
+        "acquisition_dates": [item.isoformat() for item in parsed_dates],
+        "unique_acquisition_dates": len(parsed_dates),
+        "maximum_gap_between_acquisition_dates_days": maximum_gap,
+        "minimum_valid_dates_per_pixel": minimum_observations,
+        "valid_probability_fraction": float(valid_fraction),
+        "latest_scene_recency": {
+            "days_from_latest_scene_to_requested_end": latest_gap,
+            "cue_days": 18,
+            "status": expected_recency_status,
+        },
+        "manifest_sha256": hashes["manifest_sha256"],
+        "probability_sha256": hashes["probability_sha256"],
+        "observation_count_sha256": hashes["observation_count_sha256"],
+        "validation_sha256": sha256_file(validation_path),
+    }
 
 
 def parse_granule_date(title: str, metadata: dict[str, Any]) -> str:
@@ -1480,6 +1624,7 @@ def analyze(
     crop_probability_threshold: float = 0.5,
     crop_mask_coverage_floor: float = 0.8,
     algorithm: str = "baseline",
+    crop_mask_validation_path: Path | None = None,
 ) -> dict[str, Any]:
     folder = run_folder(run_id)
     search_manifest = json_read(folder / "search.json")
@@ -1591,9 +1736,19 @@ def analyze(
             crop_mask_path, first, crop_mask_source, crop_mask_date,
             crop_probability_threshold, crop_mask_coverage_floor,
         )
+        if crop_mask_validation_path is not None:
+            crop_mask_metadata["source_temporal_coverage"] = _crop_mask_temporal_provenance(
+                crop_mask_validation_path,
+                crop_mask_path,
+                run_id=run_id,
+                series_id=receipt["series_id"],
+                source_label=crop_mask_source,
+                probability_threshold=crop_probability_threshold,
+                expected_dates=[scene["date"] for scene in scenes],
+            )
         crop_observability, crop_common_mask = _crop_support_audit(scenes, crop_weights, crop_mask_metadata)
-    elif crop_mask_source or crop_mask_date:
-        raise AgricultureError("--crop-mask-source/--crop-mask-date cannot be used without --crop-mask.")
+    elif crop_mask_source or crop_mask_date or crop_mask_validation_path:
+        raise AgricultureError("--crop-mask-source/--crop-mask-date/--crop-mask-validation require --crop-mask.")
     output = folder / "result"
     (output / "previews").mkdir(parents=True, exist_ok=True)
     (output / "native").mkdir(parents=True, exist_ok=True)
@@ -1816,6 +1971,8 @@ def build_parser() -> argparse.ArgumentParser:
     process.add_argument("--crop-mask-date", help="Optional source date, YYYY-MM-DD")
     process.add_argument("--crop-probability-threshold", type=float, default=0.5)
     process.add_argument("--crop-mask-coverage-floor", type=float, default=0.8)
+    process.add_argument("--crop-mask-validation", type=Path,
+                         help="Optional validated Dynamic World provenance receipt tied to --crop-mask bytes")
     rainfall = sub.add_parser("rainfall", help="Attach NASA GPM IMERG Final daily precipitation context")
     rainfall.add_argument("--run-id", required=True)
     release = sub.add_parser("publish", help="Publish checksum-verified display previews only")
@@ -1836,6 +1993,7 @@ def main(argv: list[str] | None = None) -> int:
             study = analyze(
                 args.run_id, args.crop_mask, args.crop_mask_source, args.crop_mask_date,
                 args.crop_probability_threshold, args.crop_mask_coverage_floor, args.algorithm,
+                args.crop_mask_validation,
             )
             print(f"{study['algorithm']} · {study['evidence_status']}: {study['target_summary']['valid_fraction']:.1%} target coverage; {study['change_summary']['valid_fraction']:.1%} change coverage.")
             print(f"Quality exclusions: {len(study.get('quality_exclusions', []))} acquisition date(s).")

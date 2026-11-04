@@ -288,6 +288,7 @@ jobs:
           CROP_MASK_PATH: ${{ runner.temp }}/dynamic-world-crop-mask/dynamic-world-crops-probability.tif
           CROP_MASK_SOURCE: ${{ steps.crop-mask-evidence.outputs.source_label }}
           CROP_PROBABILITY_THRESHOLD: ${{ steps.crop-mask-evidence.outputs.probability_threshold }}
+          CROP_MASK_VALIDATION_PATH: ${{ runner.temp }}/dynamic-world-crop-mask/validation.json
         run: |
           set -euo pipefail
           analyze_args=(--run-id "$RUN_ID" --algorithm "$ALGORITHM")
@@ -295,6 +296,7 @@ jobs:
             analyze_args+=(--crop-mask "$CROP_MASK_PATH")
             analyze_args+=(--crop-mask-source "$CROP_MASK_SOURCE")
             analyze_args+=(--crop-probability-threshold "$CROP_PROBABILITY_THRESHOLD")
+            analyze_args+=(--crop-mask-validation "$CROP_MASK_VALIDATION_PATH")
           fi
           python pipeline/agriculture_sme2.py analyze "${analyze_args[@]}"
 

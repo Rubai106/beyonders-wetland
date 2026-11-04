@@ -161,6 +161,8 @@ class AgricultureCloudWorkflowTests(unittest.TestCase):
         self.assertIn("CROP_MASK_ENABLED", analyze["env"])
         self.assertIn("--crop-mask", analyze["run"])
         self.assertIn("--crop-probability-threshold", analyze["run"])
+        self.assertIn("--crop-mask-validation", analyze["run"])
+        self.assertIn("CROP_MASK_VALIDATION_PATH", analyze["env"])
 
     def test_worker_keeps_earthdata_secret_out_of_inputs(self):
         self.assertIn("EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}", self.source)

@@ -2,7 +2,9 @@
 
 Synthetic arrays/HDF5 are test fixtures only. They are never written to public/agriculture.
 """
+import hashlib
 import importlib.util
+import json
 import io
 import tempfile
 import unittest
@@ -17,6 +19,7 @@ from rasterio.transform import from_origin
 from agriculture_sme2 import (
     AgricultureError, COLLECTION, CMR_PAGE_SIZE, quality_mask, safe_run_id, validate_aoi_dates, _cmr_search,
     parse_granule_date, granule_signature, _looks_like_sme2_hdf5, _summary, _matched_support,
+    _crop_mask_temporal_provenance,
     _baseline_layers, _epsg_from_handle, _validate_moisture_units, surface_flag_diagnostics,
     _align_crop_probability_mask, _crop_support_audit, _matches_granule_filename,
     quality_screen_diagnostics, _masked_array_diagnostics, _algorithm_candidate_diagnostics,
@@ -326,6 +329,97 @@ class AgricultureSME2Tests(unittest.TestCase):
             self.assertAlmostEqual(metadata["crop_area_equivalent_pixels"], 2.0, places=2)
             self.assertEqual(metadata["source_date"], "2026-10-20")
             self.assertEqual(metadata["source_sha256"], __import__("hashlib").sha256(path.read_bytes()).hexdigest())
+
+    def _write_crop_validation_receipt(self, root, mask_path):
+        validation_path = root / "validation.json"
+        validation = {
+            "status": "VALIDATED_FOR_OPTIONAL_SME2_AREA_AUDIT",
+            "dataset": "GOOGLE/DYNAMICWORLD/V1",
+            "class": "crops",
+            "sme2_run_id": "agri-test-01",
+            "sme2_series_id": "c5f219dd7bbc",
+            "source_label": "Dynamic World GOOGLE/DYNAMICWORLD/V1 crops probability median composite (2026-08-01 to 2026-08-15)",
+            "requested_window": {"start": "2026-08-01", "end": "2026-08-15"},
+            "source_acquisition_dates": ["2026-08-01", "2026-08-08", "2026-08-15"],
+            "unique_acquisition_dates": 3,
+            "maximum_gap_between_acquisition_dates_days": 7,
+            "minimum_valid_dates_per_pixel": 2,
+            "valid_probability_fraction": 0.75,
+            "probability_threshold": 0.5,
+            "latest_scene_recency": {
+                "days_from_latest_scene_to_requested_end": 0,
+                "cue_days": 18,
+                "status": "RECENT_WITHIN_18_DAY_WINDOW",
+            },
+            "manifest_sha256": "a" * 64,
+            "probability_sha256": hashlib.sha256(mask_path.read_bytes()).hexdigest(),
+            "observation_count_sha256": "c" * 64,
+        }
+        validation_path.write_text(json.dumps(validation), encoding="utf-8")
+        return validation_path, validation
+
+    def test_crop_mask_temporal_provenance_is_persistable_and_checksum_bound(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            mask_path = root / "probability.tif"
+            mask_path.write_bytes(b"validated raster bytes")
+            validation_path, _ = self._write_crop_validation_receipt(root, mask_path)
+
+            result = _crop_mask_temporal_provenance(
+                validation_path, mask_path,
+                run_id="agri-test-01",
+                series_id="c5f219dd7bbc",
+                source_label="Dynamic World GOOGLE/DYNAMICWORLD/V1 crops probability median composite (2026-08-01 to 2026-08-15)",
+                probability_threshold=0.5,
+                expected_dates=["2026-08-01", "2026-08-15"],
+            )
+            self.assertEqual(result["unique_acquisition_dates"], 3)
+            self.assertEqual(result["maximum_gap_between_acquisition_dates_days"], 7)
+            self.assertEqual(result["latest_scene_recency"]["days_from_latest_scene_to_requested_end"], 0)
+            self.assertEqual(result["probability_sha256"], hashlib.sha256(mask_path.read_bytes()).hexdigest())
+            self.assertEqual(result["validation_sha256"], hashlib.sha256(validation_path.read_bytes()).hexdigest())
+
+    def test_crop_mask_temporal_provenance_rejects_wrong_run_series_and_threshold(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            mask_path = root / "probability.tif"
+            mask_path.write_bytes(b"validated raster bytes")
+            validation_path, validation = self._write_crop_validation_receipt(root, mask_path)
+            kwargs = {
+                "source_label": validation["source_label"],
+                "probability_threshold": 0.5,
+                "expected_dates": ["2026-08-01", "2026-08-15"],
+            }
+            for changes, message in (
+                ({"sme2_run_id": "other-run"}, "does not match"),
+                ({"sme2_series_id": "540e079403d5"}, "does not match"),
+                ({"probability_threshold": 0.6}, "threshold does not match"),
+            ):
+                changed = dict(validation)
+                changed.update(changes)
+                validation_path.write_text(json.dumps(changed), encoding="utf-8")
+                with self.subTest(changes=changes), self.assertRaisesRegex(AgricultureError, message):
+                    _crop_mask_temporal_provenance(
+                        validation_path, mask_path, run_id="agri-test-01",
+                        series_id="c5f219dd7bbc", **kwargs,
+                    )
+
+    def test_crop_mask_temporal_provenance_rejects_inconsistent_source_recency(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            mask_path = root / "probability.tif"
+            mask_path.write_bytes(b"validated raster bytes")
+            validation_path, validation = self._write_crop_validation_receipt(root, mask_path)
+            validation["latest_scene_recency"]["days_from_latest_scene_to_requested_end"] = 4
+            validation_path.write_text(json.dumps(validation), encoding="utf-8")
+            with self.assertRaisesRegex(AgricultureError, "recency metadata is inconsistent"):
+                _crop_mask_temporal_provenance(
+                    validation_path, mask_path, run_id="agri-test-01",
+                    series_id="c5f219dd7bbc",
+                    source_label=validation["source_label"],
+                    probability_threshold=0.5,
+                    expected_dates=["2026-08-01", "2026-08-15"],
+                )
 
     def test_crop_mask_nodata_is_not_treated_as_non_crop(self):
         with tempfile.TemporaryDirectory() as temp:
