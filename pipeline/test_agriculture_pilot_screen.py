@@ -80,6 +80,23 @@ class AgriculturePilotScreenTests(unittest.TestCase):
         self.assertEqual(report["sites"][0]["status"], "INSUFFICIENT_TEMPORAL_COVERAGE")
         self.assertIn("does not mean no agriculture", report["interpretation_limits"][2].lower())
 
+    def test_eligible_report_points_to_master_cloud_workflow(self):
+        site = {"id": "test", "name": "Test site", "priority": 1, "aoi": {
+            "west": 91.3, "south": 24.3, "east": 91.4, "north": 24.4,
+        }}
+        dates = [
+            "2026-06-17", "2026-06-29", "2026-07-11",
+            "2026-07-23", "2026-08-04", "2026-08-16",
+        ]
+        report = screen_sites(
+            [site], "2026-06-17", "2026-08-16",
+            searcher=lambda aoi, start, end: [entry(day) for day in dates],
+        )
+        self.assertEqual(report["sites"][0]["status"], "ELIGIBLE_FOR_OPERATOR_REVIEW")
+        self.assertIn("master-branch Agriculture cloud workflow", report["next_action"])
+        self.assertIn("EARTH_DATA", report["next_action"])
+        self.assertNotIn("run the existing authenticated download/analyze workflow locally", report["next_action"])
+
     def test_records_site_specific_cmr_failure_and_continues(self):
         good_site = {"id": "good", "priority": 1, "aoi": {
             "west": 91.3, "south": 24.3, "east": 91.4, "north": 24.4,
