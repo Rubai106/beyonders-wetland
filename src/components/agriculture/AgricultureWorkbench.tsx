@@ -932,7 +932,7 @@ export default function AgricultureWorkbench() {
                 <span className="agri-eyebrow">NEXT · SECURE CLOUD PROCESSING</span>
                 <span className="agri-online-next__status is-ready"><i aria-hidden="true" />REMOTE WORKER AVAILABLE</span>
               </div>
-              <strong>Queue this compatible series for SME2 analysis</strong>
+              <strong>Prepare this compatible series for secure processing</strong>
               <p>The GitHub-hosted worker downloads the selected CMR granules, applies the real HDF5 and quality checks, and publishes only the checksum-verified display package. Raw granules stay on the runner.</p>
               <div className="agri-online-next__facts" aria-label="Cloud workflow inputs">
                 <div><span>WGS84 · WEST / SOUTH</span><strong>{form.west} / {form.south}</strong></div>
