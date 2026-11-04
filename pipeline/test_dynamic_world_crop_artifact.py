@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from rasterio.transform import from_origin
+from affine import Affine
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from validate_dynamic_world_crop_artifact import (  # noqa: E402
@@ -238,6 +239,16 @@ class DynamicWorldArtifactTests(unittest.TestCase):
         self._write_rasters(count_transform=shifted)
         self._write_manifest()
         with self.assertRaisesRegex(ArtifactValidationError, "not on the identical grid"):
+            validate_dynamic_world_artifact(self.artifact, self.search_path, self.receipt_path)
+
+    def test_rejects_anisotropic_pixel_with_correct_total_area(self):
+        anisotropic = Affine(5, 0, 500000, 0, -20, 2800000)
+        self._write_rasters(
+            probability_transform=anisotropic,
+            count_transform=anisotropic,
+        )
+        self._write_manifest()
+        with self.assertRaisesRegex(ArtifactValidationError, "north-up 10 m by 10 m"):
             validate_dynamic_world_artifact(self.artifact, self.search_path, self.receipt_path)
 
     def test_rejects_observation_count_greater_than_distinct_source_dates(self):

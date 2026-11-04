@@ -290,9 +290,18 @@ def validate_dynamic_world_artifact(
                 raise ArtifactValidationError("Dynamic World raster exceeds the validated 10,000-pixel grid limit.")
             _check_grid(probability, probability_grid, "Probability")
             _check_grid(counts, count_grid, "Observation-count")
+            transform = probability.transform
+            if not (
+                math.isclose(float(transform.a), 10.0, rel_tol=0.0, abs_tol=0.01)
+                and math.isclose(float(transform.e), -10.0, rel_tol=0.0, abs_tol=0.01)
+                and math.isclose(float(transform.b), 0.0, rel_tol=0.0, abs_tol=1e-6)
+                and math.isclose(float(transform.d), 0.0, rel_tol=0.0, abs_tol=1e-6)
+            ):
+                raise ArtifactValidationError(
+                    "Dynamic World rasters must use a north-up 10 m by 10 m grid in EPSG:6933."
+                )
             pixel_area = abs(
-                probability.transform.a * probability.transform.e
-                - probability.transform.b * probability.transform.d
+                transform.a * transform.e - transform.b * transform.d
             )
             if not math.isclose(pixel_area, EXPECTED_PIXEL_AREA_M2, rel_tol=0.0, abs_tol=0.05):
                 raise ArtifactValidationError("Dynamic World raster pixels are not the expected 10 m equal-area cells.")

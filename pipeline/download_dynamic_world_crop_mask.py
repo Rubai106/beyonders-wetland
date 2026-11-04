@@ -188,6 +188,19 @@ def _download_ee_geotiff(image: Any, region: Any, path: Path, name: str) -> None
     path.write_bytes(_download_bytes(url))
 
 
+def _require_north_up_10m(transform: Any, label: str) -> None:
+    """Reject equal-area but anisotropic/rotated grids masquerading as 10 m pixels."""
+    if not (
+        math.isclose(float(transform.a), 10.0, rel_tol=0.0, abs_tol=0.01)
+        and math.isclose(float(transform.e), -10.0, rel_tol=0.0, abs_tol=0.01)
+        and math.isclose(float(transform.b), 0.0, rel_tol=0.0, abs_tol=1e-6)
+        and math.isclose(float(transform.d), 0.0, rel_tol=0.0, abs_tol=1e-6)
+    ):
+        raise DynamicWorldError(
+            f"{label} must use a north-up 10 m by 10 m grid in EPSG:6933."
+        )
+
+
 def _normalise_probability_geotiff(raw_path: Path, output_path: Path,
                                    tags: dict[str, str]) -> dict[str, Any]:
     import numpy as np
@@ -197,6 +210,7 @@ def _normalise_probability_geotiff(raw_path: Path, output_path: Path,
         with rasterio.open(raw_path) as source:
             if source.count != 1 or source.crs is None or source.crs != CRS.from_string(EXPORT_CRS):
                 raise DynamicWorldError("Probability export must be a single-band EPSG:6933 GeoTIFF.")
+            _require_north_up_10m(source.transform, "Probability export")
             raw = source.read(1).astype("float64")
             source_mask = source.read_masks(1) > 0
             valid = source_mask & np.isfinite(raw) & (raw != NODATA)
@@ -245,6 +259,7 @@ def _normalise_count_geotiff(raw_path: Path, output_path: Path, scene_date_count
         with rasterio.open(raw_path) as source:
             if source.count != 1 or source.crs is None or source.crs != CRS.from_string(EXPORT_CRS):
                 raise DynamicWorldError("Observation-count export must be a single-band EPSG:6933 GeoTIFF.")
+            _require_north_up_10m(source.transform, "Observation-count export")
             raw = source.read(1).astype("float64")
             if not np.all(np.isfinite(raw)):
                 raise DynamicWorldError("Observation-count raster contains non-finite values.")

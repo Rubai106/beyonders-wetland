@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from rasterio.transform import from_origin
+from affine import Affine
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from download_dynamic_world_crop_mask import (  # noqa: E402
@@ -109,6 +110,29 @@ class DynamicWorldAcquisitionTests(unittest.TestCase):
             self.assertEqual(stats["maximum_valid_date_count"], 3)
             self.assertEqual(stats["pixels_meeting_minimum_observations"], 2)
             self.assertEqual(stats["transform"], [10.0, 0.0, 500000.0, 0.0, -10.0, 2800000.0])
+
+    def test_probability_and_count_exports_reject_anisotropic_equal_area_pixels(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            raw_probability = root / "raw-probability.tif"
+            raw_count = root / "raw-count.tif"
+            anisotropic = Affine(5, 0, 500000, 0, -20, 2800000)
+
+            with rasterio.open(
+                raw_probability, "w", driver="GTiff", height=2, width=2, count=1,
+                dtype="float32", crs="EPSG:6933", transform=anisotropic,
+            ) as ds:
+                ds.write(np.full((2, 2), 0.7, dtype=np.float32), 1)
+            with self.assertRaisesRegex(DynamicWorldError, "north-up 10 m by 10 m"):
+                _normalise_probability_geotiff(raw_probability, root / "probability.tif", {})
+
+            with rasterio.open(
+                raw_count, "w", driver="GTiff", height=2, width=2, count=1,
+                dtype="uint16", crs="EPSG:6933", transform=anisotropic,
+            ) as ds:
+                ds.write(np.ones((2, 2), dtype=np.uint16), 1)
+            with self.assertRaisesRegex(DynamicWorldError, "north-up 10 m by 10 m"):
+                _normalise_count_geotiff(raw_count, root / "count.tif", 2, {})
 
     def test_probability_geotiff_rejects_class_labels_and_coarse_pixels(self):
         with tempfile.TemporaryDirectory() as temp:
