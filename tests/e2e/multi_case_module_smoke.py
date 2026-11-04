@@ -273,6 +273,34 @@ def main() -> int:
             "Hayli Gubbi links to the separate Kīlauea Episode 36 investigation",
         )
 
+        volcano_tabs = page.locator(".wx-drawer__tabs button[role='tab']")
+        volcano_tabs.nth(1).click()
+        coordinate_form = page.locator(".deformation-inspector form")
+        coordinate_form.wait_for(state="visible", timeout=15_000)
+        latitude_input = coordinate_form.get_by_label("Latitude")
+        longitude_input = coordinate_form.get_by_label("Longitude")
+        latitude_input.fill("91")
+        longitude_input.fill("40.665")
+        coordinate_form.get_by_role("button", name="Inspect coordinates").click()
+        coordinate_error = coordinate_form.locator("#deformation-coordinate-error")
+        require(
+            coordinate_error.is_visible()
+            and "latitude from" in coordinate_error.inner_text().lower()
+            and latitude_input.get_attribute("aria-invalid") == "true"
+            and longitude_input.get_attribute("aria-invalid") == "true"
+            and "Select a point on either map" in page.locator(".deformation-pixel").first.inner_text(),
+            "Volcano coordinate inspection rejects invalid latitude with an announced error and does not move the sample",
+        )
+        latitude_input.fill("13.606")
+        longitude_input.fill("40.665")
+        coordinate_form.get_by_role("button", name="Inspect coordinates").click()
+        require(
+            coordinate_form.locator("#deformation-coordinate-error").count() == 0
+            and latitude_input.get_attribute("aria-invalid") == "false"
+            and longitude_input.get_attribute("aria-invalid") == "false",
+            "valid Volcano coordinates clear the validation error and can be inspected",
+        )
+
         # Agriculture must explain an integrity failure without an inert retry
         # button floating on the map.
         page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
