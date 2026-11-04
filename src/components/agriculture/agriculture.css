@@ -1415,3 +1415,157 @@
 }
 .agriculture-workspace .agri-rainfall__empty strong { color: #d4c09a; font-size: .68rem; }
 .agriculture-workspace .agri-rainfall__empty p { color: #91a4a9; font-size: .61rem; line-height: 1.5; }
+
+
+/* Secure cloud handoff for a preflight-eligible CMR series. */
+.agri-online-stale {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid rgba(212, 166, 83, .32);
+  border-left: 2px solid #d4a653;
+  border-radius: 9px;
+  background: rgba(212, 166, 83, .055);
+}
+.agri-online-stale strong {
+  color: #f0d7a2;
+  font-size: 12px;
+}
+.agri-online-stale span {
+  color: #aeb9ba;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.agri-online-next__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.agri-online-next__status.is-ready {
+  color: #83d8c5;
+}
+.agri-online-next__status.is-ready i {
+  background: #65cdb6;
+  box-shadow: 0 0 0 4px rgba(101, 205, 182, .12);
+}
+.agri-online-next__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.agri-online-next__facts > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid rgba(115, 152, 169, .18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .018);
+}
+.agri-online-next__facts span,
+.agri-online-next__algorithm > span {
+  color: #78929c;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+.agri-online-next__facts strong {
+  overflow-wrap: anywhere;
+  color: #dce8e9;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+.agri-online-next__algorithm {
+  display: grid;
+  gap: 6px;
+  color: #dce8e9;
+  font-size: 11px;
+}
+.agri-online-next__algorithm select {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid rgba(115, 152, 169, .28);
+  border-radius: 8px;
+  outline: none;
+  background: #111c22;
+  color: #dce8e9;
+  font: inherit;
+}
+.agri-online-next__algorithm select:focus-visible {
+  border-color: #65cdb6;
+  box-shadow: 0 0 0 2px rgba(101, 205, 182, .16);
+}
+.agri-online-next__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+}
+.agri-online-next__copy,
+.agri-online-next__launch {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 1px solid rgba(101, 205, 182, .35);
+  border-radius: 8px;
+  background: rgba(101, 205, 182, .08);
+  color: #a9e7d8;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.agri-online-next__copy:hover,
+.agri-online-next__launch:hover {
+  border-color: rgba(101, 205, 182, .72);
+  background: rgba(101, 205, 182, .14);
+}
+.agri-online-next__copy:focus-visible,
+.agri-online-next__launch:focus-visible {
+  outline: 2px solid #65cdb6;
+  outline-offset: 2px;
+}
+.agri-online-next__feedback,
+.agri-online-next__footnote {
+  margin: 0;
+  color: #8ba1a8;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.agri-online-next__footnote {
+  padding-top: 8px;
+  border-top: 1px solid rgba(115, 152, 169, .14);
+  color: #788d94;
+}
+.agri-online-next--blocked {
+  padding: 11px 12px;
+  border: 1px solid rgba(212, 166, 83, .3);
+  border-left: 2px solid #d4a653;
+  border-radius: 9px;
+  background: rgba(212, 166, 83, .05);
+}
+.agri-online-next--blocked > strong {
+  color: #f0d7a2;
+  font-size: 12px;
+}
+.agri-online-next--blocked > p {
+  margin: 0;
+  color: #aeb9ba;
+  font-size: 11px;
+  line-height: 1.45;
+}
+@media (max-width: 520px) {
+  .agri-online-next__header { align-items: flex-start; }
+  .agri-online-next__facts { grid-template-columns: minmax(0, 1fr); }
+  .agri-online-next__actions { display: grid; grid-template-columns: 1fr; }
+  .agri-online-next__copy,
+  .agri-online-next__launch { width: 100%; }
+}
