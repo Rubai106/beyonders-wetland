@@ -147,7 +147,7 @@ class DynamicWorldAcquisitionTests(unittest.TestCase):
                                dtype="float32", crs="EPSG:6933",
                                transform=from_origin(500000, 2800000, 250, 250)) as ds:
                 ds.write(np.ones((2, 2), dtype=np.float32) * 0.7, 1)
-            with self.assertRaisesRegex(DynamicWorldError, "finer than SME2 native cells"):
+            with self.assertRaisesRegex(DynamicWorldError, "north-up 10 m by 10 m"):
                 _normalise_probability_geotiff(raw, output, {})
 
 
