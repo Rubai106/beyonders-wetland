@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Check out master
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: master
           persist-credentials: false
@@ -146,7 +146,7 @@ jobs:
           PY
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -209,7 +209,7 @@ jobs:
           python pipeline/agriculture_candidate_summary.py "$RUN_ID_141" "$RUN_ID_069"
 
       - name: Save non-sensitive inspection evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: agriculture-baniachong-track-inspection-${{ github.run_id }}
           if-no-files-found: error
