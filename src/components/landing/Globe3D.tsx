@@ -88,6 +88,10 @@ export default function Globe3D({ pinMode, pin, caseMarkers, focusLocation, onPi
   const labelRefs = useRef(new Map<string, HTMLElement | null>());
   const markerLayerRef = useRef<THREE.Group | null>(null);
   const globeGroupRef = useRef<THREE.Group | null>(null);
+  const viewControlsRef = useRef<{
+    rotate: (horizontal: number, vertical: number) => void;
+    zoom: (amount: number) => void;
+  } | null>(null);
   const glowTexRef = useRef<THREE.Texture | null>(null);
   const markerObjs = useRef<MarkerObj[]>([]);
   const hitMeshes = useRef<THREE.Mesh[]>([]);
@@ -199,12 +203,25 @@ export default function Globe3D({ pinMode, pin, caseMarkers, focusLocation, onPi
     const ndc = new THREE.Vector2();
     let dragging = false, moved = 0, lastX = 0, lastY = 0, velX = 0, velY = 0, lastInteract = 0, introT = reduceMotion ? 1 : 0;
     let lastFrameAt = 0;
+    viewControlsRef.current = {
+      rotate: (horizontal, vertical) => {
+        velX = 0;
+        velY = 0;
+        globeGroup.rotation.y += horizontal * 0.12;
+        globeGroup.rotation.x = THREE.MathUtils.clamp(globeGroup.rotation.x + vertical * 0.12, -0.85, 0.85);
+        lastInteract = performance.now();
+      },
+      zoom: (amount) => {
+        camera.position.z = THREE.MathUtils.clamp(camera.position.z + amount, 1.85, 5.2);
+        lastInteract = performance.now();
+      },
+    };
     let hoverCheck = false, hoverX = 0, hoverY = 0;
     const el = renderer.domElement;
     el.tabIndex = 0;
     el.setAttribute(
       "aria-label",
-      "Interactive 3D Earth. Use the arrow keys to rotate the globe and plus or minus to zoom. Use the study location list to center a published case.",
+      "Interactive 3D Earth. Use the arrow keys or on-screen movement controls to rotate the globe, and plus or minus or the on-screen controls to zoom. Use the study location list to center a published case.",
     );
     el.style.cursor = "grab";
     el.style.display = "block";
@@ -397,6 +414,7 @@ export default function Globe3D({ pinMode, pin, caseMarkers, focusLocation, onPi
     return () => {
       cancelAnimationFrame(raf);
       el.removeEventListener("keydown", handleKeyDown);
+      viewControlsRef.current = null;
       timer.dispose();
       ro.disconnect();
       markerLayerRef.current = null;
@@ -511,6 +529,14 @@ export default function Globe3D({ pinMode, pin, caseMarkers, focusLocation, onPi
       <div ref={labelPinRef} className="globe-tag globe-tag--pin">
         <strong>{pin ? `${Math.abs(pin.lat).toFixed(2)}°${pin.lat >= 0 ? "N" : "S"} ${Math.abs(pin.lng).toFixed(2)}°${pin.lng >= 0 ? "E" : "W"}` : ""}</strong>
         <span>selected study location</span>
+      </div>
+      <div className="g3-globe-controls" role="group" aria-label="Globe movement controls">
+        <button type="button" aria-label="Rotate globe left" title="Rotate left" onClick={() => viewControlsRef.current?.rotate(-1, 0)}>←</button>
+        <button type="button" aria-label="Tilt globe up" title="Tilt up" onClick={() => viewControlsRef.current?.rotate(0, 1)}>↑</button>
+        <button type="button" aria-label="Rotate globe right" title="Rotate right" onClick={() => viewControlsRef.current?.rotate(1, 0)}>→</button>
+        <button type="button" aria-label="Tilt globe down" title="Tilt down" onClick={() => viewControlsRef.current?.rotate(0, -1)}>↓</button>
+        <button type="button" aria-label="Zoom globe out" title="Zoom out" onClick={() => viewControlsRef.current?.zoom(0.2)}>−</button>
+        <button type="button" aria-label="Zoom globe in" title="Zoom in" onClick={() => viewControlsRef.current?.zoom(-0.2)}>+</button>
       </div>
     </div>
   );
