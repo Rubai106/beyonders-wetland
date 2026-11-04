@@ -61,12 +61,28 @@ def verify_field_volume(page) -> None:
     require(initial_index >= 0, "Agriculture starts on one published SME2 observation")
     target = observations.nth(1)
     target.click()
+    page.wait_for_function(
+        """() => {
+            const buttons = [...document.querySelectorAll('.field-volume-disclosure--agriculture .field-volume-scene__dates button')];
+            return buttons[1]?.getAttribute('aria-pressed') === 'true'
+                && buttons.filter(button => button.getAttribute('aria-pressed') === 'true').length === 1;
+        }""",
+        timeout=5_000,
+    )
     require(
         target.get_attribute("aria-pressed") == "true"
         and observations.locator("button[aria-pressed='true']").count() == 1,
         "Agriculture date selection updates the active 3D measurement",
     )
     observations.nth(initial_index).click()
+    page.wait_for_function(
+        """index => {
+            const buttons = [...document.querySelectorAll('.field-volume-disclosure--agriculture .field-volume-scene__dates button')];
+            return buttons[index]?.getAttribute('aria-pressed') === 'true';
+        }""",
+        arg=initial_index,
+        timeout=5_000,
+    )
     require(
         observations.nth(initial_index).get_attribute("aria-pressed") == "true",
         "Agriculture restores the original map date after the 3D interaction check",

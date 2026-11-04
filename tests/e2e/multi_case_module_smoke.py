@@ -60,7 +60,17 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
     selectable = date_list.locator("button:not([disabled])")
     if selectable.count() > 1:
         target = selectable.nth(1)
+        target_index = dates.evaluate_all("(buttons) => buttons.indexOf(buttons.find(button => button === arguments[0]))") if False else 1
         target.click()
+        page.wait_for_function(
+            """({selector, index}) => {
+                const buttons = [...document.querySelectorAll(selector)];
+                return buttons[index]?.getAttribute("aria-pressed") === "true"
+                    && buttons.filter(button => button.getAttribute("aria-pressed") === "true").length === 1;
+            }""",
+            arg={"selector": selector + " .field-volume-scene__dates button", "index": 1},
+            timeout=5_000,
+        )
         require(
             target.get_attribute("aria-pressed") == "true"
             and date_list.locator("button[aria-pressed='true']").count() == 1,
@@ -84,6 +94,15 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
                 f"{label} supports keyboard date navigation inside the 3D scene",
             )
         dates.nth(initial_index).click()
+        page.wait_for_function(
+            """({selector, index}) => {
+                const buttons = [...document.querySelectorAll(selector)];
+                return buttons[index]?.getAttribute("aria-pressed") === "true"
+                    && buttons.filter(button => button.getAttribute("aria-pressed") === "true").length === 1;
+            }""",
+            arg={"selector": selector + " .field-volume-scene__dates button", "index": initial_index},
+            timeout=5_000,
+        )
         require(
             dates.nth(initial_index).get_attribute("aria-pressed") == "true"
             and date_list.locator("button[aria-pressed='true']").count() == 1,
