@@ -323,7 +323,7 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
           {cur ? <span className="wx-mono wx-case__date" title={`Observation date: ${cur.date}`}>{fmtDate(cur.date, { month: "short", day: "numeric" })}</span> : null}</span>
         <TierBadge tier={dataTier} completeness={s.showcase?.manifest.completeness} />
         <nav className="wx-nav" aria-label="GeoNexSAR">
-          <Link href="/wetland" aria-label="Open the Tanguar and Hakaluki wetland investigations" title="Published wetland investigations"><span>Wetlands</span></Link>
+          <Link href="/wetland" aria-current="page" aria-label="Open the Tanguar and Hakaluki wetland investigations" title="Published wetland investigations"><span>Wetlands</span></Link>
           <Link href="/agriculture" aria-label="Open Agriculture">Agriculture</Link>
           <Link href="/forest/rondonia" aria-label="Open the Rondônia forest investigation">Forests</Link>
           <Link href="/volcano/hayli-gubbi" aria-label="Open the Hayli Gubbi volcano investigation">Volcanoes</Link>
