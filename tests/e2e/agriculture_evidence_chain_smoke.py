@@ -39,6 +39,35 @@ def select_tab(page, label: str, accessible_name: str) -> None:
     )
 
 
+def verify_field_volume(page) -> None:
+    disclosure = page.locator(".field-volume-disclosure--agriculture")
+    disclosure.wait_for(state="visible", timeout=20_000)
+    toggle = disclosure.get_by_role("button", name="Explore in 3D")
+    require(
+        toggle.get_attribute("aria-expanded") == "false",
+        "Agriculture keeps its 3D view opt-in rather than crowding the first screen",
+    )
+    toggle.click()
+    canvas = disclosure.locator("canvas.field-volume-canvas")
+    canvas.wait_for(state="visible", timeout=20_000)
+    observations = disclosure.locator(".field-volume-scene__dates button")
+    require(
+        canvas.is_visible() and observations.count() >= 4,
+        "Agriculture renders a data-bound 3D scene with the published dated SME2 observations",
+    )
+    observations.nth(1).click()
+    require(
+        observations.nth(1).get_attribute("aria-pressed") == "true"
+        and observations.nth(0).get_attribute("aria-pressed") == "false",
+        "Agriculture date selection updates the active 3D measurement",
+    )
+    disclosure.get_by_role("button", name="Close 3D view").click()
+    require(
+        disclosure.locator("canvas.field-volume-canvas").count() == 0,
+        "Agriculture releases the 3D WebGL canvas when closed",
+    )
+
+
 def main() -> int:
     errors: list[str] = []
     publication_asset_requests: list[str] = []
@@ -100,6 +129,7 @@ def main() -> int:
             page.locator(".agri-cohort-audit").count() == 1,
             "the same-pixel comparability audit renders from the real study",
         )
+        verify_field_volume(page)
         require(
             page.locator(".agri-flag-atlas").count() == 1,
             "the surface-flag overlap atlas renders from the real study",

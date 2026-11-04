@@ -36,6 +36,36 @@ def ensure_drawer_open(page) -> None:
     drawer.wait_for(state="visible", timeout=10_000)
 
 
+def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1) -> None:
+    disclosure = page.locator(selector)
+    disclosure.wait_for(state="visible", timeout=20_000)
+    toggle = disclosure.get_by_role("button", name="Explore in 3D")
+    require(
+        toggle.is_visible() and toggle.get_attribute("aria-expanded") == "false",
+        f"{label} keeps the optional 3D view collapsed until requested",
+    )
+    toggle.click()
+    canvas = disclosure.locator("canvas.field-volume-canvas")
+    canvas.wait_for(state="visible", timeout=20_000)
+    dates = disclosure.locator(".field-volume-scene__dates button")
+    require(
+        canvas.is_visible() and dates.count() >= minimum_dates,
+        f"{label} opens its data-bound 3D scene and exposes {minimum_dates}+ selectable observations",
+    )
+    if dates.count() > 1:
+        dates.nth(1).click()
+        require(
+            dates.nth(1).get_attribute("aria-pressed") == "true"
+            and dates.nth(0).get_attribute("aria-pressed") == "false",
+            f"{label} synchronizes a selected 3D observation with its module state",
+        )
+    disclosure.get_by_role("button", name="Close 3D view").click()
+    require(
+        disclosure.locator("canvas.field-volume-canvas").count() == 0,
+        f"{label} releases the 3D canvas when the panel is closed",
+    )
+
+
 def main() -> int:
     errors: list[str] = []
     with sync_playwright() as playwright:
@@ -128,6 +158,9 @@ def main() -> int:
             and "Tanguar Haor" in page.inner_text(".wx-rail"),
             "Tanguar Haor remains the original default case",
         )
+        page.get_by_role("tab", name="Explore").click()
+        verify_field_volume(page, ".field-volume-disclosure--wetland", "Wetlands", minimum_dates=7)
+
         wetland_modes = page.locator(".wx-modes button[role='radio']")
         require(
             wetland_modes.count() == 3
@@ -253,6 +286,7 @@ def main() -> int:
             and page.locator(".forest-date-ribbon button").count() >= 4,
             "Forest opens the interactive Rondônia case with paired maps and selectable dates",
         )
+        verify_field_volume(page, ".field-volume-disclosure--forest", "Forests", minimum_dates=4)
 
         page.goto(BASE + "/volcano", wait_until="domcontentloaded", timeout=30_000)
         page.wait_for_url("**/volcano/hayli-gubbi", timeout=20_000)
@@ -272,6 +306,7 @@ def main() -> int:
             ).count() == 1,
             "Hayli Gubbi links to the separate Kīlauea Episode 36 investigation",
         )
+        verify_field_volume(page, ".field-volume-disclosure--volcano", "Volcanoes", minimum_dates=3)
 
         volcano_tabs = page.locator(".wx-drawer__tabs button[role='tab']")
         volcano_tabs.nth(1).click()
