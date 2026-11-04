@@ -68,17 +68,27 @@ class AgriculturePilotScreenTests(unittest.TestCase):
         self.assertEqual(rows[0]["observation_count"], 4)
 
     def test_reports_insufficient_temporal_support_without_claiming_no_agriculture(self):
-        dates = ["2026-06-01", "2026-06-13", "2026-06-25"]
+        dates = ["2026-06-17", "2026-06-29", "2026-07-11"]
         site = {"id": "test", "name": "Test site", "priority": 1, "aoi": {
             "west": 91.3, "south": 24.3, "east": 91.4, "north": 24.4,
         }}
         report = screen_sites(
-            [site], "2026-01-01", "2026-10-31",
+            [site], "2026-06-17", "2026-07-11",
             searcher=lambda aoi, start, end: [entry(day) for day in dates],
         )
         self.assertIsNone(report["recommended_site_id"])
         self.assertEqual(report["sites"][0]["status"], "INSUFFICIENT_TEMPORAL_COVERAGE")
         self.assertIn("does not mean no agriculture", report["interpretation_limits"][2].lower())
+
+    def test_rejects_dates_outside_the_cloud_workers_supported_range(self):
+        site = {"id": "test", "name": "Test site", "priority": 1, "aoi": {
+            "west": 91.3, "south": 24.3, "east": 91.4, "north": 24.4,
+        }}
+        with self.assertRaisesRegex(ValueError, "cannot start before 2026-06-17"):
+            screen_sites([site], "2026-01-01", "2026-10-31", searcher=lambda *_: [])
+
+        with self.assertRaisesRegex(ValueError, "cannot exceed 366 days"):
+            screen_sites([site], "2026-06-17", "2027-07-01", searcher=lambda *_: [])
 
     def test_eligible_report_points_to_master_cloud_workflow(self):
         site = {"id": "test", "name": "Test site", "priority": 1, "aoi": {
@@ -112,10 +122,10 @@ class AgriculturePilotScreenTests(unittest.TestCase):
                 if searcher.calls == 1:
                     raise RuntimeError("simulated network failure")
                 return [entry(day) for day in [
-                    "2026-06-01", "2026-06-13", "2026-06-25",
-                    "2026-07-07", "2026-07-19", "2026-07-31",
+                    "2026-06-17", "2026-06-29", "2026-07-11",
+                    "2026-07-23", "2026-08-04", "2026-08-16",
                 ]]
-        report = screen_sites([bad_site, good_site], "2026-01-01", "2026-10-31", searcher=searcher)
+        report = screen_sites([bad_site, good_site], "2026-06-17", "2026-08-16", searcher=searcher)
         self.assertEqual(len(report["sites"]), 2)
         # The first error is recorded; a later site can still pass even when one
         # location fails, rather than aborting the complete screening report.
