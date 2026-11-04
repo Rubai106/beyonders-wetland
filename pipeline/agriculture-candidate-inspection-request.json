@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "purpose": "non-publishing Baniachong native SME2 HDF5 quality comparison",
+  "west": 91.3867,
+  "south": 24.3533,
+  "east": 91.4467,
+  "north": 24.4133,
+  "start": "2026-06-17",
+  "end": "2026-10-31",
+  "series_id_141": "c5f219dd7bbc",
+  "series_id_069": "540e079403d5"
+}
