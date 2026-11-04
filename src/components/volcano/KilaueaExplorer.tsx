@@ -105,17 +105,18 @@ export default function KilaueaExplorer() {
     {pair && <div className="volcano-context-note"><strong>Screened coverage</strong><p>{percent(pair.statistics.valid_fraction)} · {pair.statistics.assessed_area_km2.toFixed(1)} km² assessed within the analyst-defined box.</p></div>}
   </>;
 
-  if (error && !study) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="KĪLAUEA · PUBLISHED STUDY" title="Kīlauea phase evidence" subtitle="The published evidence is currently unavailable." rail={commonRail} map={<p className="deformation-case-state" role="status">{error}</p>} drawer={<Link href="/volcano/global">Return to volcano observations</Link>} footer={<span className="iw-footer-note">No result available is not evidence of no deformation</span>} />;
-  if (!study || !pair || !loaded) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="KĪLAUEA · PUBLISHED STUDY" title="Loading Kīlauea phase evidence" subtitle="Loading the published NISAR phase, coherence, and quality-screened layers." rail={commonRail} map={<p className="deformation-case-state" role="status">Loading published NISAR data…</p>} drawer={<p>Loading dates, provenance, and pixel inspection…</p>} footer={<span className="iw-footer-note">NISAR L2 GUNW BETA · local credentials are not required to view published data</span>} />;
-
-  const fieldVolumeData = useMemo(() => [{
+  const fieldVolumeData = useMemo(() => pair ? [{
     id: pair.id,
     label: date(pair.start) + " – " + date(pair.end),
     value: Math.max(0, pair.statistics.p95_cm - pair.statistics.p05_cm),
     valueLabel: (pair.statistics.p95_cm - pair.statistics.p05_cm).toFixed(1) + " cm spread",
     context: pair.statistics.valid_fraction,
-  }], [pair]);
-  const sampleDescription = !point ?  const sampleDescription = !point ? "Choose a point on the map or enter coordinates." : !pixel ? "This point is outside the processed box." : pixel.los === null ? "This sample is unassessed: it failed a phase, coherence, component, mask, or coverage screen." : "This nearest published grid sample passed the published quality screens.";
+  }] : [], [pair]);
+
+  if (error && !study) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="KĪLAUEA · PUBLISHED STUDY" title="Kīlauea phase evidence" subtitle="The published evidence is currently unavailable." rail={commonRail} map={<p className="deformation-case-state" role="status">{error}</p>} drawer={<Link href="/volcano/global">Return to volcano observations</Link>} footer={<span className="iw-footer-note">No result available is not evidence of no deformation</span>} />;
+  if (!study || !pair || !loaded) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="KĪLAUEA · PUBLISHED STUDY" title="Loading Kīlauea phase evidence" subtitle="Loading the published NISAR phase, coherence, and quality-screened layers." rail={commonRail} map={<p className="deformation-case-state" role="status">Loading published NISAR data…</p>} drawer={<p>Loading dates, provenance, and pixel inspection…</p>} footer={<span className="iw-footer-note">NISAR L2 GUNW BETA · local credentials are not required to view published data</span>} />;
+
+  const sampleDescription = !point ? "Choose a point on the map or enter coordinates." : !pixel ? "This point is outside the processed box." : pixel.los === null ? "This sample is unassessed: it failed a phase, coherence, component, mask, or coverage screen." : "This nearest published grid sample passed the published quality screens.";
   const kilaueaTabs = [
     { id: "explore", number: "01", label: "Explore", hint: "Review the observation and map layers", anchorIds: ["kilauea-guide-explore"], content: <div id="kilauea-guide-explore" className="volcano-tab-panel deformation-explorer kilauea-evidence">
       <p className="hazard-tab-intro">One real repeat-pass NISAR interferogram is published for this case. Use the map toolbar to switch phase, coherence, relative motion, and screened coverage.</p>

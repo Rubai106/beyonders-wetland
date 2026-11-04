@@ -139,6 +139,16 @@ function WetlandPulseChart() {
     });
   }, [pulseData, available]);
 
+  const fmtArea = (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)} km²`;
+  const fieldVolumeData = useMemo(() => points.map((point) => ({
+    id: point.date,
+    label: fmtDate(point.date, { month: "short", day: "numeric" }),
+    value: point.area_km2,
+    valueLabel: fmtArea(point.area_km2),
+    context: point.fraction,
+    available: point.hasResult,
+  })), [points]);
+
   if (!pulseData || !points.length) return null;
 
   const top = 26; const bottom = 168;
@@ -153,16 +163,6 @@ function WetlandPulseChart() {
     return point ? [{ ...marker, x: point.x }] : [];
   });
   const active = points[Math.min(Math.max(selectedDateIndex, 0), points.length - 1)];
-  const fmtArea = (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)} km²`;
-
-  const fieldVolumeData = useMemo(() => points.map((point) => ({
-    id: point.date,
-    label: fmtDate(point.date, { month: "short", day: "numeric" }),
-    value: point.area_km2,
-    valueLabel: fmtArea(point.area_km2),
-    context: point.fraction,
-    available: point.hasResult,
-  })), [points]);
 
   function selectPoint(index: number, hasResult: boolean) {
     if (!hasResult) return;

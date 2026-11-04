@@ -194,6 +194,13 @@ export default function DeformationExplorer() {
     }
     return samples;
   },[primaryGrid.grid,point]);
+  const fieldVolumeData = useMemo(() => (study?.pairs ?? []).filter((item) => item.sensor === "NISAR").map((item) => ({
+    id: item.id,
+    label: item.label,
+    value: Math.max(0, item.statistics.p95_cm - item.statistics.p05_cm),
+    valueLabel: (item.statistics.p95_cm - item.statistics.p05_cm).toFixed(1) + " cm spread",
+    context: item.statistics.valid_fraction,
+  })), [study]);
   if(error) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="HAYLI GUBBI · PUBLISHED STUDY" title="Explore volcanic ground motion" subtitle="Published phase evidence is unavailable for this browser session." rail={<p className="volcano-kicker">NISAR RADAR EVIDENCE · AFAR, ETHIOPIA</p>} map={<p className="deformation-case-state" role="status">{error}</p>} drawer={<a href="/operator-guide">Local processing instructions ↗</a>} footer={<span className="iw-footer-note">No result available · this does not mean no deformation occurred</span>} />;
   if(!loaded||!study||!pair) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="HAYLI GUBBI · PUBLISHED STUDY" title="Explore volcanic ground motion" subtitle="Loading the published NISAR and Sentinel-1 evidence." rail={<p className="volcano-kicker">NISAR RADAR EVIDENCE · AFAR, ETHIOPIA</p>} map={<p className="deformation-case-state" role="status">Loading published deformation evidence…</p>} drawer={<p>Loading interval dates, quality details, and pixel inspection controls…</p>} footer={<span className="iw-footer-note">Official phase products · evidence will appear when loaded</span>} />;
   const comparison=study.comparisons.find(item=>item.nisar_id===pair.id&&item.sentinel_id===reference?.id);
@@ -203,14 +210,6 @@ export default function DeformationExplorer() {
       :[{item:pair,title:"Coherence change unavailable",image:null,emptyMessage:"No immediately preceding NISAR interval with matching track, direction, polarization, wavelength, and duration is published for this selection."}]
     : [pair,...(reference?[reference]:[])].map(item=>({item,title:`${item.label} · ${item.sensor}`,image:layer==="phase_cycles"?(item.id===pair.id?phasePrimary.url:phaseReference.url):loaded.base+item[layer],emptyMessage:layer==="phase_cycles"?(item.id===pair.id?phasePrimary.error:phaseReference.error)??"Loading phase samples and building the cyclic color layer…":"This radar layer is unavailable."}));
   function choosePoint(lat:number,lon:number) {setPoint({lat,lon});setLatInput(lat.toFixed(5));setLonInput(lon.toFixed(5));setCoordinateError(null);}
-  const fieldVolumeData = useMemo(() => study.pairs.filter((item) => item.sensor === "NISAR").map((item) => ({
-    id: item.id,
-    label: item.label,
-    value: Math.max(0, item.statistics.p95_cm - item.statistics.p05_cm),
-    valueLabel: (item.statistics.p95_cm - item.statistics.p05_cm).toFixed(1) + " cm spread",
-    context: item.statistics.valid_fraction,
-  })), [study]);
-
   function submitCoordinates(event:React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const latitudeText=latInput.trim(),longitudeText=lonInput.trim();
