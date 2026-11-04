@@ -216,6 +216,23 @@ def _crop_mask_temporal_provenance(
     ):
         raise AgricultureError("Crop-mask latest-scene recency metadata is inconsistent with its source dates.")
 
+    manifest_path = mask_path.parent / "dynamic-world-source-manifest.json"
+    count_path = mask_path.parent / "dynamic-world-valid-observation-count.tif"
+    source_files = (
+        (manifest_path, "manifest_sha256", "Dynamic World source manifest"),
+        (mask_path, "probability_sha256", "Dynamic World probability raster"),
+        (count_path, "observation_count_sha256", "Dynamic World observation-count raster"),
+    )
+    for source_path, hash_key, label in source_files:
+        expected_hash = evidence.get(hash_key)
+        if (
+            not source_path.is_file()
+            or not isinstance(expected_hash, str)
+            or not re.fullmatch(r"[a-f0-9]{64}", expected_hash)
+            or sha256_file(source_path) != expected_hash
+        ):
+            raise AgricultureError(f"{label} checksum no longer matches the validated crop-mask receipt.")
+
     hashes = {
         key: evidence.get(key)
         for key in ("manifest_sha256", "probability_sha256", "observation_count_sha256")

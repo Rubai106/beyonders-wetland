@@ -332,6 +332,10 @@ class AgricultureSME2Tests(unittest.TestCase):
 
     def _write_crop_validation_receipt(self, root, mask_path):
         validation_path = root / "validation.json"
+        manifest_path = root / "dynamic-world-source-manifest.json"
+        count_path = root / "dynamic-world-valid-observation-count.tif"
+        manifest_path.write_bytes(b"validated source manifest bytes")
+        count_path.write_bytes(b"validated observation-count raster bytes")
         validation = {
             "status": "VALIDATED_FOR_OPTIONAL_SME2_AREA_AUDIT",
             "dataset": "GOOGLE/DYNAMICWORLD/V1",
@@ -351,9 +355,9 @@ class AgricultureSME2Tests(unittest.TestCase):
                 "cue_days": 18,
                 "status": "RECENT_WITHIN_18_DAY_WINDOW",
             },
-            "manifest_sha256": "a" * 64,
+            "manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
             "probability_sha256": hashlib.sha256(mask_path.read_bytes()).hexdigest(),
-            "observation_count_sha256": "c" * 64,
+            "observation_count_sha256": hashlib.sha256(count_path.read_bytes()).hexdigest(),
         }
         validation_path.write_text(json.dumps(validation), encoding="utf-8")
         return validation_path, validation
@@ -378,6 +382,31 @@ class AgricultureSME2Tests(unittest.TestCase):
             self.assertEqual(result["latest_scene_recency"]["days_from_latest_scene_to_requested_end"], 0)
             self.assertEqual(result["probability_sha256"], hashlib.sha256(mask_path.read_bytes()).hexdigest())
             self.assertEqual(result["validation_sha256"], hashlib.sha256(validation_path.read_bytes()).hexdigest())
+
+    def test_crop_mask_temporal_provenance_rechecks_manifest_and_count_raster_bytes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            mask_path = root / "probability.tif"
+            mask_path.write_bytes(b"validated raster bytes")
+            validation_path, _ = self._write_crop_validation_receipt(root, mask_path)
+
+            for filename, changed_bytes, expected_message in (
+                ("dynamic-world-source-manifest.json", b"changed source manifest", "source manifest checksum"),
+                ("dynamic-world-valid-observation-count.tif", b"changed count raster", "observation-count raster checksum"),
+            ):
+                with self.subTest(filename=filename):
+                    fixture_path = root / filename
+                    original = fixture_path.read_bytes()
+                    fixture_path.write_bytes(changed_bytes)
+                    with self.assertRaisesRegex(AgricultureError, expected_message):
+                        _crop_mask_temporal_provenance(
+                            validation_path, mask_path, run_id="agri-test-01",
+                            series_id="c5f219dd7bbc",
+                            source_label="Dynamic World GOOGLE/DYNAMICWORLD/V1 crops probability median composite (2026-08-01 to 2026-08-15)",
+                            probability_threshold=0.5,
+                            expected_dates=["2026-08-01", "2026-08-15"],
+                        )
+                    fixture_path.write_bytes(original)
 
     def test_crop_mask_temporal_provenance_rejects_wrong_run_series_and_threshold(self):
         with tempfile.TemporaryDirectory() as temp:
