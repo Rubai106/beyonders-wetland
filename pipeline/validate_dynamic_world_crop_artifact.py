@@ -98,7 +98,7 @@ def _validate_manifest_and_series(
     manifest: dict[str, Any],
     search: dict[str, Any],
     receipt: dict[str, Any],
-) -> tuple[dict[str, Any], list[str], float, int]:
+) -> tuple[dict[str, Any], list[str], float, int, str, str]:
     if manifest.get("schema_version") != 1 or manifest.get("dataset") != DATASET:
         raise ArtifactValidationError("Unsupported Dynamic World manifest schema or dataset.")
     if manifest.get("class") != "crops":
@@ -164,7 +164,8 @@ def _validate_manifest_and_series(
             or isinstance(scene_count, bool) or not isinstance(scene_count, int)
             or scene_count < unique_count
             or not isinstance(image_ids, list) or len(image_ids) != scene_count
-            or any(not isinstance(item, str) or not item for item in image_ids)):
+            or any(not isinstance(item, str) or not item.strip() or item != item.strip() for item in image_ids)
+            or len(set(image_ids)) != len(image_ids)):
         raise ArtifactValidationError("Dynamic World source image/date counts are internally inconsistent.")
     if (observations.get("first_acquisition_date") != parsed_dates[0].isoformat()
             or observations.get("latest_acquisition_date") != parsed_dates[-1].isoformat()):
