@@ -43,7 +43,7 @@ on:
         default: true
         type: boolean
   push:
-    branches: [Rubai-dev]
+    branches: [master]
     paths:
       - 'pipeline/agriculture-cloud-request.json'
 
@@ -56,7 +56,7 @@ concurrency:
 
 jobs:
   process-and-publish:
-    if: github.ref_name == 'Rubai-dev'
+    if: github.ref_name == 'master'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -64,10 +64,10 @@ jobs:
       RUN_ID: agri-${{ github.run_id }}
 
     steps:
-      - name: Check out Rubai-dev
+      - name: Check out master
         uses: actions/checkout@v4
         with:
-          ref: Rubai-dev
+          ref: master
 
       - name: Resolve AOI and date inputs
         id: request
@@ -218,7 +218,7 @@ jobs:
           BEYONDERS_MODE: public
           NEXT_PUBLIC_BEYONDERS_MODE: public
 
-      - name: Commit the publication package to Rubai-dev
+      - name: Commit the publication package to master
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -228,7 +228,7 @@ jobs:
             echo "No publication changes to commit."
           else
             git commit -m "Publish cloud-verified Agriculture study ($RUN_ID)"
-            git push origin HEAD:Rubai-dev
+            git push origin HEAD:master
           fi
 
       - name: Save non-sensitive processing receipts
@@ -253,7 +253,7 @@ jobs:
           {
             echo "## Agriculture cloud publication complete"
             echo "- Run: `$RUN_ID`"
-            echo "- Branch: `Rubai-dev`"
+            echo "- Branch: `master`"
             echo "- Website package: `public/agriculture/current`"
             echo "- Raw SME2 and IMERG granules were not committed."
           } >> "$GITHUB_STEP_SUMMARY"
