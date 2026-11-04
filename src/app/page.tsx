@@ -263,8 +263,19 @@ export default function Home() {
             <Link href="/wetland">Wetlands</Link>
             <Link href="/forest/rondonia">Forests</Link>
             <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
+            <Link href="/agriculture">Agriculture</Link>
             <Link href="/wetland/global">NISAR worldwide</Link>
           </nav>
+          <details className="g3-mobile-nav">
+            <summary>Explore <span aria-hidden="true">⌄</span></summary>
+            <nav aria-label="Mobile primary">
+              <Link href="/wetland">Wetlands</Link>
+              <Link href="/forest/rondonia">Forests</Link>
+              <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
+              <Link href="/agriculture">Agriculture</Link>
+              <Link href="/wetland/global">NISAR worldwide</Link>
+            </nav>
+          </details>
         </header>
 
         <section className="g3-map-filter" aria-label="Choose the study type shown on the globe">
@@ -439,7 +450,7 @@ export default function Home() {
       <footer className="g3-foot">
         <p><strong>GeoNexSAR</strong></p>
         <p>GeoNexSAR shows observed data and derived results with provenance. A radar-change candidate is never presented as a confirmed flood.</p>
-        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
+        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
       </footer>
     </main>
   );

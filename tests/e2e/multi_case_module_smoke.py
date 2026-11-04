@@ -47,6 +47,22 @@ def main() -> int:
         page.add_init_script("localStorage.setItem('geonexsar_tour_v1', '1')")
         page.on("pageerror", lambda error: errors.append(str(error)))
 
+        # The landing page must expose all four workspaces from both navigation
+        # locations; Agriculture is a workspace but not a globe marker layer.
+        page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30_000)
+        primary_nav = page.get_by_role("navigation", name="Primary")
+        require(
+            primary_nav.get_by_role("link", name="Agriculture").get_attribute("href") == "/agriculture"
+            and all(primary_nav.get_by_role("link", name=name).count() == 1 for name in ("Wetlands", "Forests", "Volcanoes", "Agriculture")),
+            "the desktop landing navigation exposes every published workspace",
+        )
+        footer_nav = page.get_by_role("navigation", name="Footer")
+        require(
+            footer_nav.get_by_role("link", name="Agriculture").get_attribute("href") == "/agriculture"
+            and all(footer_nav.get_by_role("link", name=name).count() == 1 for name in ("Wetlands", "Forests", "Volcanoes", "Agriculture")),
+            "the landing footer provides a direct route to all four workspaces",
+        )
+
         # Both seven-date wetland publications must use the same genuine
         # observation/timeline/map interaction, while keeping Tanguar default.
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
@@ -169,6 +185,27 @@ def main() -> int:
         # Responsive acceptance: selectors and the active map must remain
         # available without horizontal page overflow on a phone viewport.
         page.set_viewport_size({"width": 390, "height": 844})
+        page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30_000)
+        mobile_menu = page.locator(".g3-mobile-nav")
+        require(
+            mobile_menu.is_visible() and not page.locator(".g3-top > nav").is_visible(),
+            "the landing page switches to a compact mobile navigation instead of squeezing desktop links",
+        )
+        mobile_menu.locator("summary").click()
+        mobile_nav = page.get_by_role("navigation", name="Mobile primary")
+        require(
+            mobile_nav.get_by_role("link", name="Agriculture").get_attribute("href") == "/agriculture"
+            and all(mobile_nav.get_by_role("link", name=name).count() == 1 for name in ("Wetlands", "Forests", "Volcanoes", "Agriculture")),
+            "the mobile navigation exposes every workspace with full-size touch targets",
+        )
+        require(
+            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
+            "the landing page has no horizontal overflow at phone width",
+        )
+        mobile_nav.get_by_role("link", name="Agriculture").click()
+        page.wait_for_url("**/agriculture", timeout=30_000)
+        require(True, "the mobile Agriculture navigation opens the published workspace")
+
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
         mobile_case_picker = page.locator(".wx-casepick")
         mobile_case_picker.wait_for(state="visible", timeout=30_000)

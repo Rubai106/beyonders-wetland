@@ -220,7 +220,52 @@
 @media (max-width: 860px) {
   .g3-title { left: 18px; right: 18px; top: 44%; max-width: none; }
   .g3-coord { display: none; }
-  .g3-top { padding: 14px 18px; }
+  .g3-top { z-index: 8; padding: 14px 18px; }
+  .g3-top > nav { display: none; }
+  .g3-mobile-nav { display: block; position: relative; margin-left: auto; }
+  .g3-mobile-nav > summary {
+    display: flex;
+    min-width: 92px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(16,20,28,.9);
+    color: var(--txt);
+    cursor: pointer;
+    font: 11px var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    list-style: none;
+  }
+  .g3-mobile-nav > summary::-webkit-details-marker { display: none; }
+  .g3-mobile-nav[open] > nav {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    width: min(252px, calc(100vw - 36px));
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(7,9,13,.97);
+    box-shadow: 0 16px 40px rgba(0,0,0,.42);
+    backdrop-filter: blur(14px);
+  }
+  .g3-mobile-nav[open] > nav a {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 6px;
+  }
+  .g3-mobile-nav[open] > nav a:hover { background: rgba(125,211,252,.1); color: var(--txt); }
+  .g3-foot nav { flex-wrap: wrap; gap: 12px 18px; }
   .g3-map-filter { top: 66px; left: 18px; right: 18px; width: auto; padding: 10px; }
   .g3-map-filter__eyebrow { margin-bottom: 7px; }
   .g3-map-filter__choice { padding: 8px 7px; }
@@ -238,4 +283,18 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .rv { opacity: 1; transform: none; transition: none; }
+  .radar-sweep::before, .g3-pinbar-dot, .g3-scrollcue span { animation: none !important; }
+  .tilt, .g3-btn, .g3-map-filter__choice, .globe-tag { transition: none !important; }
 }
+
+/* Keep keyboard focus visible in both navigation layouts and primary actions. */
+.g3-top nav a:focus-visible,
+.g3-mobile-nav > summary:focus-visible,
+.g3-mobile-nav nav a:focus-visible,
+.g3-foot nav a:focus-visible,
+.g3-btn:focus-visible,
+.g3-phen-card a:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+.g3-mobile-nav { display: none; }
