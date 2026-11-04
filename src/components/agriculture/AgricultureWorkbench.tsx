@@ -21,6 +21,10 @@ import {
   type AgricultureRainfallWindow,
 } from "@/lib/agriculture-study";
 import type { AgricultureCatalogueResult } from "@/lib/agriculture-catalogue";
+import {
+  isDynamicWorldArtifactDiscoveryResult,
+  type DynamicWorldArtifactOption,
+} from "@/lib/agriculture-dynamic-world-artifact";
 import { AGRICULTURE_SME2_MIN_DATE, isAgricultureCatalogueResult } from "@/lib/agriculture-catalogue-schema";
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
 import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
@@ -76,6 +80,7 @@ type AgricultureSearchValues = {
   start: string; end: string;
 };
 type CatalogueSearchStatus = "idle" | "searching" | "complete" | "error";
+type DynamicWorldDiscoveryStatus = "idle" | "loading" | "ready" | "error";
 
 function validSearchForm(values: AgricultureSearchValues) {
   if (![values.west, values.south, values.east, values.north].every((item) => item.trim() !== "")) return false;
@@ -123,6 +128,9 @@ export default function AgricultureWorkbench() {
   const [processingAlgorithm, setProcessingAlgorithm] = useState<"baseline" | "DSG">("baseline");
   const [copiedWorkflowInputs, setCopiedWorkflowInputs] = useState<string | null>(null);
   const [dynamicWorldRunId, setDynamicWorldRunId] = useState("");
+  const [dynamicWorldArtifacts, setDynamicWorldArtifacts] = useState<DynamicWorldArtifactOption[]>([]);
+  const [dynamicWorldDiscoveryStatus, setDynamicWorldDiscoveryStatus] = useState<DynamicWorldDiscoveryStatus>("idle");
+  const [dynamicWorldDiscoveryError, setDynamicWorldDiscoveryError] = useState("");
   const [copiedDynamicWorldInputs, setCopiedDynamicWorldInputs] = useState<string | null>(null);
   const [clipboardUnavailable, setClipboardUnavailable] = useState(false);
 
@@ -286,6 +294,34 @@ export default function AgricultureWorkbench() {
       setClipboardUnavailable(true);
     }
   }, [dynamicWorldWorkflowInputsText]);
+  const discoverDynamicWorldArtifacts = useCallback(async () => {
+    setDynamicWorldDiscoveryStatus("loading");
+    setDynamicWorldDiscoveryError("");
+    try {
+      const response = await fetch("/api/agriculture/dynamic-world-artifacts?refresh=" + Date.now(), {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      const payload: unknown = await response.json();
+      if (!response.ok) {
+        const message = payload && typeof payload === "object" && "error" in payload &&
+          typeof payload.error === "string"
+          ? payload.error
+          : "Could not check recent Dynamic World workflow runs.";
+        throw new Error(message);
+      }
+      if (!isDynamicWorldArtifactDiscoveryResult(payload)) {
+        throw new Error("GitHub returned malformed or unsafe Dynamic World artifact metadata.");
+      }
+      setDynamicWorldArtifacts(payload.artifacts);
+      setDynamicWorldDiscoveryStatus("ready");
+    } catch (error) {
+      setDynamicWorldDiscoveryError(
+        error instanceof Error ? error.message : "Could not check recent Dynamic World workflow runs.",
+      );
+      setDynamicWorldDiscoveryStatus("error");
+    }
+  }, []);
   const copyWorkflowInputs = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(workflowInputsText);
@@ -1049,6 +1085,62 @@ export default function AgricultureWorkbench() {
                 <p className="agri-online-next__feedback" role="status">
                   {clipboardUnavailable ? "Clipboard access is unavailable; use the AOI and date details above." : copiedDynamicWorldInputs === dynamicWorldWorkflowInputsText ? "Inputs copied. Run this workflow on master and inspect its artifact before continuing." : "Copy these inputs, then run the Dynamic World workflow on master."}
                 </p>
+                <div className="agri-dw-artifacts" aria-label="Recent Dynamic World crop evidence artifacts">
+                  <div className="agri-dw-artifacts__header">
+                    <div>
+                      <span className="agri-eyebrow">EXISTING ACQUISITIONS</span>
+                      <strong>Find a completed crop-evidence run</strong>
+                    </div>
+                    <button
+                      type="button"
+                      className="agri-dw-artifacts__refresh"
+                      onClick={() => void discoverDynamicWorldArtifacts()}
+                      disabled={dynamicWorldDiscoveryStatus === "loading"}
+                    >
+                      {dynamicWorldDiscoveryStatus === "loading" ? "Checking…" : "Check recent runs"}
+                    </button>
+                  </div>
+                  {dynamicWorldDiscoveryStatus === "idle" && (
+                    <p className="agri-dw-artifacts__message">Check GitHub for a successful, unexpired Dynamic World artifact on master. This lookup reads public Actions metadata only.</p>
+                  )}
+                  {dynamicWorldDiscoveryStatus === "loading" && (
+                    <p className="agri-dw-artifacts__message" role="status">Checking recent master workflow runs and their retained artifacts…</p>
+                  )}
+                  {dynamicWorldDiscoveryStatus === "error" && (
+                    <p className="agri-dw-artifacts__message is-error" role="alert">{dynamicWorldDiscoveryError}</p>
+                  )}
+                  {dynamicWorldDiscoveryStatus === "ready" && dynamicWorldArtifacts.length === 0 && (
+                    <p className="agri-dw-artifacts__message" role="status">No successful, unexpired Dynamic World artifact was found. Run stage 01 above on master, then check again. You can still paste a run ID manually.</p>
+                  )}
+                  {dynamicWorldArtifacts.length > 0 && (
+                    <div className="agri-dw-artifacts__list">
+                      {dynamicWorldArtifacts.map((artifact) => (
+                        <div className="agri-dw-artifact" key={artifact.run_id}>
+                          <button
+                            type="button"
+                            className={"agri-dw-artifact__select" + (dynamicWorldRunId.trim() === String(artifact.run_id) ? " is-selected" : "")}
+                            aria-pressed={dynamicWorldRunId.trim() === String(artifact.run_id)}
+                            onClick={() => setDynamicWorldRunId(String(artifact.run_id))}
+                          >
+                            <span className="agri-dw-artifact__top">
+                              <strong>Run #{artifact.run_number}</strong>
+                              <small>{new Date(artifact.created_at).toLocaleString("en", { dateStyle: "medium", timeStyle: "short" })}</small>
+                            </span>
+                            <span className="agri-dw-artifact__meta">
+                              <code>{artifact.run_id}</code>
+                              <span>{(artifact.artifact_size_bytes / (1024 * 1024)).toFixed(1)} MB</span>
+                              <span>Expires {dateLabel(artifact.expires_at.slice(0, 10))}</span>
+                            </span>
+                          </button>
+                          <a href={artifact.run_url} target="_blank" rel="noreferrer" aria-label={"Inspect Dynamic World run " + artifact.run_number}>View run ↗</a>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {dynamicWorldArtifacts.length > 0 && (
+                    <p className="agri-dw-artifacts__message">These are successful workflow artifacts, not yet validated for this AOI or SME2 date series. The next stage checks the actual raster and source manifest before using it.</p>
+                  )}
+                </div>
                 <p className="agri-online-next__footnote">This step requires repository Actions secrets EARTH_ENGINE_PROJECT and EARTH_ENGINE_SERVICE_ACCOUNT_JSON. The service-account key must stay in GitHub Secrets; never paste it here. No SME2 study is changed by this acquisition.</p>
               </section>
 

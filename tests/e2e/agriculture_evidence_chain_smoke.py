@@ -402,9 +402,45 @@ def main() -> int:
                 body=json.dumps(catalogue_fixture),
             ),
         )
+        dynamic_world_discovery_fixture = {
+            "schema_version": 1,
+            "checked_at": "2026-11-04T12:00:00.000Z",
+            "status": "AVAILABLE",
+            "artifacts": [{
+                "run_id": 41835012345,
+                "run_number": 512,
+                "created_at": "2026-11-04T10:00:00.000Z",
+                "run_url": "https://github.com/Rubai106/beyonders-wetland/actions/runs/41835012345",
+                "head_sha": "a" * 40,
+                "artifact_id": 512345,
+                "artifact_name": "agriculture-dynamic-world-crop-evidence-41835012345",
+                "artifact_size_bytes": 1_048_576,
+                "expires_at": "2026-12-04T10:00:00.000Z",
+            }],
+        }
+        page.route(
+            "**/api/agriculture/dynamic-world-artifacts**",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(dynamic_world_discovery_fixture),
+            ),
+        )
         page.get_by_role("button", name="Discover SME2 observations").click()
         page.get_by_role("link", name="Open Dynamic World workflow").wait_for(state="visible", timeout=10_000)
         page.get_by_role("link", name="Open SME2 workflow").wait_for(state="visible", timeout=10_000)
+        page.get_by_role("button", name="Check recent runs").click()
+        page.get_by_role("button", name="Run #512").wait_for(state="visible", timeout=10_000)
+        require(
+            page.locator(".agri-dw-artifacts__list .agri-dw-artifact").count() == 1
+            and "not yet validated for this AOI" in page.locator(".agri-dw-artifacts").inner_text(),
+            "the Operator discovers only the retained successful artifact option and explains that AOI matching is still pending",
+        )
+        page.get_by_role("button", name="Run #512").click()
+        require(
+            page.get_by_label("Dynamic World successful run ID", exact=False).input_value() == "41835012345",
+            "selecting a discovered artifact fills the SME2 handoff run ID",
+        )
         require(
             page.locator(".agri-online-next__launch").count() == 2
             and all("ref=master" in (page.locator(".agri-online-next__launch").nth(index).get_attribute("href") or "")
