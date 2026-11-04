@@ -1,0 +1,316 @@
+/*
+ * GeoNexSAR platform visual system.
+ * A shared, calm workspace rhythm with hazard-specific accents.
+ */
+:root {
+  --platform-radius: 12px;
+  --platform-radius-sm: 8px;
+  --platform-line: rgba(159, 190, 197, .14);
+  --platform-panel: rgba(13, 22, 29, .94);
+  --platform-panel-raised: rgba(19, 30, 38, .96);
+  --platform-muted: #a0b0b7;
+  --platform-copy: #dce7e8;
+}
+.wx-root.wx-hazard-shell {
+  --module-accent: #69d6cc;
+  background: #080f14;
+  color: var(--platform-copy);
+}
+.wx-root.wx-hazard-shell[data-hazard="wetland"] { --module-accent: #69d6cc; }
+.wx-root.wx-hazard-shell[data-hazard="forest"] { --module-accent: #a6d59a; }
+.wx-root.wx-hazard-shell[data-hazard="volcano"] { --module-accent: #edaa78; }
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] { --module-accent: #c2cf91; }
+
+.wx-root.wx-hazard-shell .wx-mast {
+  min-height: 58px;
+  padding-inline: clamp(12px, 2vw, 26px);
+  border-bottom-color: var(--platform-line);
+  background: rgba(7, 14, 19, .96);
+  backdrop-filter: blur(18px);
+}
+.wx-root.wx-hazard-shell .wx-brand {
+  letter-spacing: -.045em;
+}
+.wx-root.wx-hazard-shell .wx-nav {
+  gap: 4px;
+}
+.wx-root.wx-hazard-shell .wx-nav a,
+.wx-root.wx-hazard-shell .wx-nav button {
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #aebfc2;
+  font-size: .78rem;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.wx-root.wx-hazard-shell .wx-nav a:hover,
+.wx-root.wx-hazard-shell .wx-nav button:hover {
+  border-color: var(--platform-line);
+  background: rgba(255,255,255,.045);
+  color: #edf6f4;
+}
+.wx-root.wx-hazard-shell .wx-nav a[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--module-accent) 32%, transparent);
+  background: color-mix(in srgb, var(--module-accent) 9%, transparent);
+  color: var(--module-accent);
+}
+.wx-root.wx-hazard-shell .wx-quest {
+  min-height: 88px;
+  gap: 18px;
+  padding: 13px clamp(14px, 2vw, 28px);
+  border-left: 2px solid var(--module-accent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--module-accent) 5%, #0c151b), #0c151b 42%);
+}
+.wx-root.wx-hazard-shell .wx-quest > div {
+  min-width: 0;
+}
+.wx-root.wx-hazard-shell .wx-quest h1 {
+  color: #f1f5ef;
+  font-size: clamp(1.34rem, 2vw, 1.9rem);
+  line-height: 1.13;
+  letter-spacing: -.035em;
+}
+.wx-root.wx-hazard-shell .wx-quest p {
+  max-width: 78ch;
+  color: #9cabb0;
+  font-size: .84rem;
+  line-height: 1.45;
+}
+.wx-root.wx-hazard-shell .wx-rail {
+  padding: 18px 16px 22px;
+  gap: 13px;
+  border-right-color: var(--platform-line);
+  background: #0b141a;
+}
+.wx-root.wx-hazard-shell .wx-rail :is(h2, h3) {
+  color: #e7f0ed;
+  letter-spacing: -.02em;
+}
+.wx-root.wx-hazard-shell .wx-rail p,
+.wx-root.wx-hazard-shell .wx-rail small {
+  color: #9eafb3;
+  line-height: 1.55;
+}
+.wx-root.wx-hazard-shell .wx-drawer {
+  border-left-color: var(--platform-line);
+  background: #0a1319;
+  box-shadow: -20px 0 50px rgba(0,0,0,.16);
+}
+.wx-root.wx-hazard-shell .wx-drawer__bar {
+  min-height: 48px;
+  border-bottom-color: var(--platform-line);
+  background: #0d171e;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body {
+  padding: 18px 17px 28px;
+  overscroll-behavior: contain;
+}
+.wx-root.wx-hazard-shell .wx-drawer__tabs button {
+  min-height: 40px;
+  border-radius: 8px;
+}
+.wx-root.wx-hazard-shell .wx-map {
+  background: #081116;
+}
+.wx-root.wx-hazard-shell .wx-timeline,
+.wx-root.wx-hazard-shell .wx-acq {
+  border-top-color: var(--platform-line);
+  background: rgba(9, 17, 23, .96);
+}
+.wx-root.wx-hazard-shell .wx-root__footer,
+.wx-root.wx-hazard-shell .wx-hazard-footer {
+  border-top-color: var(--platform-line);
+}
+.wx-root.wx-hazard-shell :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--module-accent);
+  outline-offset: 3px;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(h1, h2, h3, h4) {
+  line-height: 1.25;
+  letter-spacing: -.015em;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(p, li, dd, td) {
+  line-height: 1.55;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(small, .wx-micro) {
+  font-size: max(.7rem, .72em);
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(section, article, details) {
+  scroll-margin-top: 16px;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(table, .deformation-table-scroll, .forest-chart) {
+  max-width: 100%;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(.deformation-table-scroll, .deformation-chart-scroll) {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(.forest-tab-panel, .volcano-tab-panel) {
+  display: grid;
+  gap: 18px;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(.hazard-tab-intro, .agri-intro) {
+  color: #adbdbe;
+  font-size: .88rem;
+  line-height: 1.6;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(.forest-study-toolbar, .deformation-heading, .kilauea-stats) {
+  border-color: var(--platform-line);
+  border-radius: var(--platform-radius-sm);
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(.forest-study-toolbar, .deformation-toolbar, .deformation-inspector, .kilauea-pixel-inspector) {
+  gap: 12px;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(.forest-message, .deformation-method-note, .kilauea-uncertainty) {
+  padding: 11px 13px;
+  border-left: 2px solid var(--module-accent);
+  border-radius: 0 8px 8px 0;
+  background: color-mix(in srgb, var(--module-accent) 5%, #0c151b);
+  color: #c2cdca;
+  line-height: 1.55;
+}
+
+/* Forest: a coherent evidence-card rhythm, without turning every paragraph into a box. */
+.wx-root.wx-hazard-shell[data-hazard="forest"] .wx-drawer__body :is(.forest-explain, .forest-evidence-grid) {
+  gap: 12px;
+}
+.wx-root.wx-hazard-shell[data-hazard="forest"] .wx-drawer__body :is(.forest-explain article, .forest-evidence-grid article) {
+  padding: 14px;
+  border: 1px solid var(--platform-line);
+  border-radius: 10px;
+  background: var(--platform-panel);
+}
+.wx-root.wx-hazard-shell[data-hazard="forest"] .wx-drawer__body :is(.forest-explain article h2, .forest-evidence-grid article h2) {
+  font-size: .98rem;
+}
+
+/* Volcano: place the measured method and the interpretation limit in separate visual layers. */
+.wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-drawer__body .deformation-heading {
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--platform-line);
+}
+.wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-drawer__body .deformation-heading h2 {
+  margin: 0;
+  color: #f1e7dc;
+  font-size: 1rem;
+}
+.wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-drawer__body :is(.deformation-comparison, .deformation-provenance, .deformation-band-comparison) {
+  padding: 14px;
+  border: 1px solid var(--platform-line);
+  border-radius: 10px;
+  background: var(--platform-panel);
+}
+.wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-drawer__body :is(.deformation-comparison h3, .deformation-provenance summary, .deformation-band-comparison h3) {
+  color: #f0c09a;
+}
+
+/* Agriculture: reduce dense diagnostics while keeping their data hierarchy intact. */
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-drawer-panel {
+  gap: 18px;
+  padding: 14px;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-drawer-panel > :is(section, .agri-stat-grid) {
+  margin: 0;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-observability,
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-flag-atlas,
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-cohort-audit {
+  border-radius: 10px;
+  border-color: rgba(159, 190, 197, .18);
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-observability__stats span,
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-observability__stats small,
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-flag-atlas__intro,
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-flag-atlas__empty {
+  font-size: .68rem;
+  line-height: 1.5;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-observability__note {
+  font-size: .72rem;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-map-readout {
+  border-radius: 12px;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-map-toolbar button {
+  min-height: 40px;
+  border-radius: 8px;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-stat-grid > div {
+  border-radius: 8px;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-stat-grid span {
+  font-size: .72rem;
+}
+.wx-root.wx-hazard-shell[data-hazard="agriculture"] .agri-stat-grid small {
+  font-size: .68rem;
+  line-height: 1.45;
+}
+
+/* Shared hit-area, overflow and responsive behavior. */
+.wx-root.wx-hazard-shell .wx-drawer__body :is(button, select, input:not([type="checkbox"]):not([type="radio"]):not([type="range"])) {
+  max-width: 100%;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(button, select, input:not([type="checkbox"]):not([type="radio"])) {
+  min-height: 38px;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body :is(img, canvas, svg) {
+  max-width: 100%;
+}
+@media (max-width: 960px) {
+  .wx-root.wx-hazard-shell .wx-mast {
+    flex-wrap: wrap;
+    min-height: 56px;
+    padding-block: 7px;
+  }
+  .wx-root.wx-hazard-shell .wx-nav {
+    flex-wrap: wrap;
+  }
+  .wx-root.wx-hazard-shell .wx-quest {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .wx-root.wx-hazard-shell .wx-quest > div {
+    flex: 1 1 100%;
+  }
+}
+@media (max-width: 700px) {
+  .wx-root.wx-hazard-shell .wx-mast {
+    gap: 6px 10px;
+  }
+  .wx-root.wx-hazard-shell .wx-nav {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: thin;
+  }
+  .wx-root.wx-hazard-shell .wx-nav a,
+  .wx-root.wx-hazard-shell .wx-nav button {
+    flex: 0 0 auto;
+    min-height: 40px;
+  }
+  .wx-root.wx-hazard-shell .wx-quest {
+    min-height: 0;
+    padding: 12px;
+  }
+  .wx-root.wx-hazard-shell .wx-quest .wx-micro {
+    display: none;
+  }
+  .wx-root.wx-hazard-shell .wx-quest h1 {
+    font-size: 1.45rem;
+  }
+  .wx-root.wx-hazard-shell .wx-drawer__body {
+    padding: 14px 12px 22px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wx-root.wx-hazard-shell *,
+  .wx-root.wx-hazard-shell *::before,
+  .wx-root.wx-hazard-shell *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
