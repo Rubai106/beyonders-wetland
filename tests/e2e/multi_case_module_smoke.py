@@ -75,6 +75,16 @@ def main() -> int:
         )
         globe_canvas.focus()
         globe_canvas.press("ArrowLeft")
+        globe_controls = page.get_by_role("group", name="Globe movement controls")
+        require(
+            all(globe_controls.get_by_role("button", name=name).count() == 1 for name in (
+                "Rotate globe left", "Tilt globe up", "Rotate globe right",
+                "Tilt globe down", "Zoom globe out", "Zoom globe in",
+            )),
+            "globe rotation and zoom also have single-click controls for pointer users",
+        )
+        globe_controls.get_by_role("button", name="Rotate globe left").click()
+        globe_controls.get_by_role("button", name="Zoom globe in").click()
 
         # Pin selection supports exact coordinate entry as well as globe taps.
         page.get_by_role("button", name="Drop a pin anywhere").click()
