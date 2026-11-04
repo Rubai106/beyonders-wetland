@@ -1354,10 +1354,10 @@ def _align_crop_probability_mask(
                 source.crs, target_crs, *source.bounds, densify_pts=41
             )
             target_corners = [
-                target_transform * (0, 0),
-                target_transform * (width, 0),
-                target_transform * (width, height),
-                target_transform * (0, height),
+                target_transform @ (0, 0),
+                target_transform @ (width, 0),
+                target_transform @ (width, height),
+                target_transform @ (0, height),
             ]
             target_left = min(point[0] for point in target_corners)
             target_right = max(point[0] for point in target_corners)
@@ -1378,9 +1378,9 @@ def _align_crop_probability_mask(
             # Estimate source pixel area in the SME2 equal-area CRS. Reject
             # coarse inputs rather than making them appear to have finer detail.
             center_col, center_row = source.width / 2, source.height / 2
-            p00 = source.transform * (center_col, center_row)
-            p10 = source.transform * (center_col + 1, center_row)
-            p01 = source.transform * (center_col, center_row + 1)
+            p00 = source.transform @ (center_col, center_row)
+            p10 = source.transform @ (center_col + 1, center_row)
+            p01 = source.transform @ (center_col, center_row + 1)
             transformer = Transformer.from_crs(source.crs, target_crs, always_xy=True)
             q00 = transformer.transform(*p00)
             q10 = transformer.transform(*p10)

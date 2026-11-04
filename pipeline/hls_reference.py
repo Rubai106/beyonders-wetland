@@ -238,7 +238,7 @@ def area_supported_metrics(radar_candidates, radar_valid, study_mask, radar_prof
     optical = optical_change.astype("float64")
     radar = candidate_share.astype("float64")
     transform = native["transform"]
-    pixel = Polygon([transform*(0,0), transform*(1,0), transform*(1,1), transform*(0,1)])
+    pixel = Polygon([transform @ (0,0), transform @ (1,0), transform @ (1,1), transform @ (0,1)])
     pixel_area = area_km2(pixel, native["crs"])
     tp = float(np.sum(weight * radar * optical, dtype="float64") * pixel_area)
     fp = float(np.sum(weight * radar * (1-optical), dtype="float64") * pixel_area)
@@ -482,8 +482,8 @@ def validate_hls_open_water(config, baseline_date, event_date, site_boundary_pat
 
     transform = target_profile["transform"]
     from shapely.geometry import Polygon
-    pixel = Polygon([transform * (0, 0), transform * (1, 0),
-                     transform * (1, 1), transform * (0, 1)])
+    pixel = Polygon([transform @ (0, 0), transform @ (1, 0),
+                     transform @ (1, 1), transform @ (0, 1)])
     pixel_area = area_km2(pixel, target_profile["crs"])
     used_products = sorted({first["product"], second["product"]})
     reference_label = ("NASA HLS S30 v2.0 (Sentinel-2 surface reflectance)" if used_products == ["S30"]

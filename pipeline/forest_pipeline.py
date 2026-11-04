@@ -65,7 +65,7 @@ def pixel_area(profile):
     if not CRS.from_user_input(profile["crs"]).is_projected:
         raise ValueError("Classification must use the native projected radar grid.")
     t = profile["transform"]
-    return area_km2(shape({"type": "Polygon", "coordinates": [[t*(0,0), t*(1,0), t*(1,1), t*(0,1), t*(0,0)]]}), profile["crs"])
+    return area_km2(shape({"type": "Polygon", "coordinates": [[t @ (0,0), t @ (1,0), t @ (1,1), t @ (0,1), t @ (0,0)]]}), profile["crs"])
 
 
 def write_tif(path, values, profile, nodata=np.nan):
