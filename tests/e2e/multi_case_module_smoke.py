@@ -173,13 +173,62 @@ def main() -> int:
 
         page.goto(BASE + "/agriculture", wait_until="domcontentloaded", timeout=30_000)
         page.locator(".agri-map").wait_for(state="visible", timeout=30_000)
-        page.locator(".agri-chart .agri-chart-point button").first.wait_for(state="visible", timeout=30_000)
-        require(
-            page.locator(".agri-chart .agri-chart-point button").count() == 6
-            and page.locator(".agri-map-toolbar").is_visible()
-            and page.locator(".agri-map").evaluate("(el) => el.getBoundingClientRect().height >= 200"),
-            "Agriculture keeps its map controls and six-date timeline usable on a phone",
+        agriculture_status = page.locator(".agri-status-pill")
+        agriculture_status.wait_for(state="visible", timeout=30_000)
+        page.wait_for_function(
+            "() => { const status = document.querySelector('.agri-status-pill'); "
+            "return status && status.textContent?.trim() !== 'Checking published study'; }",
+            timeout=30_000,
         )
+        agriculture_state = (agriculture_status.inner_text() or "").strip()
+        agriculture_timeline = page.locator(".agri-chart .agri-chart-point button")
+        agriculture_toolbar = page.locator(".agri-map-toolbar")
+        agriculture_map_height = page.locator(".agri-map").evaluate(
+            "(el) => el.getBoundingClientRect().height"
+        )
+
+        if agriculture_state == "Checksum verified":
+            footer_summary = page.locator(".agri-footer-head > span:last-child").inner_text()
+            try:
+                expected_dates = int(footer_summary.split("/", 1)[1].split("·", 1)[0].strip())
+            except (IndexError, ValueError) as error:
+                raise AssertionError(
+                    f"Could not read the published Agriculture date count from {footer_summary!r}"
+                ) from error
+            require(
+                expected_dates >= 4
+                and agriculture_timeline.count() == expected_dates
+                and agriculture_toolbar.is_visible()
+                and agriculture_map_height >= 200,
+                "Agriculture keeps every checksum-verified date, map control and timeline point usable on a phone",
+            )
+        elif agriculture_state == "No local publication":
+            require(
+                agriculture_timeline.count() == 0
+                and page.locator(".agri-footer-empty").is_visible()
+                and page.locator(".agri-map-empty").is_visible()
+                and agriculture_toolbar.is_visible()
+                and page.locator(".agri-map-toolbar button").evaluate_all(
+                    "(nodes) => nodes.every((button) => button.disabled)"
+                )
+                and agriculture_map_height >= 200,
+                "Agriculture shows a clean no-publication state without fabricated dates or enabled data controls",
+            )
+        elif agriculture_state == "Publication unavailable":
+            require(
+                agriculture_timeline.count() == 0
+                and page.locator(".agri-map-integrity").is_visible()
+                and page.locator(".agri-footer-empty").is_visible()
+                and agriculture_toolbar.is_visible()
+                and agriculture_map_height >= 200,
+                "Agriculture withholds unverified measurements while retaining a usable map and integrity explanation",
+            )
+        else:
+            require(
+                False,
+                f"Agriculture reaches a recognized stable publication state (received {agriculture_state!r})",
+            )
+
         require(
             page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
             "the Agriculture mobile workspace has no horizontal page overflow",
