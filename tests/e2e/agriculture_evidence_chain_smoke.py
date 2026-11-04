@@ -55,11 +55,21 @@ def verify_field_volume(page) -> None:
         canvas.is_visible() and observations.count() >= 4,
         "Agriculture renders a data-bound 3D scene with the published dated SME2 observations",
     )
-    observations.nth(1).click()
+    initial_index = observations.evaluate_all(
+        "(buttons) => buttons.findIndex(button => button.getAttribute('aria-pressed') === 'true')"
+    )
+    require(initial_index >= 0, "Agriculture starts on one published SME2 observation")
+    target = observations.nth(1)
+    target.click()
     require(
-        observations.nth(1).get_attribute("aria-pressed") == "true"
-        and observations.nth(0).get_attribute("aria-pressed") == "false",
+        target.get_attribute("aria-pressed") == "true"
+        and observations.locator("button[aria-pressed='true']").count() == 1,
         "Agriculture date selection updates the active 3D measurement",
+    )
+    observations.nth(initial_index).click()
+    require(
+        observations.nth(initial_index).get_attribute("aria-pressed") == "true",
+        "Agriculture restores the original map date after the 3D interaction check",
     )
     disclosure.get_by_role("button", name="Close 3D view").click()
     require(

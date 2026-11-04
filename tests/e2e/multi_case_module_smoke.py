@@ -53,6 +53,10 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
         canvas.is_visible() and dates.count() >= minimum_dates,
         f"{label} opens its data-bound 3D scene and exposes {minimum_dates}+ selectable observations",
     )
+    initial_index = dates.evaluate_all(
+        "(buttons) => buttons.findIndex(button => button.getAttribute('aria-pressed') === 'true')"
+    )
+    require(initial_index >= 0, f"{label} starts with one real observation selected")
     selectable = date_list.locator("button:not([disabled])")
     if selectable.count() > 1:
         target = selectable.nth(1)
@@ -79,6 +83,12 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
                 date_list.locator("button[aria-pressed='true']").count() == 1,
                 f"{label} supports keyboard date navigation inside the 3D scene",
             )
+        dates.nth(initial_index).click()
+        require(
+            dates.nth(initial_index).get_attribute("aria-pressed") == "true"
+            and date_list.locator("button[aria-pressed='true']").count() == 1,
+            f"{label} restores the original selected observation after the 3D interaction check",
+        )
     disclosure.get_by_role("button", name="Close 3D view").click()
     require(
         disclosure.locator("canvas.field-volume-canvas").count() == 0,
