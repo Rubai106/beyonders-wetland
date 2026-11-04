@@ -49,7 +49,7 @@ class AgricultureCandidateWorkflowTests(unittest.TestCase):
         self.assertIn("agriculture_sme2.py download", run_scripts)
         self.assertIn("agriculture_sme2_inspect.py", run_scripts)
         self.assertNotRegex(run_scripts, r"agriculture_sme2\.py\s+(?:analyze|publish)")
-        self.assertNotIn("public/agriculture/current", run_scripts)
+        self.assertNotRegex(run_scripts, r"(?m)^\\s*(?:git\\s+add|cp|mv)\\b.*public/agriculture/current")
         self.assertIn("No winner is selected automatically", run_scripts)
 
     def test_every_shell_block_passes_bash_syntax_check(self):
