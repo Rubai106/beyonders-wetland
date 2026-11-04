@@ -263,6 +263,8 @@ class AgricultureSME2Tests(unittest.TestCase):
         self.assertEqual(result["fill_pixels"], 1)
         self.assertEqual(result["invalid_pixels"], 2)
         self.assertEqual(result["unsupported_encoding_pixels"], 1)
+        self.assertEqual(result["unsupported_values"], [{"value": 256, "pixels": 1}])
+        self.assertFalse(result["unsupported_values_truncated"])
         self.assertEqual(result["flags"]["static_water"], 2)
         self.assertEqual(result["flags"]["urban_area"], 1)
         self.assertEqual(result["flags"]["precipitation"], 1)
@@ -275,6 +277,22 @@ class AgricultureSME2Tests(unittest.TestCase):
             {"mask": 128, "pixels": 1},
         ])
         self.assertEqual(sum(item["pixels"] for item in result["flag_combinations"]), result["flagged_pixels"])
+
+    def test_surface_flag_unsupported_values_are_sorted_and_bounded(self):
+        values = np.array([[
+            256, 256, 257, 257, 257, 258, 259, 260, 261,
+            262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272,
+        ]], dtype="float64")
+        result = surface_flag_diagnostics(values, np.ones(values.shape, dtype=bool))
+        self.assertEqual(result["unsupported_encoding_pixels"], 20)
+        self.assertEqual(len(result["unsupported_values"]), 16)
+        self.assertTrue(result["unsupported_values_truncated"])
+        self.assertEqual(result["unsupported_values"][:3], [
+            {"value": 257, "pixels": 3},
+            {"value": 256, "pixels": 2},
+            {"value": 258, "pixels": 1},
+        ])
+        self.assertEqual(sum(item["pixels"] for item in result["unsupported_values"]), 19)
 
     def test_surface_flag_combinations_are_exclusive_and_sorted_by_count(self):
         values = np.array([[1, 3, 3, 1, 5, 0]], dtype="float64")

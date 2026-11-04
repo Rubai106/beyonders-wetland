@@ -1170,6 +1170,16 @@ def surface_flag_diagnostics(surface_flag: np.ndarray, aoi_mask: np.ndarray,
         ),
         key=lambda item: (-item["pixels"], item["mask"]),
     )
+    unsupported_unique, unsupported_counts = np.unique(values[unsupported], return_counts=True)
+    unsupported_values = sorted(
+        (
+            {"value": int(value), "pixels": int(count)}
+            for value, count in zip(unsupported_unique, unsupported_counts)
+        ),
+        key=lambda item: (-item["pixels"], item["value"]),
+    )
+    unsupported_values_truncated = len(unsupported_values) > 16
+    unsupported_values = unsupported_values[:16]
     return {
         "method": SURFACE_FLAG_METHOD,
         "total_aoi_pixels": total,
@@ -1179,6 +1189,8 @@ def surface_flag_diagnostics(surface_flag: np.ndarray, aoi_mask: np.ndarray,
         "fill_pixels": int(np.sum(aoi & fill)),
         "invalid_pixels": int(np.sum(invalid)),
         "unsupported_encoding_pixels": int(np.sum(unsupported)),
+        "unsupported_values": unsupported_values,
+        "unsupported_values_truncated": unsupported_values_truncated,
         "flags": flags,
         "flag_combinations": flag_combinations,
     }

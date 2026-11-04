@@ -104,6 +104,14 @@ def main() -> int:
             page.locator(".agri-flag-atlas").count() == 1,
             "the surface-flag overlap atlas renders from the real study",
         )
+        unknown_flags = page.locator(".agri-unknown-flags")
+        require(
+            unknown_flags.count() == 1
+            and unknown_flags.is_visible()
+            and "bits 0" in unknown_flags.inner_text()
+            and "did not retain its per-value histogram" in unknown_flags.inner_text(),
+            "out-of-range surface flags are explained and fail closed when the historical raw histogram is absent",
+        )
 
         agriculture_map = page.locator(".agri-map")
         require(agriculture_map.count() == 1 and agriculture_map.is_visible(), "the Agriculture map renders")

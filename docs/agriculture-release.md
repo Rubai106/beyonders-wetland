@@ -28,6 +28,8 @@ New Agriculture study observations now carry a decoded per-date NISAR SME2 surfa
 
 The screen remains strict and unchanged: the published moisture-valid mask still requires surfaceQualityFlag == 0 along with all existing retrieval, moisture, uncertainty, fill and AOI checks. A clear surface flag alone is not a valid retrieval.
 
+The documented surface flag contains bits 0–7. Values above 255 are not assigned a guessed meaning and remain excluded from the clear-pixel set. New publications retain a sorted histogram of the 16 most frequent raw out-of-range values, with a truncation marker when further values exist. Earlier releases that retained only the aggregate count remain valid and the UI explicitly identifies the missing raw histogram.
+
 This is an AOI-level observability diagnostic, not yet a crop-mask intersection. It must not be described as crop-area coverage until an independent crop mask is provided, versioned and aligned to the SME2 native grid.
 
 ## Exact flag-overlap atlas (Step 1C)

@@ -24,6 +24,12 @@ export interface AgricultureSurfaceFlagCombination {
   pixels: number;
 }
 
+export interface AgricultureSurfaceFlagUnsupportedValue {
+  /** Raw integer value outside the documented 0–255 surface-flag range. */
+  value: number;
+  pixels: number;
+}
+
 export interface AgricultureSurfaceFlagDiagnostics {
   method: "NISAR_SME2_SURFACE_QUALITY_FLAG_BITS";
   total_aoi_pixels: number;
@@ -36,6 +42,10 @@ export interface AgricultureSurfaceFlagDiagnostics {
   flags: Record<AgricultureSurfaceFlagId, number>;
   /** Optional for compatibility with earlier schema-v2 publications. */
   flag_combinations?: AgricultureSurfaceFlagCombination[];
+  /** Top 16 raw out-of-range values; their meanings are deliberately not inferred. */
+  unsupported_values?: AgricultureSurfaceFlagUnsupportedValue[];
+  /** True when additional out-of-range values exist beyond the retained top 16. */
+  unsupported_values_truncated?: boolean;
 }
 
 export interface AgricultureObservation extends AgricultureSummary {
@@ -360,6 +370,38 @@ function validSurfaceFlagDiagnostics(value: unknown, expectedTotal: number): val
     }
     if (totalCombinationPixels !== flagged ||
         !ids.every((id, bit) => combinedBitCounts[bit] === Number(flags[id]))) return false;
+  }
+
+  // The documented flag atlas covers only values 0–255. Preserve a bounded,
+  // explicitly unclassified histogram for higher raw values without guessing
+  // undocumented bit meanings. Older releases may omit this optional audit.
+  if (value.unsupported_values !== undefined || value.unsupported_values_truncated !== undefined) {
+    if (!Array.isArray(value.unsupported_values) ||
+        typeof value.unsupported_values_truncated !== "boolean" ||
+        value.unsupported_values.length > 16) return false;
+    const seenValues = new Set<number>();
+    let retainedPixels = 0;
+    let previousPixels = Number.POSITIVE_INFINITY;
+    let previousValue = -1;
+    for (const item of value.unsupported_values) {
+      if (!isRecord(item) || !Number.isInteger(item.value) || Number(item.value) <= 255 ||
+          !Number.isInteger(item.pixels) || Number(item.pixels) < 1 ||
+          Number(item.pixels) > Number(value.unsupported_encoding_pixels)) return false;
+      const rawValue = Number(item.value);
+      const pixels = Number(item.pixels);
+      if (seenValues.has(rawValue) || pixels > previousPixels ||
+          (pixels === previousPixels && rawValue <= previousValue)) return false;
+      seenValues.add(rawValue);
+      retainedPixels += pixels;
+      previousPixels = pixels;
+      previousValue = rawValue;
+    }
+    if (value.unsupported_values_truncated) {
+      if (value.unsupported_values.length !== 16 ||
+          retainedPixels > Number(value.unsupported_encoding_pixels)) return false;
+    } else if (retainedPixels !== Number(value.unsupported_encoding_pixels)) {
+      return false;
+    }
   }
   return true;
 }

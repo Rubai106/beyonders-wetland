@@ -582,6 +582,7 @@ export default function AgricultureWorkbench() {
   }, []);
   const surfaceDiagnostics = selectedObservation?.surface_flag_diagnostics ?? null;
   const flagCombinations = surfaceDiagnostics?.flag_combinations ?? null;
+  const unsupportedSurfaceValues = surfaceDiagnostics?.unsupported_values ?? null;
   const selectedFlagCombination = flagCombinations?.find((item) => item.mask === selectedFlagMask) ??
     flagCombinations?.[0] ?? null;
   const visibleFlagCombinations = flagCombinations
@@ -657,11 +658,37 @@ export default function AgricultureWorkbench() {
                     <small>Pixels with at least one documented surface flag</small>
                   </div>
                   <div>
-                    <span>Not decodable</span>
+                    <span>Held out</span>
                     <strong>{(surfaceDiagnostics.fill_pixels + surfaceDiagnostics.invalid_pixels + surfaceDiagnostics.unsupported_encoding_pixels).toLocaleString()}</strong>
-                    <small>Fill, invalid or unsupported flag encodings</small>
+                    <small>Fill, invalid and out-of-range values; never treated as clear</small>
                   </div>
                 </div>
+                {surfaceDiagnostics.unsupported_encoding_pixels > 0 && (
+                  <section className="agri-unknown-flags" aria-labelledby="agri-unknown-flags-title">
+                    <div className="agri-unknown-flags__head">
+                      <strong id="agri-unknown-flags-title">Raw values outside the documented range</strong>
+                      <span>{surfaceDiagnostics.unsupported_encoding_pixels.toLocaleString()} pixels held out</span>
+                    </div>
+                    <p>The SME2 specification documents surface-flag bits 0–7 (values 0–255). Higher raw values are retained as unmapped codes: they are excluded from the clear-pixel count, and no undocumented meaning is guessed.</p>
+                    {unsupportedSurfaceValues?.length ? (
+                      <>
+                        <ul className="agri-unknown-flags__list" aria-label="Unmapped raw surface-flag value counts">
+                          {unsupportedSurfaceValues.map((item) => (
+                            <li key={item.value}>
+                              <code>0x{item.value.toString(16).toUpperCase()} · {item.value}</code>
+                              <span>{item.pixels.toLocaleString()} px</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {surfaceDiagnostics.unsupported_values_truncated && (
+                          <small>Showing the 16 most frequent values. The held-out total includes any additional values.</small>
+                        )}
+                      </>
+                    ) : (
+                      <p className="agri-unknown-flags__fallback">This historical release retained the held-out pixel total but did not retain its per-value histogram.</p>
+                    )}
+                  </section>
+                )}
                 <div className="agri-observability__rows">
                   {SURFACE_FLAG_LABELS.map((flag) => {
                     const count = surfaceDiagnostics.flags[flag.id];

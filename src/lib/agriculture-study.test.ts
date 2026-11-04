@@ -101,6 +101,8 @@ test("validates the per-date SME2 surface-flag observability audit", () => {
     fill_pixels: 3,
     invalid_pixels: 1,
     unsupported_encoding_pixels: 1,
+    unsupported_values: [{ value: 256, pixels: 1 }],
+    unsupported_values_truncated: false,
     flags: {
       static_water: 2, urban_area: 3, precipitation: 12, snow_or_ice: 0,
       permanent_snow_or_ice: 0, frozen_ground: 1, terrain: 1, dense_vegetation: 11,
@@ -133,6 +135,22 @@ test("validates the per-date SME2 surface-flag observability audit", () => {
   const unordered = structuredClone(changed);
   unordered.observations[0].surface_flag_diagnostics.flag_combinations.reverse();
   assert.equal(isAgricultureStudy(unordered), false);
+
+  const wrongUnsupportedTotal = structuredClone(changed);
+  wrongUnsupportedTotal.observations[0].surface_flag_diagnostics.unsupported_values[0].pixels = 2;
+  assert.equal(isAgricultureStudy(wrongUnsupportedTotal), false);
+
+  const documentedValueInUnsupportedList = structuredClone(changed);
+  documentedValueInUnsupportedList.observations[0].surface_flag_diagnostics.unsupported_values[0].value = 255;
+  assert.equal(isAgricultureStudy(documentedValueInUnsupportedList), false);
+
+  const boundedHistogram = structuredClone(changed);
+  boundedHistogram.observations[0].surface_flag_diagnostics.unsupported_encoding_pixels = 17;
+  boundedHistogram.observations[0].surface_flag_diagnostics.unsupported_values = Array.from(
+    { length: 16 }, (_, index) => ({ value: 256 + index, pixels: 1 }),
+  );
+  boundedHistogram.observations[0].surface_flag_diagnostics.unsupported_values_truncated = true;
+  assert.equal(isAgricultureStudy(boundedHistogram), true);
 });
 
 test("validates an independently sourced, area-weighted crop-support audit", () => {

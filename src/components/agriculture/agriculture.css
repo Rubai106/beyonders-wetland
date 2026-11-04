@@ -2060,3 +2060,64 @@
   .agri-online-next__copy,
   .agri-online-next__launch { width: 100%; }
 }
+
+ 
+/* Unknown surface-flag values stay visible without being assigned guessed meanings. */
+.agriculture-workspace .agri-unknown-flags {
+  display: grid;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid #554a34;
+  border-left: 2px solid #b49a62;
+  border-radius: 3px;
+  background: #11191a;
+}
+.agriculture-workspace .agri-unknown-flags__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+}
+.agriculture-workspace .agri-unknown-flags__head strong {
+  color: #e6dfc8;
+  font-size: .62rem;
+}
+.agriculture-workspace .agri-unknown-flags__head span,
+.agriculture-workspace .agri-unknown-flags__fallback,
+.agriculture-workspace .agri-unknown-flags p,
+.agriculture-workspace .agri-unknown-flags > small {
+  margin: 0;
+  color: #a9a18b;
+  font-size: .55rem;
+  line-height: 1.5;
+}
+.agriculture-workspace .agri-unknown-flags__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.agriculture-workspace .agri-unknown-flags__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 7px;
+  border: 1px solid #3a4037;
+  border-radius: 2px;
+  background: #171e1c;
+  color: #d5dccd;
+  font-size: .54rem;
+}
+.agriculture-workspace .agri-unknown-flags__list code {
+  color: #e5d6a7;
+  font: 600 .53rem var(--font-mono, monospace);
+}
+.agriculture-workspace .agri-unknown-flags__list span {
+  flex: 0 0 auto;
+  color: #b4c0aa;
+  font: 600 .52rem var(--font-mono, monospace);
+}
