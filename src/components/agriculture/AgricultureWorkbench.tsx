@@ -29,6 +29,7 @@ import { AGRICULTURE_SME2_MIN_DATE, isAgricultureCatalogueResult } from "@/lib/a
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
 import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
 import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
+import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import TriageBriefButton from "@/components/shared/TriageBriefButton";
 import "./agriculture.css";
 
@@ -599,6 +600,13 @@ export default function AgricultureWorkbench() {
     loadState === "not-published" ? "No local publication" : "Publication unavailable";
 
   const evidenceChain = buildAgricultureEvidenceChain(study);
+  const fieldVolumeData = useMemo(() => (study?.observations ?? []).map((item) => ({
+    id: item.date,
+    label: dateLabel(item.date),
+    value: item.median,
+    valueLabel: formatMoisture(item.median),
+    context: item.valid_fraction,
+  })), [study]);
 
   const drawerTabs: InvestigationDrawerTab[] = [
     {
@@ -607,6 +615,23 @@ export default function AgricultureWorkbench() {
         <div className="agri-drawer-panel" id="agri-explore-intro">
           <p className="agri-intro">Explore the measured SME2 soil-moisture series. The map and statistics below are loaded only from a checksum-verified published study.</p>
           {study ? <>
+            <FieldVolumeDisclosure
+              kind="agriculture"
+              title="Soil-moisture observations in 3D"
+              metricLabel="SME2 median volumetric soil moisture"
+              contextLabel="Valid AOI coverage"
+              observations={fieldVolumeData}
+              selectedId={selectedObservation?.date ?? ""}
+              onSelectId={(date) => {
+                const index = study.observations.findIndex((item) => item.date === date);
+                if (index >= 0) {
+                  setSelectedIndex(index);
+                  setSeriesSupportMode("date-valid");
+                  setLayer("moisture");
+                }
+              }}
+              note="Columns use each real acquisition’s median SME2 moisture and valid AOI fraction. The furrows are conceptual terrain, not a vertical soil profile or a field-level crop diagnosis."
+            />
             <div className="agri-stat-grid">
               <div>
                 <span>{layer === "crop-source" ? "Mean source-data coverage" : layer === "change" ? "Median moisture difference" : cropLayerActive ? "Crop-weighted SME2 median" : "Median soil moisture"}</span>

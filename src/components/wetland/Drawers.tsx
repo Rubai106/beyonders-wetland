@@ -7,6 +7,7 @@ import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/sho
 import { downloadFile, patchesCSV } from "@/lib/real-export";
 import { challenge, changeStory, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
+import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
 
 const STATUS_WORD: Record<StackStatus, string> = { PASS: "Passed", PARTIAL: "Partial", FAIL: "Not shown", UNAVAILABLE: "Unavailable" };
@@ -154,6 +155,15 @@ function WetlandPulseChart() {
   const active = points[Math.min(Math.max(selectedDateIndex, 0), points.length - 1)];
   const fmtArea = (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)} km²`;
 
+  const fieldVolumeData = useMemo(() => points.map((point) => ({
+    id: point.date,
+    label: fmtDate(point.date, { month: "short", day: "numeric" }),
+    value: point.area_km2,
+    valueLabel: fmtArea(point.area_km2),
+    context: point.fraction,
+    available: point.hasResult,
+  })), [points]);
+
   function selectPoint(index: number, hasResult: boolean) {
     if (!hasResult) return;
     setIsPlaying(false);
@@ -213,6 +223,19 @@ function WetlandPulseChart() {
         </div>
         <p className="wx-caption">{pulseData.product ?? "NISAR L2 GCOV"} · provisional · {points.length} acquisitions. Click a bar or focus it and press Enter to inspect its date on the map.</p>
       </div>
+      <FieldVolumeDisclosure
+        kind="wetland"
+        title="Wetland pulse in three dimensions"
+        metricLabel="Recorded candidate area"
+        contextLabel="Study-area share"
+        observations={fieldVolumeData}
+        selectedId={active.date}
+        onSelectId={(id) => {
+          const point = points.find((item) => item.date === id);
+          if (point) selectPoint(point.index, point.hasResult);
+        }}
+        note="Columns use actual exported NISAR candidate area by acquisition date. The water surface is conceptual, not a measured elevation model or a confirmed flood extent."
+      />
     </ToolFrame>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
+import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
 import { probeVolcano, validVolcanoGrid, type VolcanoGrid, type VolcanoStudy } from "@/lib/volcano-study";
 import type { VolcanoFocus } from "./DeformationMap";
@@ -107,7 +108,14 @@ export default function KilaueaExplorer() {
   if (error && !study) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="KĪLAUEA · PUBLISHED STUDY" title="Kīlauea phase evidence" subtitle="The published evidence is currently unavailable." rail={commonRail} map={<p className="deformation-case-state" role="status">{error}</p>} drawer={<Link href="/volcano/global">Return to volcano observations</Link>} footer={<span className="iw-footer-note">No result available is not evidence of no deformation</span>} />;
   if (!study || !pair || !loaded) return <InvestigationWorkspace hazard="volcano" className="volcano-page volcano-case-workspace" caseName="KĪLAUEA · PUBLISHED STUDY" title="Loading Kīlauea phase evidence" subtitle="Loading the published NISAR phase, coherence, and quality-screened layers." rail={commonRail} map={<p className="deformation-case-state" role="status">Loading published NISAR data…</p>} drawer={<p>Loading dates, provenance, and pixel inspection…</p>} footer={<span className="iw-footer-note">NISAR L2 GUNW BETA · local credentials are not required to view published data</span>} />;
 
-  const sampleDescription = !point ? "Choose a point on the map or enter coordinates." : !pixel ? "This point is outside the processed box." : pixel.los === null ? "This sample is unassessed: it failed a phase, coherence, component, mask, or coverage screen." : "This nearest published grid sample passed the published quality screens.";
+  const fieldVolumeData = useMemo(() => [{
+    id: pair.id,
+    label: date(pair.start) + " – " + date(pair.end),
+    value: Math.max(0, pair.statistics.p95_cm - pair.statistics.p05_cm),
+    valueLabel: (pair.statistics.p95_cm - pair.statistics.p05_cm).toFixed(1) + " cm spread",
+    context: pair.statistics.valid_fraction,
+  }], [pair]);
+  const sampleDescription = !point ?  const sampleDescription = !point ? "Choose a point on the map or enter coordinates." : !pixel ? "This point is outside the processed box." : pixel.los === null ? "This sample is unassessed: it failed a phase, coherence, component, mask, or coverage screen." : "This nearest published grid sample passed the published quality screens.";
   const kilaueaTabs = [
     { id: "explore", number: "01", label: "Explore", hint: "Review the observation and map layers", anchorIds: ["kilauea-guide-explore"], content: <div id="kilauea-guide-explore" className="volcano-tab-panel deformation-explorer kilauea-evidence">
       <p className="hazard-tab-intro">One real repeat-pass NISAR interferogram is published for this case. Use the map toolbar to switch phase, coherence, relative motion, and screened coverage.</p>
@@ -115,6 +123,15 @@ export default function KilaueaExplorer() {
       <dl className="kilauea-stats"><div><dt>Dates</dt><dd>{date(pair.start)} — {date(pair.end)}</dd></div><div><dt>Screened coverage</dt><dd>{percent(pair.statistics.valid_fraction)}</dd></div><div><dt>Assessed area</dt><dd>{pair.statistics.assessed_area_km2.toFixed(1)} km²</dd></div><div><dt>Median coherence</dt><dd>{pair.statistics.median_coherence.toFixed(3)}</dd></div><div><dt>LOS 5th–95th percentile</dt><dd>{pair.statistics.p05_cm.toFixed(1)} to {pair.statistics.p95_cm.toFixed(1)} cm</dd></div><div><dt>Reference patch MAD</dt><dd>{pair.statistics.reference_mad_cm.toFixed(2)} cm</dd></div><div><dt>Product maturity</dt><dd>{pair.maturity} · NISAR L2 GUNW</dd></div></dl>
       <p className="kilauea-uncertainty">Reference-patch MAD describes spatial spread in the selected patch; it is not measurement accuracy or a per-pixel uncertainty estimate. The 40 cm map stretch is fixed and documented.</p>
       <div className="deformation-toolbar"><span><strong>Viewing:</strong> {layer === "los_image" ? "relative LOS motion" : layer === "phase_cycles" ? "phase modulo 2π" : layer === "coherence_image" ? "coherence quality" : "screened coverage"}</span><a href={loaded.base + pair.los_download} download>Download relative LOS GeoTIFF</a></div>
+      <FieldVolumeDisclosure
+        kind="volcano"
+        title="Kīlauea phase measurement in 3D"
+        metricLabel="Apparent LOS 5th–95th percentile spread"
+        contextLabel="Screened coverage"
+        observations={fieldVolumeData}
+        selectedId={pair.id}
+        note="This is one published repeat-pass interval, not a time series. The column shows its apparent LOS distribution spread and screened coverage. The volcano shape is conceptual and does not represent surveyed topography."
+      />
     </div> },
     { id: "check", number: "02", label: "Check it", hint: "Inspect a map sample and review evidence limits", anchorIds: ["kilauea-guide-check"], content: <div id="kilauea-guide-check" className="volcano-tab-panel deformation-explorer kilauea-evidence">
       <p className="hazard-tab-intro">The selected sample reports the nearest published raster value. Event context is independent of the measured radar signal.</p>

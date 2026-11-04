@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";import { useEffect, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ForestStudy, ForestPublication, ForestCandidates } from "@/lib/forest-study";
 import BandPenetrationExplainer from "../shared/BandPenetrationExplainer";
@@ -9,6 +9,7 @@ import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 import RadarPixelPhysicsInspector from "@/components/shared/RadarPixelPhysicsInspector";
 import OpticalCoverageComparison from "@/components/shared/OpticalCoverageComparison";
 import TriageBriefButton from "@/components/shared/TriageBriefButton";
+import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
 const ForestMap = dynamic(() => import("./ForestMap"), { ssr: false, loading: () => <div className="forest-loading">Loading study map…</div> });
 const LABELS: Record<string, string> = { candidates: "Persistent radar-change candidates", delta_hv: "HV change from baseline", hh: "HH backscatter", hv: "HV backscatter", quality: "Valid radar observations", assessed: "Assessed persistence coverage", baseline_hv: "Three-date HV baseline", baseline_hh: "Three-date HH baseline", baseline_mad: "Baseline variability (MAD)", tree_cover: "Tree cover in 2021", optical_support: "Exploratory optical support", ndvi_change: "Optical NDVI change", nbr_change: "Optical NBR change", optical_before: "Optical before", optical_after: "Optical after" };
@@ -42,7 +43,14 @@ export default function ForestCase() {
         setError(e instanceof Error ? e.message : "Study unavailable."); }).finally(() => { if (!c.signal.aborted)
         setLoading(false); }); return () => c.abort(); }, []);
     const frame = study?.frames.find(f => f.date === day);
-    const base = publication?.study_url.replace(/study.json$/, "") ?? "";
+    const fieldVolumeData = useMemo(() => (study?.frames ?? []).map((item) => ({
+        id: item.date,
+        label: item.date,
+        value: item.stats.candidate_area_km2,
+        valueLabel: number(item.stats.candidate_area_km2) + " km²",
+        context: item.stats.study_area_km2 > 0 ? item.stats.assessed_area_km2 / item.stats.study_area_km2 : 0,
+    })), [study]);
+    const base = publication?.study_url.replace(/study.json$/, "") ?? "";    const base = publication?.study_url.replace(/study.json$/, "") ?? "";
     const layers = { ...(study?.layers ?? {}), ...(frame?.layers ?? {}) };
     const layerLeft = layers[left];
     const layerRight = layers[right];
@@ -59,6 +67,16 @@ export default function ForestCase() {
         <p className="hazard-tab-intro">Choose a published date and compare radar layers on the map. Candidate pixels are exploratory signals within historical tree cover.</p>
         {study && frame ? <>
           <section className="forest-study-toolbar"><div><strong>Baseline</strong><p>{study.baseline_dates.join(" · ")}</p></div><div><strong>Method</strong><p>{study.method_version}</p></div></section>
+          <FieldVolumeDisclosure
+            kind="forest"
+            title="Forest persistence through time"
+            metricLabel="Recorded candidate area"
+            contextLabel="Assessed study-area coverage"
+            observations={fieldVolumeData}
+            selectedId={day}
+            onSelectId={setDay}
+            note="Each column is the published candidate area for that date; the companion column is the assessed share of the study area. The canopy is conceptual, not a mapped 3D forest or proof of tree loss."
+          />
           {frame.stats.assessed_area_km2 === 0 && <p className="forest-message" role="status">No persistence classification is available for this date. The first later observation needs another valid later date; zero candidate area is not evidence of no forest change.</p>}
           <div className="forest-downloads">{candidateFocus && <button className="forest-button" onClick={() => setMapFocus(candidateFocus)}>Focus candidate patch</button>}<button className="forest-button" onClick={() => setMapFocus({ lat: (study.bbox[1] + study.bbox[3]) / 2, lon: (study.bbox[0] + study.bbox[2]) / 2, zoom: 11 })}>Show full study</button></div>
           <p>Use the selectors above the map to compare the baseline, later observation, persistence result, and reference layers.</p>

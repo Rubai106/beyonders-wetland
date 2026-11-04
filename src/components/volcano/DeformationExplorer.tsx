@@ -9,6 +9,7 @@ import SensorCurtain from "../shared/SensorCurtain";
 import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 import RadarSonifier from "@/components/shared/RadarSonifier";
 import TriageBriefButton from "@/components/shared/TriageBriefButton";
+import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
 
 const Map = dynamic(() => import("./DeformationMap"), {ssr:false,loading:() => <div className="deformation-loading">Loading radar map…</div>});
@@ -202,6 +203,14 @@ export default function DeformationExplorer() {
       :[{item:pair,title:"Coherence change unavailable",image:null,emptyMessage:"No immediately preceding NISAR interval with matching track, direction, polarization, wavelength, and duration is published for this selection."}]
     : [pair,...(reference?[reference]:[])].map(item=>({item,title:`${item.label} · ${item.sensor}`,image:layer==="phase_cycles"?(item.id===pair.id?phasePrimary.url:phaseReference.url):loaded.base+item[layer],emptyMessage:layer==="phase_cycles"?(item.id===pair.id?phasePrimary.error:phaseReference.error)??"Loading phase samples and building the cyclic color layer…":"This radar layer is unavailable."}));
   function choosePoint(lat:number,lon:number) {setPoint({lat,lon});setLatInput(lat.toFixed(5));setLonInput(lon.toFixed(5));setCoordinateError(null);}
+  const fieldVolumeData = useMemo(() => study.pairs.filter((item) => item.sensor === "NISAR").map((item) => ({
+    id: item.id,
+    label: item.label,
+    value: Math.max(0, item.statistics.p95_cm - item.statistics.p05_cm),
+    valueLabel: (item.statistics.p95_cm - item.statistics.p05_cm).toFixed(1) + " cm spread",
+    context: item.statistics.valid_fraction,
+  })), [study]);
+
   function submitCoordinates(event:React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const latitudeText=latInput.trim(),longitudeText=lonInput.trim();
@@ -220,6 +229,16 @@ export default function DeformationExplorer() {
       <p className="deformation-timeline-note">Eruption reported {date(study.event_date)}. Each interval is independently referenced; the timeline does not show cumulative motion. Selected interval: {pair.statistics.assessed_area_km2.toFixed(1)} km² screened.</p>
       <div className="deformation-toolbar"><label>Evidence view<select value={layer} onChange={event=>setLayer(event.target.value as Layer)}><option value="los_image">Line-of-sight displacement</option><option value="phase_cycles">Phase cycles · modulo 2π</option><option value="coherence_image">Coherence · selected pair</option><option value="coherence_change">Coherence change · vs previous matched NISAR pair</option><option value="assessed_image">Quality-screened coverage</option></select></label>{layer!=="coherence_change"?<label>Independent radar view<select value={sentinel} onChange={event=>setSentinel(event.target.value)}>{study.pairs.filter(item=>item.sensor==="Sentinel-1").map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>:<div className="deformation-baseline-label"><span>Matched baseline</span><strong>{previousPair?`${date(previousPair.start)} – ${date(previousPair.end)}`:"No adjacent pair available"}</strong></div>}<div className="deformation-region-buttons">{study.regions.map(region=><button type="button" key={region.name} onClick={()=>{choosePoint(region.lat,region.lon);setFocus({lat:region.lat,lon:region.lon,zoom:13});}}>{region.name}</button>)}</div></div>
       <p className="deformation-method-note">Current interval: {date(pair.start)}–{date(pair.end)} · {pair.sensor} {pair.collection} · {pair.polarization} · {pair.maturity}. The map displays processed study coverage only.</p>
+      <FieldVolumeDisclosure
+        kind="volcano"
+        title="Deformation intervals in three dimensions"
+        metricLabel="Apparent LOS 5th–95th percentile spread"
+        contextLabel="Screened coverage"
+        observations={fieldVolumeData}
+        selectedId={pair.id}
+        onSelectId={setSelected}
+        note="The main columns show the published apparent LOS distribution spread for each independent interval; the companion columns show screened coverage. The volcanic cone is conceptual, not surveyed topography, and intervals are not cumulative motion."
+      />
     </div> },
     { id: "check", number: "02", label: "Check it", hint: "Inspect pixels, comparison coverage, and evidence", anchorIds: ["hayli-guide-check"], content: <div id="hayli-guide-check" className="volcano-tab-panel deformation-explorer">
       <p className="hazard-tab-intro">Inspect a sample and compare the selected NISAR interval with Sentinel-1 where available. Coverage and uncertainty stay separate from interpretation.</p>
