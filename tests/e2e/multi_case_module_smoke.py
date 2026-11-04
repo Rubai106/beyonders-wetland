@@ -178,7 +178,8 @@ def main() -> int:
             and "Tanguar Haor" in page.inner_text(".wx-rail"),
             "Tanguar Haor remains the original default case",
         )
-        page.get_by_role("tab", name="Explore").click()
+        ensure_drawer_open(page)
+        page.locator(".wx-drawer__tabs button[role='tab']").filter(has_text="Explore").click()
         verify_field_volume(page, ".field-volume-disclosure--wetland", "Wetlands", minimum_dates=7)
 
         wetland_modes = page.locator(".wx-modes button[role='radio']")
@@ -402,7 +403,8 @@ def main() -> int:
         require(True, "the mobile Agriculture navigation opens the published workspace")
 
         page.goto(BASE + "/wetland", wait_until="domcontentloaded", timeout=30_000)
-        page.get_by_role("tab", name="Explore").click()
+        ensure_drawer_open(page)
+        page.locator(".wx-drawer__tabs button[role='tab']").filter(has_text="Explore").click()
         verify_field_volume(page, ".field-volume-disclosure--wetland", "Wetlands mobile", minimum_dates=7)
         require(
             page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"),
