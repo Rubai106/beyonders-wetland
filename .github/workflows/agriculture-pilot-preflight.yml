@@ -2,7 +2,7 @@ name: Agriculture pilot preflight
 
 on:
   push:
-    branches: [Rubai-dev]
+    branches: [master]
     paths:
       - ".github/workflows/agriculture-pilot-preflight.yml"
       - "pipeline/agriculture_pilot_screen.py"
@@ -12,7 +12,7 @@ on:
       start_date:
         description: "First SME2 acquisition date (YYYY-MM-DD)"
         required: true
-        default: "2026-01-01"
+        default: "2026-06-17"
         type: string
       end_date:
         description: "Last SME2 acquisition date (YYYY-MM-DD)"
@@ -28,8 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Check out Rubai-dev
+      - name: Check out master
         uses: actions/checkout@v4
+        with:
+          ref: master
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -41,7 +43,7 @@ jobs:
 
       - name: Screen Bangladesh pilot AOIs against NASA CMR
         run: |
-          START_DATE="${{ inputs.start_date || '2026-01-01' }}"
+          START_DATE="${{ inputs.start_date || '2026-06-17' }}"
           END_DATE="${{ inputs.end_date || '2026-10-31' }}"
           python pipeline/agriculture_pilot_screen.py \
             --start-date "$START_DATE" \
