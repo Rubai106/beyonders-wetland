@@ -85,7 +85,7 @@ class AgricultureSME2InspectionTests(unittest.TestCase):
     def test_observation_refuses_mismatched_array_shapes(self):
         item = scene("2026-06-20", [[True, False], [False, True]])
         item["uncertainty"] = np.ones((1, 4))
-        with self.assertRaisesRegex(AgricultureError, "same two-dimensional AOI grid"):
+        with self.assertRaisesRegex(AgricultureError, "one two-dimensional AOI grid"):
             summarize_observation(item, {"bytes": 100, "sha256": "c" * 64})
 
 
