@@ -197,8 +197,12 @@ jobs:
           set -euo pipefail
           python pipeline/agriculture_sme2_inspect.py --run-id "$RUN_ID_141" \
             --expected-series-id "$SERIES_141" --label "Track 141 / frame 014"
+          python pipeline/agriculture_sme2_inspect.py --run-id "$RUN_ID_141" \
+            --expected-series-id "$SERIES_141" --label "Track 141 / frame 014" --algorithm DSG
           python pipeline/agriculture_sme2_inspect.py --run-id "$RUN_ID_069" \
             --expected-series-id "$SERIES_069" --label "Track 069 / frame 014"
+          python pipeline/agriculture_sme2_inspect.py --run-id "$RUN_ID_069" \
+            --expected-series-id "$SERIES_069" --label "Track 069 / frame 014" --algorithm DSG
 
       - name: Summarize the non-publishing comparison
         run: |
@@ -210,30 +214,39 @@ jobs:
 
           rows = []
           for run_id in sys.argv[1:]:
-              path = Path("pipeline/output/agriculture") / run_id / "result" / "inspection.json"
-              report = json.loads(path.read_text(encoding="utf-8"))
-              coverage = report["quality_valid_fraction"]
+              base = Path("pipeline/output/agriculture") / run_id / "result"
+              baseline = json.loads((base / "inspection.json").read_text(encoding="utf-8"))
+              dsg = json.loads((base / "inspection-dsg.json").read_text(encoding="utf-8"))
+              candidate = dsg.get("candidate_analysis", {})
+              matched = candidate.get("matched_support") or {}
+              usable_fraction = candidate.get("quality_valid_fraction_on_usable_dates") or {}
               rows.append({
-                  "label": report["label"],
-                  "dates": report["downloaded_observation_count"],
-                  "valid_dates": report["valid_observation_count"],
-                  "median": coverage["median"],
-                  "minimum": coverage["minimum"],
-                  "maximum": coverage["maximum"],
-                  "series_id": report["series_id"],
+                  "label": baseline["label"],
+                  "dates": baseline["downloaded_observation_count"],
+                  "baseline_valid_dates": baseline["valid_observation_count"],
+                  "dsg_valid_dates": candidate.get("usable_observation_count", 0),
+                  "dsg_valid_fraction": usable_fraction.get("median"),
+                  "common_valid": matched.get("valid_pixels", 0),
+                  "common_total": matched.get("total_pixels", 0),
+                  "common_fraction": matched.get("valid_fraction", 0),
+                  "common_status": matched.get("status", "NOT_RECORDED"),
+                  "series_id": baseline["series_id"],
               })
 
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
               summary.write("## Baniachong native SME2 quality inspection\n\n")
-              summary.write("| Candidate | Dates inspected | Dates with valid AOI pixels | Median valid fraction | Min–max valid fraction | Series ID |\n")
-              summary.write("|---|---:|---:|---:|---:|---|\n")
+              summary.write("| Candidate | Dates | Baseline dates valid | DSG dates valid | DSG median valid AOI fraction on usable dates | DSG common cohort | Cohort status | Series ID |\n")
+              summary.write("|---|---:|---:|---:|---:|---:|---|---|\n")
               for row in rows:
+                  fraction = "n/a" if row["dsg_valid_fraction"] is None else f"{row['dsg_valid_fraction']:.1%}"
                   summary.write(
-                      f"| {row['label']} | {row['dates']} | {row['valid_dates']} | "
-                      f"{row['median']:.1%} | {row['minimum']:.1%}–{row['maximum']:.1%} | "
-                      f"{row['series_id']} |\n"
+                      f"| {row['label']} | {row['dates']} | {row['baseline_valid_dates']} | "
+                      f"{row['dsg_valid_dates']} | {fraction} | "
+                      f"{row['common_valid']}/{row['common_total']} ({row['common_fraction']:.1%}) | "
+                      f"{row['common_status']} | {row['series_id']} |\n"
                   )
-              summary.write("\n**No winner is selected automatically.** These are AOI-wide SME2 quality-support diagnostics, not crop-area coverage or scientific validation. Review the dated crop mask and the per-date raw flag distributions before choosing a track.\n")
+              summary.write("\n**No track winner is selected automatically.** These are AOI-wide native-pixel diagnostics, not crop-area coverage or scientific validation. The DSG matched cohort is calculated only across its non-empty dates, following the existing pipeline's DSG exclusion rule.\n")
+              summary.write("\nReview the dated independent crop mask and the raw surface/retrieval flags before selecting a track. The undocumented surface flag values are not reinterpreted.\n")
               summary.write("\nThis workflow does not run study analysis, attach rainfall, call the publisher, or write to public/agriculture/current.\n")
           PY
 
@@ -247,6 +260,8 @@ jobs:
             pipeline/output/agriculture/${{ env.RUN_ID_141 }}/search.json
             pipeline/output/agriculture/${{ env.RUN_ID_141 }}/download.json
             pipeline/output/agriculture/${{ env.RUN_ID_141 }}/result/inspection.json
+            pipeline/output/agriculture/${{ env.RUN_ID_141 }}/result/inspection-dsg.json
             pipeline/output/agriculture/${{ env.RUN_ID_069 }}/search.json
             pipeline/output/agriculture/${{ env.RUN_ID_069 }}/download.json
             pipeline/output/agriculture/${{ env.RUN_ID_069 }}/result/inspection.json
+            pipeline/output/agriculture/${{ env.RUN_ID_069 }}/result/inspection-dsg.json
