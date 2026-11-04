@@ -8,7 +8,7 @@ The operator pipeline is isolated in `pipeline/agriculture_sme2.py`. It can run 
 
 ## Implementation review
 
-The following implementation and safety changes are committed on the development branch:
+The following implementation and safety changes are committed on `master`:
 
 - Added `pipeline/output/agriculture/` to `.gitignore` so granules, receipts, native rasters and operator logs remain private.
 - Updated the repository README to describe Agriculture accurately as a fourth, separate workspace.
@@ -81,11 +81,13 @@ For DSG, dates with no valid AOI pixels are excluded from the plotted and statis
 
 ## QA execution status
 
-The most recent fully verified full-project QA run available in the repository history is [run #328](https://github.com/Rubai106/beyonders-wetland/actions/runs/41655750891), on the earlier `Rubai-dev` commit `773c70b1b579a9c484e3b7539d90d9ed740c9022`. All 15 execution steps completed successfully, including Python compilation, the full Python regression suite, TypeScript tests, ESLint, the production build, TypeScript checking and Chromium browser tests.
+The latest verified full-project QA run is [run #444](https://github.com/Rubai106/beyonders-wetland/actions/runs/41788388610), on `master` commit `b7357bd2ecd8f34d63accdaaf24ab9f53b5528d1`. All 15 execution steps completed successfully: Python compilation, the full offline Python regression suite, TypeScript unit tests, ESLint, the public production build, whole-project TypeScript checking and the combined production-browser suite for Wetlands, Forest, Volcano, Chókwè, Scattering and Agriculture.
 
-That run predates the master-branch cloud handoff and must not be treated as verification of the current master head. The new handoff has its own browser regression coverage on master; its result remains pending until the Actions run for the latest master commit completes.
+The immediately preceding run #443 failed only in the Agriculture browser smoke test because its mocked CMR fixture used a non-hash series ID and omitted the granule records now required by the runtime schema. The fixture was corrected to match the production schema; run #444 then passed the complete suite. This is a test-fixture correction, not evidence that NASA CMR or authenticated cloud processing was exercised.
 
-The `.github/workflows/agriculture-qa.yml` workflow runs the Python suite, `npm test`, ESLint, the public production build, `npx tsc --noEmit`, and production-browser tests on pushes to `master` and `Rubai-dev` and pull requests to either branch. Its path filters include `public/**`, application source, tests and root build configuration. Active QA runs are not cancelled by later pushes.
+The `.github/workflows/agriculture-qa.yml` workflow now runs the Python suite, `npm test`, ESLint, the public production build, `npx tsc --noEmit` and production-browser tests on pushes to `master` and pull requests targeting `master` only. Its path filters include `public/**`, application source, tests and root build configuration. Active QA runs are not cancelled by later pushes.
+
+The Agriculture pilot-preflight workflow is also aligned to `master`; it uses the current SME2 supported start date and checks out `master` explicitly.
 
 | Current real-data / evidence item | Status |
 |---|---|
