@@ -9,6 +9,7 @@ evidence is not fabricated.
 """
 from __future__ import annotations
 
+import json
 import sys
 
 from playwright.sync_api import sync_playwright
@@ -293,6 +294,111 @@ def main() -> int:
         require(active_tab(page) == "Operator", "the existing Operator workflow remains available")
         page.get_by_label("AOI west longitude").wait_for(state="visible")
         require(True, "the original AOI configuration controls remain available")
+        require(
+            page.get_by_label("Start date").input_value() == "2026-06-17",
+            "the cloud-processing date window starts at the worker's supported SME2 collection date",
+        )
+
+        # Deterministic offline fixture: exercise the handoff without calling
+        # NASA CMR or starting an authenticated cloud processing run.
+        request_aoi = {
+            "west": float(page.get_by_label("AOI west longitude").input_value()),
+            "south": float(page.get_by_label("AOI south latitude").input_value()),
+            "east": float(page.get_by_label("AOI east longitude").input_value()),
+            "north": float(page.get_by_label("AOI north latitude").input_value()),
+        }
+        request_dates = {
+            "start": page.get_by_label("Start date").input_value(),
+            "end": page.get_by_label("End date").input_value(),
+        }
+        catalogue_fixture = {
+            "schema_version": 1,
+            "collection": "NISAR_L3_SME2_PROVISIONAL_V1",
+            "date_range": request_dates,
+            "aoi": request_aoi,
+            "catalogue_granules": 11,
+            "preflight_gate": {
+                "minimum_unique_acquisitions": 6,
+                "minimum_temporal_span_days": 60,
+                "meaning": "Catalogue feasibility only.",
+            },
+            "series": [
+                {
+                    "series_id": "qa-eligible-170",
+                    "signature": {
+                        "release": "P05023", "track": "170", "direction": "A",
+                        "frame": "014", "bandwidth": "4005", "polarization": "DHDH", "frequency": "A",
+                    },
+                    "observation_count": 6,
+                    "dates": ["2026-06-17", "2026-06-29", "2026-07-11", "2026-08-04", "2026-08-16", "2026-08-28"],
+                    "span_days": 72,
+                    "median_revisit_days": 12,
+                    "maximum_gap_days": 24,
+                    "meets_preflight_gate": True,
+                    "granules": [],
+                },
+                {
+                    "series_id": "qa-below-gate",
+                    "signature": {
+                        "release": "P05023", "track": "069", "direction": "A",
+                        "frame": "014", "bandwidth": "4005", "polarization": "DHDH", "frequency": "A",
+                    },
+                    "observation_count": 5,
+                    "dates": ["2026-06-17", "2026-06-29", "2026-07-11", "2026-07-23", "2026-08-04"],
+                    "span_days": 48,
+                    "median_revisit_days": 12,
+                    "maximum_gap_days": 12,
+                    "meets_preflight_gate": False,
+                    "granules": [],
+                },
+            ],
+            "recommended_series_id": "qa-eligible-170",
+            "status": "ELIGIBLE_FOR_OPERATOR_REVIEW",
+            "interpretation_limits": ["Catalogue preflight is not HDF5 quality verification."],
+        }
+        page.route(
+            "**/api/agriculture/catalogue",
+            lambda route: route.fulfill(
+                status=200,
+                content_type="application/json",
+                body=json.dumps(catalogue_fixture),
+            ),
+        )
+        page.get_by_role("button", name="Discover SME2 observations").click()
+        page.locator(".agri-online-next__launch").wait_for(state="visible", timeout=10_000)
+        require(
+            "ref=master" in (page.locator(".agri-online-next__launch").get_attribute("href") or "")
+            and "qa-eligible-170" in page.locator(".agri-online-next").inner_text()
+            and "REMOTE WORKER AVAILABLE" in page.locator(".agri-online-next").inner_text(),
+            "an eligible CMR series opens the secure master cloud-processing handoff with its selected inputs",
+        )
+        page.context.grant_permissions(["clipboard-read", "clipboard-write"])
+        page.get_by_role("button", name="Copy workflow inputs").click()
+        page.wait_for_function(
+            "() => document.querySelector('.agri-online-next__feedback')?.textContent?.includes('Inputs copied')",
+            timeout=5_000,
+        )
+        copied_inputs = page.evaluate("navigator.clipboard.readText()")
+        require(
+            "series_id=qa-eligible-170" in copied_inputs
+            and "algorithm=baseline" in copied_inputs
+            and "allow_missing_imerg=true" in copied_inputs,
+            "the workflow handoff copies the selected series and all required cloud inputs",
+        )
+
+        page.locator(".agri-online-series").nth(1).click()
+        page.locator(".agri-online-next--blocked").wait_for(state="visible", timeout=10_000)
+        require(
+            page.locator(".agri-online-next__launch").count() == 0,
+            "a catalogue series below the minimum date/span gate cannot be sent to cloud processing",
+        )
+
+        page.get_by_label("End date").fill("2026-10-31")
+        page.locator(".agri-online-stale").wait_for(state="visible", timeout=10_000)
+        require(
+            page.locator(".agri-online-next__launch").count() == 0,
+            "changing the AOI/date form invalidates old catalogue results until discovery runs again",
+        )
 
         page.get_by_role("button", name="Start walkthrough").click()
         page.get_by_role("heading", name="Inspect the SME2 measurements").wait_for()
