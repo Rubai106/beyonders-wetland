@@ -63,7 +63,7 @@ class AgricultureCandidateWorkflowTests(unittest.TestCase):
                          if line.strip().startswith(("git add ", "cp ", "mv ", "install "))
                          and "public/agriculture/current" in line]
         self.assertEqual(write_commands, [])
-        self.assertIn("No winner is selected automatically", run_scripts)
+        self.assertIn("No track winner is selected automatically", run_scripts)
 
     def test_every_shell_block_passes_bash_syntax_check(self):
         checked = 0
