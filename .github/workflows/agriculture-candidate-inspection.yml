@@ -1,6 +1,10 @@
 name: Cloud Agriculture candidate quality inspection
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - 'pipeline/agriculture-candidate-inspection-request.json'
   workflow_dispatch:
     inputs:
       west:
@@ -53,7 +57,7 @@ concurrency:
 
 jobs:
   inspect-both-candidates:
-    if: github.ref_name == 'master'
+    if: github.ref_name == 'master' && (github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[run-agri-inspection]'))
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
@@ -81,15 +85,32 @@ jobs:
           SERIES_069: ${{ inputs.series_id_069 }}
         run: |
           python - <<'PY'
+          import json
           import math
           import os
           import re
           from datetime import date
+          from pathlib import Path
 
-          values = {key: os.environ[key] for key in (
+          keys = (
               "WEST", "SOUTH", "EAST", "NORTH", "START_DATE", "END_DATE",
               "SERIES_141", "SERIES_069",
-          )}
+          )
+          if os.environ.get("GITHUB_EVENT_NAME") == "push":
+              request_path = Path("pipeline/agriculture-candidate-inspection-request.json")
+              payload = json.loads(request_path.read_text(encoding="utf-8"))
+              values = {
+                  "WEST": str(payload["west"]),
+                  "SOUTH": str(payload["south"]),
+                  "EAST": str(payload["east"]),
+                  "NORTH": str(payload["north"]),
+                  "START_DATE": str(payload["start"]),
+                  "END_DATE": str(payload["end"]),
+                  "SERIES_141": str(payload["series_id_141"]),
+                  "SERIES_069": str(payload["series_id_069"]),
+              }
+          else:
+              values = {key: os.environ[key] for key in keys}
           try:
               west, south, east, north = (float(values[key]) for key in ("WEST", "SOUTH", "EAST", "NORTH"))
           except ValueError as exc:
