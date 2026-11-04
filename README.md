@@ -4,15 +4,15 @@ A NISAR Earth-change explorer with separate **Wetlands**, **Forests**, **Volcano
 
 ## Run locally
 
-- Install Node.js 20 or newer and Python 3.13; see [installation](docs/operator-guide.md).
+- Install Node.js 20.9.0 or newer and Python 3.13; see [installation](docs/operator-guide.md).
 - In the repository, run `npm ci`, create `pipeline/venv`, and install `pipeline/requirements.txt`.
 - Start `npm run dev -- --port 3015` and open `http://localhost:3015/wetland/global`.
 - Wetlands: the map-first Time Machine is at `/wetland`; global discovery and processing are at `/wetland/global`.
 - Forests: global discovery is at `/forest/global`; the published Rondônia study is at `/forest/rondonia`. Its seven-date PROVISIONAL GCOV series and HLS/GLAD context remain exploratory, unverified radar-change evidence. Reproduce a saved native run with `python pipeline/forest_pipeline.py verify-run --run RUN_ID`; see [Forest method](docs/forest-method.md) and the [operator workflow](docs/forest-operator-guide.md).
 - Volcanoes: global discovery is at `/volcano/global`; the published cases are `/volcano/hayli-gubbi` and `/volcano/kilauea`. Interpret their official GUNW phase products as relative apparent line-of-sight candidates, not confirmed volcanic deformation or forecasts.
-- Agriculture / SME2: open `/agriculture` for the soil-moisture measurement workspace and online NASA CMR catalogue discovery. The website can search and compare compatible SME2 series without local Python; it still shows an honest no-publication state because no genuine SME2 PROVISIONAL study has passed granule and quality checks. The authenticated hosted processing worker is not yet connected. Follow the [Agriculture method and operator workflow](docs/agriculture-method.md); do not publish a study until the actual HDF5 hierarchy, grid, release, fill values and quality flags have been checked.
+- Agriculture / SME2: `/agriculture` serves the checksum-verified Naogaon study `agri-41647231453`, an exploratory NISAR L3 SME2 PROVISIONAL DSG series with six valid acquisition dates and four documented quality exclusions. It has no independent crop mask, IMERG rainfall context or field-validation metrics, so it is not an agricultural accuracy claim. The Operator panel searches NASA CMR online and provides a secure GitHub Actions handoff on `Rubai-dev` for eligible series; raw Earthdata credentials stay in the `EARTH_DATA` repository secret. See the [Agriculture method](docs/agriculture-method.md) and [release/QA status](docs/agriculture-release.md).
 
-Wetland/Forest/Volcano processing remains operator-managed. Agriculture catalogue discovery is available on the website; its hosted download/processing worker is still being integrated. NASA Earthdata credentials must never be entered into an application form or committed to the repository. Keep credentials, downloaded granules, native processing outputs and logs out of Git.
+Wetland/Forest/Volcano processing remains operator-managed. Agriculture catalogue discovery is available on the website, with eligible series handed off to the GitHub-hosted SME2 worker through Actions. The browser never receives Earthdata credentials. Keep credentials, downloaded granules, native processing outputs and logs out of Git.
 
 ## Publish the public viewer
 
