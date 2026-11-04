@@ -403,25 +403,61 @@ def main() -> int:
             ),
         )
         page.get_by_role("button", name="Discover SME2 observations").click()
-        page.locator(".agri-online-next__launch").wait_for(state="visible", timeout=10_000)
+        page.get_by_role("link", name="Open Dynamic World workflow").wait_for(state="visible", timeout=10_000)
+        page.get_by_role("link", name="Open SME2 workflow").wait_for(state="visible", timeout=10_000)
         require(
-            "ref=master" in (page.locator(".agri-online-next__launch").get_attribute("href") or "")
+            page.locator(".agri-online-next__launch").count() == 2
+            and all("ref=master" in (page.locator(".agri-online-next__launch").nth(index).get_attribute("href") or "")
+                    for index in range(2))
             and "a170a0144005" in page.locator(".agri-online-next").inner_text()
-            and "REMOTE WORKER AVAILABLE" in page.locator(".agri-online-next").inner_text(),
-            "an eligible CMR series opens the secure master cloud-processing handoff with its selected inputs",
+            and page.locator(".agri-pipeline-step").count() == 2
+            and "MANUAL RUN" in page.locator(".agri-online-next").inner_text(),
+            "an eligible CMR series exposes an explicit two-stage master-only acquisition and SME2 handoff",
         )
         page.context.grant_permissions(["clipboard-read", "clipboard-write"])
-        page.get_by_role("button", name="Copy workflow inputs").click()
+        page.get_by_role("button", name="Copy crop-evidence inputs").click()
+        page.locator(".agri-pipeline-step:not(.agri-pipeline-step--sme2) .agri-online-next__feedback").wait_for(state="visible", timeout=5_000)
         page.wait_for_function(
-            "() => document.querySelector('.agri-online-next__feedback')?.textContent?.includes('Inputs copied')",
+            "() => document.querySelector('.agri-pipeline-step:not(.agri-pipeline-step--sme2) .agri-online-next__feedback')?.textContent?.includes('Inputs copied')",
+            timeout=5_000,
+        )
+        crop_inputs = page.evaluate("navigator.clipboard.readText()")
+        require(
+            "west=91.3867" in crop_inputs
+            and "start=2026-06-17" in crop_inputs
+            and "end=2026-10-31" in crop_inputs
+            and "minimum_observations=3" in crop_inputs
+            and "probability_threshold=0.5" in crop_inputs,
+            "the first-stage handoff copies the matching AOI/date window and explicit Dynamic World quality settings",
+        )
+        run_id_input = page.get_by_label("Dynamic World successful run ID", exact=False)
+        require(
+            "NOT ASSESSED" in page.locator("#agri-run-id-help").inner_text(),
+            "crop observability remains explicitly not assessed until a source workflow run is selected",
+        )
+        run_id_input.fill("not-a-run")
+        cloud_copy = page.get_by_role("button", name="Copy SME2 workflow inputs")
+        require(
+            run_id_input.get_attribute("aria-invalid") == "true" and cloud_copy.is_disabled(),
+            "malformed source run IDs cannot be copied into the SME2 publication handoff",
+        )
+        run_id_input.fill("41835012345")
+        require(
+            run_id_input.get_attribute("aria-invalid") == "false" and not cloud_copy.is_disabled(),
+            "a numeric source run ID unlocks the second-stage handoff without claiming its success",
+        )
+        cloud_copy.click()
+        page.wait_for_function(
+            "() => document.querySelector('.agri-pipeline-step--sme2 .agri-online-next__feedback:last-of-type')?.textContent?.includes('Inputs copied')",
             timeout=5_000,
         )
         copied_inputs = page.evaluate("navigator.clipboard.readText()")
         require(
             "series_id=a170a0144005" in copied_inputs
+            and "dynamic_world_run_id=41835012345" in copied_inputs
             and "algorithm=baseline" in copied_inputs
             and "allow_missing_imerg=true" in copied_inputs,
-            "the workflow handoff copies the selected series and all required cloud inputs",
+            "the second-stage handoff includes the selected SME2 series, Dynamic World run ID and required cloud inputs",
         )
 
         page.locator(".agri-online-series").nth(1).click()

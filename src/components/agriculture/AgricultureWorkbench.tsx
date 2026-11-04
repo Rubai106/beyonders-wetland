@@ -122,6 +122,8 @@ export default function AgricultureWorkbench() {
   const [selectedSeriesId, setSelectedSeriesId] = useState<string | null>(null);
   const [processingAlgorithm, setProcessingAlgorithm] = useState<"baseline" | "DSG">("baseline");
   const [copiedWorkflowInputs, setCopiedWorkflowInputs] = useState<string | null>(null);
+  const [dynamicWorldRunId, setDynamicWorldRunId] = useState("");
+  const [copiedDynamicWorldInputs, setCopiedDynamicWorldInputs] = useState<string | null>(null);
   const [clipboardUnavailable, setClipboardUnavailable] = useState(false);
 
   useEffect(() => {
@@ -252,6 +254,17 @@ export default function AgricultureWorkbench() {
   const selectedCatalogueSeries = catalogueResultMatchesCurrentForm
     ? catalogueResult?.series.find((series) => series.series_id === selectedSeriesId) ?? null
     : null;
+  const dynamicWorldRunIdValid = dynamicWorldRunId.trim() === "" || /^\d{6,20}$/.test(dynamicWorldRunId.trim());
+  const dynamicWorldWorkflowInputsText = [
+    `west=${form.west.trim()}`,
+    `south=${form.south.trim()}`,
+    `east=${form.east.trim()}`,
+    `north=${form.north.trim()}`,
+    `start=${form.start}`,
+    `end=${form.end}`,
+    "minimum_observations=3",
+    "probability_threshold=0.5",
+  ].join("\n");
   const workflowInputsText = [
     `west=${form.west.trim()}`,
     `south=${form.south.trim()}`,
@@ -260,9 +273,19 @@ export default function AgricultureWorkbench() {
     `start=${form.start}`,
     `end=${form.end}`,
     `series_id=${selectedCatalogueSeries?.series_id ?? ""}`,
+    `dynamic_world_run_id=${dynamicWorldRunId.trim()}`,
     `algorithm=${processingAlgorithm}`,
     "allow_missing_imerg=true",
   ].join("\n");
+  const copyDynamicWorldWorkflowInputs = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(dynamicWorldWorkflowInputsText);
+      setCopiedDynamicWorldInputs(dynamicWorldWorkflowInputsText);
+      setClipboardUnavailable(false);
+    } catch {
+      setClipboardUnavailable(true);
+    }
+  }, [dynamicWorldWorkflowInputsText]);
   const copyWorkflowInputs = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(workflowInputsText);
@@ -999,37 +1022,92 @@ export default function AgricultureWorkbench() {
             )}
             {catalogueResult.interpretation_limits.map((note) => <small className="agri-online-results__note" key={note}>• {note}</small>)}
             {selectedCatalogueSeries && (selectedCatalogueSeries.meets_preflight_gate ? <div className="agri-online-next">
-              <div className="agri-online-next__header">
-                <span className="agri-eyebrow">NEXT · SECURE CLOUD PROCESSING</span>
-                <span className="agri-online-next__status is-ready"><i aria-hidden="true" />REMOTE WORKER AVAILABLE</span>
-              </div>
-              <strong>Prepare this compatible series for secure processing</strong>
-              <p>The GitHub-hosted worker downloads the selected CMR granules, applies the real HDF5 and quality checks, and publishes only the checksum-verified display package. Raw granules stay on the runner.</p>
-              <div className="agri-online-next__facts" aria-label="Cloud workflow inputs">
-                <div><span>WGS84 · WEST / SOUTH</span><strong>{form.west} / {form.south}</strong></div>
-                <div><span>WGS84 · EAST / NORTH</span><strong>{form.east} / {form.north}</strong></div>
-                <div><span>ACQUISITION WINDOW</span><strong>{form.start} → {form.end}</strong></div>
-                <div><span>SELECTED CMR SERIES</span><strong>{selectedCatalogueSeries.series_id}</strong></div>
-              </div>
-              <label className="agri-online-next__algorithm">
-                <span>Analysis stream</span>
-                <select value={processingAlgorithm} onChange={(event) => setProcessingAlgorithm(event.target.value as "baseline" | "DSG")}>
-                  <option value="baseline">Root baseline product</option>
-                  <option value="DSG">DSG algorithm candidate</option>
-                </select>
-              </label>
-              <div className="agri-online-next__actions">
-                <button type="button" className="agri-online-next__copy" onClick={() => void copyWorkflowInputs()}>
-                  {copiedWorkflowInputs === workflowInputsText ? "Inputs copied" : "Copy workflow inputs"}
-                </button>
-                <a className="agri-online-next__launch" href="https://github.com/Rubai106/beyonders-wetland/actions/workflows/agriculture-cloud.yml?ref=master" target="_blank" rel="noreferrer">
-                  Open secure cloud workflow <span aria-hidden="true">↗</span>
-                </a>
-              </div>
-              <p className="agri-online-next__feedback" role="status">
-                {clipboardUnavailable ? "Clipboard access is unavailable here; use the input summary above." : copiedWorkflowInputs === workflowInputsText ? "Inputs copied. In GitHub Actions, select master and choose Run workflow." : "Copy the inputs, then open the workflow and select Run workflow on master."}
-              </p>
-              <p className="agri-online-next__footnote">The runner uses the repository secret EARTH_DATA. Do not paste an Earthdata token here. Missing IMERG windows are allowed to remain unavailable; they are never replaced with zero rainfall.</p>
+              <section className="agri-pipeline-step" aria-labelledby="agri-dynamic-world-step">
+                <div className="agri-pipeline-step__head">
+                  <span className="agri-pipeline-step__index">01</span>
+                  <div>
+                    <span className="agri-eyebrow">INDEPENDENT CROP EVIDENCE</span>
+                    <h3 id="agri-dynamic-world-step">Build the cropland layer</h3>
+                  </div>
+                  <span className="agri-pipeline-step__state">MANUAL RUN</span>
+                </div>
+                <p>Acquire a 10 m Dynamic World crops-probability composite for this same AOI and date window. This is generic cropland likelihood, not rice identification or field-level ground truth.</p>
+                <div className="agri-online-next__facts" aria-label="Dynamic World workflow inputs">
+                  <div><span>WGS84 · WEST / SOUTH</span><strong>{form.west} / {form.south}</strong></div>
+                  <div><span>WGS84 · EAST / NORTH</span><strong>{form.east} / {form.north}</strong></div>
+                  <div><span>SOURCE WINDOW</span><strong>{form.start} → {form.end}</strong></div>
+                  <div><span>PIXEL SUPPORT</span><strong>10 m · ≥3 valid dates</strong></div>
+                </div>
+                <div className="agri-online-next__actions">
+                  <button type="button" className="agri-online-next__copy" onClick={() => void copyDynamicWorldWorkflowInputs()}>
+                    {copiedDynamicWorldInputs === dynamicWorldWorkflowInputsText ? "Inputs copied" : "Copy crop-evidence inputs"}
+                  </button>
+                  <a className="agri-online-next__launch" href="https://github.com/Rubai106/beyonders-wetland/actions/workflows/agriculture-dynamic-world.yml?ref=master" target="_blank" rel="noreferrer">
+                    Open Dynamic World workflow <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+                <p className="agri-online-next__feedback" role="status">
+                  {clipboardUnavailable ? "Clipboard access is unavailable; use the AOI and date details above." : copiedDynamicWorldInputs === dynamicWorldWorkflowInputsText ? "Inputs copied. Run this workflow on master and inspect its artifact before continuing." : "Copy these inputs, then run the Dynamic World workflow on master."}
+                </p>
+                <p className="agri-online-next__footnote">This step requires repository Actions secrets EARTH_ENGINE_PROJECT and EARTH_ENGINE_SERVICE_ACCOUNT_JSON. The service-account key must stay in GitHub Secrets; never paste it here. No SME2 study is changed by this acquisition.</p>
+              </section>
+
+              <section className="agri-pipeline-step agri-pipeline-step--sme2" aria-labelledby="agri-sme2-step">
+                <div className="agri-pipeline-step__head">
+                  <span className="agri-pipeline-step__index">02</span>
+                  <div>
+                    <span className="agri-eyebrow">NISAR SME2 · SECURE PROCESSING</span>
+                    <h3 id="agri-sme2-step">Analyze the selected time series</h3>
+                  </div>
+                  <span className="agri-pipeline-step__state">MANUAL RUN</span>
+                </div>
+                <p>The cloud worker downloads the selected CMR series, applies the HDF5 and quality checks, and publishes only checksum-verified display assets. Raw granules stay on the runner.</p>
+                <label className="agri-run-id">
+                  <span>Dynamic World successful run ID <small>Optional · leave blank to skip crop-area analysis</small></span>
+                  <input
+                    value={dynamicWorldRunId}
+                    onChange={(event) => setDynamicWorldRunId(event.target.value)}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="Paste the successful Actions run ID"
+                    aria-invalid={!dynamicWorldRunIdValid}
+                    aria-describedby="agri-run-id-help"
+                  />
+                </label>
+                <p id="agri-run-id-help" className={"agri-online-next__feedback " + (!dynamicWorldRunIdValid ? "is-error" : "")} role="status">
+                  {!dynamicWorldRunIdValid
+                    ? "Run IDs contain 6–20 digits. Correct the value or clear it to skip crop analysis."
+                    : dynamicWorldRunId.trim()
+                      ? "This run will be checked for repository, workflow, master branch, success, AOI and date compatibility before its raster is used."
+                      : "No crop artifact selected. The published study will keep crop observability marked NOT ASSESSED."}
+                </p>
+                <div className="agri-online-next__facts" aria-label="SME2 workflow inputs">
+                  <div><span>WGS84 · WEST / SOUTH</span><strong>{form.west} / {form.south}</strong></div>
+                  <div><span>WGS84 · EAST / NORTH</span><strong>{form.east} / {form.north}</strong></div>
+                  <div><span>SME2 DATE WINDOW</span><strong>{form.start} → {form.end}</strong></div>
+                  <div><span>SELECTED CMR SERIES</span><strong>{selectedCatalogueSeries.series_id}</strong></div>
+                </div>
+                <label className="agri-online-next__algorithm">
+                  <span>Analysis stream</span>
+                  <select value={processingAlgorithm} onChange={(event) => setProcessingAlgorithm(event.target.value as "baseline" | "DSG")}>
+                    <option value="baseline">Root baseline product</option>
+                    <option value="DSG">DSG algorithm candidate</option>
+                  </select>
+                </label>
+                <div className="agri-online-next__actions">
+                  <button type="button" className="agri-online-next__copy" disabled={!dynamicWorldRunIdValid} onClick={() => void copyWorkflowInputs()}>
+                    {copiedWorkflowInputs === workflowInputsText ? "Inputs copied" : "Copy SME2 workflow inputs"}
+                  </button>
+                  <a className="agri-online-next__launch" href="https://github.com/Rubai106/beyonders-wetland/actions/workflows/agriculture-cloud.yml?ref=master" target="_blank" rel="noreferrer">
+                    Open SME2 workflow <span aria-hidden="true">↗</span>
+                  </a>
+                </div>
+                <p className="agri-online-next__feedback" role="status">
+                  {clipboardUnavailable ? "Clipboard access is unavailable here; use the workflow facts above." : copiedWorkflowInputs === workflowInputsText ? "Inputs copied. Run Cloud Agriculture SME2 publication on master." : "After inspecting the crop-evidence artifact, paste its run ID above, copy these inputs, and run the SME2 workflow on master."}
+                </p>
+                <p className="agri-online-next__footnote">The SME2 worker uses the repository secret EARTH_DATA. Do not paste an Earthdata token here. Missing IMERG windows remain unavailable, never replaced with zero rainfall.</p>
+              </section>
             </div> : <div className="agri-online-next agri-online-next--blocked" role="status">
               <span className="agri-eyebrow">PRE-FLIGHT · NOT READY</span>
               <strong>This series is below the processing gate</strong>
