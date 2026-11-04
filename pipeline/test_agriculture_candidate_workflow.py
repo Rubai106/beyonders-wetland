@@ -18,10 +18,17 @@ class AgricultureCandidateWorkflowTests(unittest.TestCase):
         cls.job = cls.workflow["jobs"]["inspect-both-candidates"]
         cls.steps = cls.job["steps"]
 
-    def test_workflow_is_manual_and_master_only(self):
+    def test_workflow_is_master_only_and_push_trigger_is_narrowly_scoped(self):
         triggers = self.workflow["on"]
-        self.assertEqual(set(triggers), {"workflow_dispatch"})
-        self.assertEqual(self.job["if"], "github.ref_name == 'master'")
+        self.assertEqual(set(triggers), {"push", "workflow_dispatch"})
+        self.assertEqual(triggers["push"]["branches"], ["master"])
+        self.assertEqual(
+            triggers["push"]["paths"],
+            ["pipeline/agriculture-candidate-inspection-request.json"],
+        )
+        self.assertIn("github.ref_name == 'master'", self.job["if"])
+        self.assertIn("workflow_dispatch", self.job["if"])
+        self.assertIn("[run-agri-inspection]", self.job["if"])
         checkout = self.steps[0]
         self.assertEqual(checkout["with"]["ref"], "master")
         self.assertEqual(checkout["with"]["persist-credentials"], "false")
