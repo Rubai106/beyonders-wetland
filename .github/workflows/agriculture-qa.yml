@@ -83,7 +83,7 @@ jobs:
       - name: Install Chromium for production browser test
         run: python -m playwright install --with-deps chromium
 
-      - name: Run multi-case Wetland, Forest, Volcano, Chókwè, scattering and Agriculture browser smoke tests
+      - name: Run global mission-control and multi-workspace production browser tests
         env:
           BEYONDERS_MODE: public
           NEXT_PUBLIC_BEYONDERS_MODE: public
@@ -103,6 +103,7 @@ jobs:
             fi
             sleep 2
           done
+          python tests/e2e/explore_smoke.py http://127.0.0.1:3140
           python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140
           python tests/e2e/chokwe_deep_link_smoke.py http://127.0.0.1:3140
           python tests/e2e/scattering_hypothesis_smoke.py http://127.0.0.1:3140
