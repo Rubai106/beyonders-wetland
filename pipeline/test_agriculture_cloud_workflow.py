@@ -85,6 +85,40 @@ class AgricultureCloudWorkflowTests(unittest.TestCase):
                 )
         self.assertGreater(checked, 0, "workflow must contain shell steps to validate")
 
+    def test_credentials_are_scoped_to_only_the_steps_that_need_them(self):
+        workflow = yaml.load(self.source, Loader=yaml.BaseLoader)
+        job = workflow["jobs"]["process-and-publish"]
+        self.assertNotIn("EARTHDATA_TOKEN", job.get("env", {}))
+
+        checkout = job["steps"][0]
+        self.assertEqual(checkout["with"].get("persist-credentials"), "false")
+
+        earthdata_steps = {
+            step["name"]
+            for step in job["steps"]
+            if "EARTHDATA_TOKEN" in step.get("env", {})
+        }
+        self.assertEqual(
+            earthdata_steps,
+            {
+                "Validate secure Earthdata configuration",
+                "Download the exact selected SME2 series",
+                "Attach NASA GPM IMERG Final rainfall context",
+            },
+        )
+
+        github_token_steps = {
+            step["name"]
+            for step in job["steps"]
+            if "GITHUB_TOKEN" in step.get("env", {})
+        }
+        self.assertEqual(github_token_steps, {"Commit the publication package to master"})
+        commit_step = next(
+            step for step in job["steps"]
+            if step["name"] == "Commit the publication package to master"
+        )
+        self.assertEqual(commit_step["env"]["GITHUB_TOKEN"], "${{ github.token }}")
+
     def test_worker_keeps_earthdata_secret_out_of_inputs(self):
         self.assertIn("EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}", self.source)
         self.assertNotIn("INPUT_EARTHDATA_TOKEN", self.source)
