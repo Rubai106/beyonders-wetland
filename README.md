@@ -4,7 +4,7 @@ A NISAR Earth-change explorer with separate **Wetlands**, **Forests**, **Volcano
 
 ## Run locally
 
-- Install Node.js 20 or newer and Python 3.13; see [installation](docs/operator-guide.md).
+- Install Node.js 20.9.0 or newer and Python 3.13. see [installation](docs/operator-guide.md).
 - In the repository, run `npm ci`, create `pipeline/venv`, and install `pipeline/requirements.txt`.
 - Start `npm run dev -- --port 3015` and open `http://localhost:3015/wetland/global`.
 - Wetlands: the map-first Time Machine is at `/wetland`; global discovery and processing are at `/wetland/global`.
@@ -37,3 +37,13 @@ Do not commit raw satellite files, virtual environments, credentials, private op
 - [Volcano method and evidence](docs/volcano-method.md) · [release report](docs/volcano-release.md)
 
 Catalog availability can change, so verify NASA CMR before each new study. Chókwè is processed separately from the PROVISIONAL time series using its matching January 5–17 NISAR BETA pair. Its HLS optical check is inconclusive; a later UNOSAT Sentinel-1 overlay provides positive spatial support only, not an accuracy assessment.
+
+
+## Regression checks
+
+- Use Node.js 20.9.0 or newer for the Next.js application (`npm run dev`, `npm run build`, and `npm run start`).
+- Run the deterministic unit/regression suite with `npm test` (alias: `npm run test:unit`).
+- Run `npm run lint` before publishing changes.
+- The production-browser suite is `python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140`; it checks published evidence when present and explicitly checks the honest no-publication or integrity-error state when no study is available.
+
+GitHub Actions runs lint, unit tests, the production build, and the production-browser suite on pushes and pull requests to `master` and `Rubai-dev`.
