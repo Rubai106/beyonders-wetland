@@ -52,11 +52,13 @@ def verify_field_volume(page, selector: str, label: str, minimum_dates: int = 1)
         canvas.is_visible() and dates.count() >= minimum_dates,
         f"{label} opens its data-bound 3D scene and exposes {minimum_dates}+ selectable observations",
     )
-    if dates.count() > 1:
-        dates.nth(1).click()
+    selectable = dates.locator("button:not([disabled])")
+    if selectable.count() > 1:
+        target = selectable.nth(1)
+        target.click()
         require(
-            dates.nth(1).get_attribute("aria-pressed") == "true"
-            and dates.nth(0).get_attribute("aria-pressed") == "false",
+            target.get_attribute("aria-pressed") == "true"
+            and dates.locator("button[aria-pressed='true']").count() == 1,
             f"{label} synchronizes a selected 3D observation with its module state",
         )
     disclosure.get_by_role("button", name="Close 3D view").click()

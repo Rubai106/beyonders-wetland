@@ -145,16 +145,18 @@ export default function FieldVolumeScene({
       if (!object.userData.datumId) return;
       const mesh = object as THREE.Mesh;
       const isSelected = object.userData.datumId === selectedId;
+      const isFoot = object.userData.role === "foot";
       const materials = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
       materials.forEach((item) => {
         if (item instanceof THREE.MeshStandardMaterial) {
-          item.emissiveIntensity = isSelected ? 0.38 : 0.08;
+          if (isFoot) item.color.set(isSelected ? palette.accent : 0x53636a);
+          item.emissiveIntensity = isFoot ? (isSelected ? 0.16 : 0) : (isSelected ? 0.38 : 0.08);
           item.opacity = object.userData.available === false ? 0.3 : 1;
           item.transparent = object.userData.available === false;
         }
       });
     });
-  }, [selectedId, onSelectId]);
+  }, [selectedId, onSelectId, palette]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -177,7 +179,8 @@ export default function FieldVolumeScene({
     mount.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#091116");
+    scene.background = null;
+    renderer.setClearColor(0x000000, 0);
     const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 80);
     camera.position.set(0.2, 3.5, 8.3);
     camera.lookAt(0, 0.45, 0);
@@ -232,6 +235,9 @@ export default function FieldVolumeScene({
         emissive: palette.accent, emissiveIntensity: isSelected ? 0.16 : 0,
       }));
       foot.position.set(x, -0.12, -0.22);
+      foot.userData.datumId = datum.id;
+      foot.userData.available = isAvailable;
+      foot.userData.role = "foot";
       chart.add(foot);
     });
 
@@ -355,7 +361,7 @@ export default function FieldVolumeScene({
           <small>{selected?.label ?? "No date"} · {metricLabel}</small>
           {selected?.context !== undefined && <small>{contextLabel}: {(selected.context * 100).toFixed(1)}%</small>}
         </div>
-        <div className="field-volume-scene__compass" aria-hidden="true"><i />N</div>
+        <div className="field-volume-scene__mode" aria-hidden="true">3D · DATA</div>
       </div>
       <div className="field-volume-scene__footer">
         <span>Interactive measured series</span>

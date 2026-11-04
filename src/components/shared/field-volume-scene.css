@@ -46,8 +46,13 @@
 }
 .field-volume-scene__readout strong { color: #f0f4ed; font: 650 1.05rem/1.2 var(--font-mono, monospace); }
 .field-volume-scene__readout small { color: #a4b7b9; font: .67rem/1.4 var(--font-sans, sans-serif); }
-.field-volume-scene__compass { position: absolute; top: 13px; right: 14px; display: grid; justify-items: center; gap: 3px; color: #9cb0b4; font: 600 .59rem var(--font-mono, monospace); pointer-events: none; }
-.field-volume-scene__compass i { width: 0; height: 0; border-right: 5px solid transparent; border-bottom: 12px solid var(--field-accent); border-left: 5px solid transparent; }
+.field-volume-scene__mode {
+  position: absolute; top: 13px; right: 14px; padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--field-accent) 36%, transparent);
+  border-radius: 999px; background: rgba(5, 12, 16, .68);
+  color: var(--field-accent); font: 650 .58rem var(--font-mono, monospace);
+  letter-spacing: .12em; pointer-events: none;
+}
 .field-volume-scene__footer { display: flex; justify-content: space-between; gap: 8px; padding: 0 2px; letter-spacing: .02em; text-transform: none; }
 .field-volume-scene__footer span:first-child { color: var(--field-accent); }
 .field-volume-scene__dates { display: grid; grid-template-columns: repeat(auto-fit, minmax(116px, 1fr)); gap: 6px; }
