@@ -21,6 +21,7 @@ import {
   type AgricultureRainfallWindow,
 } from "@/lib/agriculture-study";
 import type { AgricultureCatalogueResult } from "@/lib/agriculture-catalogue";
+import { AGRICULTURE_SME2_MIN_DATE, isAgricultureCatalogueResult } from "@/lib/agriculture-catalogue-schema";
 import EvidenceChainPanel from "@/components/shared/EvidenceChainPanel";
 import { buildAgricultureEvidenceChain } from "@/lib/evidence-chain";
 import HazardWalkthrough from "@/components/shared/HazardWalkthrough";
@@ -32,7 +33,7 @@ const AgricultureMap = dynamic(() => import("./AgricultureMap"), {
   loading: () => <div className="agri-map-loading">Loading interactive map…</div>,
 });
 
-const MIN_DATE = "2026-06-17";
+const MIN_DATE = AGRICULTURE_SME2_MIN_DATE;
 const MAX_DATE = new Date().toISOString().slice(0, 10);
 // NISAR repeats the same orbit geometry every 12 days; >18 days is a visual extended-gap cue only.
 const LONG_ACQUISITION_GAP_DAYS = 18;
@@ -464,10 +465,23 @@ export default function AgricultureWorkbench() {
           startDate: start, endDate: end,
         }),
       });
-      const payload = await response.json() as AgricultureCatalogueResult & { error?: string };
-      if (!response.ok) throw new Error(payload.error || "NASA catalogue search failed.");
-      if (!Array.isArray(payload.series) || typeof payload.catalogue_granules !== "number") {
-        throw new Error("NASA returned a catalogue response that did not match the expected SME2 schema.");
+      const payload: unknown = await response.json();
+      if (!response.ok) {
+        const message = typeof payload === "object" && payload !== null &&
+          "error" in payload && typeof payload.error === "string"
+          ? payload.error
+          : "NASA catalogue search failed.";
+        throw new Error(message);
+      }
+      if (!isAgricultureCatalogueResult(payload)) {
+        throw new Error("NASA returned an incomplete or inconsistent SME2 catalogue response. No series was made selectable.");
+      }
+      if (
+        payload.date_range.start !== start || payload.date_range.end !== end ||
+        payload.aoi.west !== Number(west) || payload.aoi.south !== Number(south) ||
+        payload.aoi.east !== Number(east) || payload.aoi.north !== Number(north)
+      ) {
+        throw new Error("NASA returned catalogue results for a different area or date window. Run discovery again; no processing series was selected.");
       }
       setCatalogueResult(payload);
       setSelectedSeriesId(payload.recommended_series_id ?? payload.series[0]?.series_id ?? null);
