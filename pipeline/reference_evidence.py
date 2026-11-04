@@ -191,7 +191,7 @@ def build_reference_evidence(run_id, progress=print, output_root=None):
     if (metrics["matching_pixels"], metrics["radar_only_pixels"], metrics["optical_only_pixels"]) != expected or int(common.sum()) != reference["coverage"]["common_clear_pixels"]:
         raise ValueError("Rebuilt reference does not reproduce the published counts. Evidence was not published; retry the reference check.")
     transform = profile["transform"]
-    pixel_area = area_km2(Polygon([transform*(0,0),transform*(1,0),transform*(1,1),transform*(0,1)]),profile["crs"])
+    pixel_area = area_km2(Polygon([transform @ (0,0),transform @ (1,0),transform @ (1,1),transform @ (0,1)]),profile["crs"])
     candidates = valid & (grid == 1)
     radar_only = radar & ~optical
     states = {
