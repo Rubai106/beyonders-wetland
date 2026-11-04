@@ -20,6 +20,7 @@ from agriculture_sme2 import (
     AgricultureError,
     COLLECTION,
     PRODUCT,
+    _matched_support,
     _read_scene,
     _validate_grid,
     json_read,
@@ -110,7 +111,7 @@ def build_inspection_report(
         for left, right in zip(series["dates"], series["dates"][1:])
     ]
 
-    return {
+    report: dict[str, Any] = {
         "schema_version": 1,
         "inspection_type": "NON_PUBLISHING_SME2_HDF5_QUALITY_INSPECTION",
         "run_id": run_id,
@@ -144,14 +145,53 @@ def build_inspection_report(
         "interpretation_limits": [
             "This is an HDF5 and native-pixel quality inspection, not a soil-moisture study or scientific validation.",
             "The reported valid fraction uses the existing strict SME2 screen: finite in-range moisture, non-negative finite uncertainty, retrievalQualityFlag equal to zero, and surfaceQualityFlag equal to zero.",
-            "Algorithm-candidate diagnostics are reported separately; they are not silently substituted for the root baseline stream.",
+            "Algorithm-candidate diagnostics are reported separately; the root baseline stream and DSG candidate stream are never blended.",
             "No independently dated crop mask has been applied, so AOI-wide valid-pixel support is not a crop-area support estimate.",
             "The two track footprints can cover different native pixels inside the same AOI; do not treat their medians as a field-level head-to-head result without crop-mask alignment.",
             "No study.json, web preview, or public Agriculture publication is created by this inspection.",
-            "NISAR SME2 PROVISIONAL remains exploratory and is not fully calibrated.",
+            "NISAR SME2 PROVISIONAL remains exploratory; consult the current product maturity and known-issues guidance before scientific interpretation.",
         ],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+
+    if algorithm == "DSG":
+        usable_scenes = [
+            scene for scene in scenes
+            if np.any(np.asarray(scene["valid"], dtype=bool) & np.asarray(scene["aoi_mask"], dtype=bool))
+        ]
+        usable_fractions = [
+            item["quality_valid_fraction"]
+            for item in observations if item["quality_valid_pixels"] > 0
+        ]
+        common_support = None
+        if usable_scenes:
+            common_support, _ = _matched_support(usable_scenes)
+        report["candidate_analysis"] = {
+            "algorithm": "DSG",
+            "usable_observation_count": len(usable_scenes),
+            "usable_dates": [scene["date"] for scene in usable_scenes],
+            "minimum_usable_dates_for_existing_pipeline": 4,
+            "meets_existing_minimum_date_gate": len(usable_scenes) >= 4,
+            "quality_valid_fraction_on_usable_dates": (
+                {
+                    "median": float(np.median(usable_fractions)),
+                    "minimum": float(np.min(usable_fractions)),
+                    "maximum": float(np.max(usable_fractions)),
+                    "mean": float(np.mean(usable_fractions)),
+                }
+                if usable_fractions else None
+            ),
+            "matched_support": common_support or {
+                "method": "ALL_DATE_VALID_PIXEL_INTERSECTION",
+                "status": "NO_USABLE_DATES",
+                "valid_fraction": 0.0,
+                "valid_pixels": 0,
+                "total_pixels": int(sum(np.sum(np.asarray(scene["aoi_mask"], dtype=bool)) for scene in scenes)),
+                "observations": [],
+            },
+        }
+
+    return report
 
 
 def inspect_series(run_id: str, expected_series_id: str, label: str, algorithm: str = "baseline") -> Path:
@@ -208,7 +248,8 @@ def inspect_series(run_id: str, expected_series_id: str, label: str, algorithm: 
     report = build_inspection_report(
         run_id, label, algorithm, search_manifest, receipt, scenes, source_records,
     )
-    output = folder / "result" / "inspection.json"
+    output_name = "inspection.json" if algorithm == "baseline" else "inspection-dsg.json"
+    output = folder / "result" / output_name
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(
