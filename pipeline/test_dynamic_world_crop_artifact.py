@@ -271,7 +271,7 @@ class DynamicWorldArtifactTests(unittest.TestCase):
         manifest = self._manifest()
         manifest["source_observations"]["source_image_ids"] = ["dw-001", "dw-001"]
         self._save_manifest(manifest)
-        with self.assertRaisesRegex(ArtifactValidationError, "scene IDs.*internally inconsistent"):
+        with self.assertRaisesRegex(ArtifactValidationError, "source image/date counts.*internally inconsistent"):
             validate_dynamic_world_artifact(self.artifact, self.search_path, self.receipt_path)
 
     def test_stale_recency_is_reported_but_is_not_misrepresented_as_a_scientific_gate(self):
