@@ -103,7 +103,7 @@ jobs:
             --probability-threshold "$PROBABILITY_THRESHOLD" \
             --output-dir "$RUNNER_TEMP/dynamic-world-crop-mask"
 
-      - name: Save private, non-publishing crop evidence
+      - name: Save non-committed, non-publishing crop evidence
         uses: actions/upload-artifact@v4
         with:
           name: agriculture-dynamic-world-crop-evidence-${{ github.run_id }}

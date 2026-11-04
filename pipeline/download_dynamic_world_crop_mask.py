@@ -255,6 +255,8 @@ def _normalise_count_geotiff(raw_path: Path, output_path: Path, scene_date_count
             profile = source.profile.copy()
             profile.update(driver="GTiff", count=1, dtype="uint16", nodata=None, compress="deflate")
             width, height = source.width, source.height
+            bounds = [float(v) for v in source.bounds]
+            transform = [float(v) for v in source.transform[:6]]
             if width > MAX_GRID_DIMENSION or height > MAX_GRID_DIMENSION:
                 raise DynamicWorldError("Earth Engine count grid exceeds the 10,000-pixel dimension limit.")
         with rasterio.open(output_path, "w", **profile) as target:
@@ -262,7 +264,8 @@ def _normalise_count_geotiff(raw_path: Path, output_path: Path, scene_date_count
             target.write_mask(np.ones(values.shape, dtype="uint8") * 255)
             target.update_tags(**tags)
         return {
-            "width": width, "height": height,
+            "width": width, "height": height, "crs": EXPORT_CRS,
+            "transform": transform, "bounds": bounds,
             "minimum_valid_date_count": int(values.min()),
             "maximum_valid_date_count": int(values.max()),
             "pixels_with_any_valid_observation": int(np.count_nonzero(values)),
@@ -343,8 +346,20 @@ def acquire_dynamic_world_mask(*, west: float, south: float, east: float, north:
         _download_ee_geotiff(count, export_region, raw_count, "dw-valid-observation-count")
         probability_stats = _normalise_probability_geotiff(raw_probability, output_dir / probability_name, tags)
         count_stats = _normalise_count_geotiff(raw_count, output_dir / count_name, source["unique_acquisition_date_count"], tags)
-    if (probability_stats["width"], probability_stats["height"]) != (count_stats["width"], count_stats["height"]):
-        raise DynamicWorldError("Probability and observation-count rasters do not share one export grid.")
+    grid_matches = (
+        probability_stats["width"] == count_stats["width"]
+        and probability_stats["height"] == count_stats["height"]
+        and probability_stats["crs"] == count_stats["crs"]
+        and all(
+            math.isclose(float(left), float(right), rel_tol=0.0, abs_tol=1e-6)
+            for field in ("transform", "bounds")
+            for left, right in zip(probability_stats[field], count_stats[field])
+        )
+    )
+    if not grid_matches:
+        raise DynamicWorldError(
+            "Probability and observation-count rasters do not share an identical CRS, affine transform, dimensions and bounds."
+        )
 
     manifest = {
         "schema_version": 1,

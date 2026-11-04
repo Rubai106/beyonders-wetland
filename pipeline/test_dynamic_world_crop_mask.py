@@ -11,7 +11,7 @@ from rasterio.transform import from_origin
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from download_dynamic_world_crop_mask import (  # noqa: E402
-    DynamicWorldError, _normalise_probability_geotiff, _service_account_payload,
+    DynamicWorldError, _normalise_count_geotiff, _normalise_probability_geotiff, _service_account_payload,
     assess_temporal_recency, summarize_acquisition_timestamps, validate_request,
 )
 
@@ -88,6 +88,27 @@ class DynamicWorldAcquisitionTests(unittest.TestCase):
                 self.assertEqual(float(ds.read(1)[0, 0]), 0.25)
             self.assertEqual(stats["valid_probability_pixels"], 3)
             self.assertAlmostEqual(stats["valid_probability_fraction"], 0.75)
+
+    def test_count_geotiff_preserves_zero_counts_and_returns_exact_grid_metadata(self):
+        with tempfile.TemporaryDirectory() as temp:
+            raw, output = Path(temp) / "raw-count.tif", Path(temp) / "count.tif"
+            values = np.array([[0, 1], [2, 3]], dtype=np.uint16)
+            transform = from_origin(500000, 2800000, 10, 10)
+            with rasterio.open(raw, "w", driver="GTiff", height=2, width=2, count=1,
+                               dtype="uint16", crs="EPSG:6933", transform=transform) as ds:
+                ds.write(values, 1)
+            stats = _normalise_count_geotiff(
+                raw, output, 3, {"MINIMUM_OBSERVATIONS_PER_PIXEL": "2"},
+            )
+            with rasterio.open(output) as ds:
+                self.assertEqual(ds.crs.to_string(), "EPSG:6933")
+                self.assertIsNone(ds.nodata)
+                np.testing.assert_array_equal(ds.read(1), values)
+                self.assertTrue(np.all(ds.read_masks(1) > 0))
+            self.assertEqual(stats["minimum_valid_date_count"], 0)
+            self.assertEqual(stats["maximum_valid_date_count"], 3)
+            self.assertEqual(stats["pixels_meeting_minimum_observations"], 2)
+            self.assertEqual(stats["transform"], [10.0, 0.0, 500000.0, 0.0, -10.0, 2800000.0])
 
     def test_probability_geotiff_rejects_class_labels_and_coarse_pixels(self):
         with tempfile.TemporaryDirectory() as temp:
