@@ -4,6 +4,7 @@ import {
   type AgricultureCMRGranule,
   type AgricultureCatalogueResult,
 } from "@/lib/agriculture-catalogue";
+import { AGRICULTURE_SME2_MIN_DATE } from "@/lib/agriculture-catalogue-schema";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ function validateBody(value: unknown): SearchBody | null {
   if (![west, south, east, north].every(Number.isFinite)) return null;
   if (west < -180 || east > 180 || south < -90 || north > 90 || west >= east || south >= north) return null;
   if (east - west > 2 || north - south > 2) return null;
-  if (!isIsoDate(input.startDate) || !isIsoDate(input.endDate) || input.startDate > input.endDate) return null;
+  if (!isIsoDate(input.startDate) || !isIsoDate(input.endDate) || input.startDate < AGRICULTURE_SME2_MIN_DATE || input.startDate > input.endDate) return null;
   const today = new Date().toISOString().slice(0, 10);
   if (input.endDate > today) return null;
   const span = (Date.parse(input.endDate) - Date.parse(input.startDate)) / 86_400_000;
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
   const input = validateBody(body);
   if (!input) {
     return NextResponse.json({
-      error: "Enter a valid WGS84 rectangle (no more than 2° across) and an ordered date range of at most 366 days, ending today or earlier.",
+      error: "Enter a valid WGS84 rectangle (no more than 2° across) and a date range starting on or after " + AGRICULTURE_SME2_MIN_DATE + ", ordered, at most 366 days, and ending today or earlier.",
     }, { status: 400 });
   }
 
