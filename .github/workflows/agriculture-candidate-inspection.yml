@@ -206,49 +206,7 @@ jobs:
 
       - name: Summarize the non-publishing comparison
         run: |
-          python - "$RUN_ID_141" "$RUN_ID_069" <<'PY'
-          import json
-          import os
-          import sys
-          from pathlib import Path
-
-          rows = []
-          for run_id in sys.argv[1:]:
-              base = Path("pipeline/output/agriculture") / run_id / "result"
-              baseline = json.loads((base / "inspection.json").read_text(encoding="utf-8"))
-              dsg = json.loads((base / "inspection-dsg.json").read_text(encoding="utf-8"))
-              candidate = dsg.get("candidate_analysis", {})
-              matched = candidate.get("matched_support") or {}
-              usable_fraction = candidate.get("quality_valid_fraction_on_usable_dates") or {}
-              rows.append({
-                  "label": baseline["label"],
-                  "dates": baseline["downloaded_observation_count"],
-                  "baseline_valid_dates": baseline["valid_observation_count"],
-                  "dsg_valid_dates": candidate.get("usable_observation_count", 0),
-                  "dsg_valid_fraction": usable_fraction.get("median"),
-                  "common_valid": matched.get("valid_pixels", 0),
-                  "common_total": matched.get("total_pixels", 0),
-                  "common_fraction": matched.get("valid_fraction", 0),
-                  "common_status": matched.get("status", "NOT_RECORDED"),
-                  "series_id": baseline["series_id"],
-              })
-
-          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as summary:
-              summary.write("## Baniachong native SME2 quality inspection\n\n")
-              summary.write("| Candidate | Dates | Baseline dates valid | DSG dates valid | DSG median valid AOI fraction on usable dates | DSG common cohort | Cohort status | Series ID |\n")
-              summary.write("|---|---:|---:|---:|---:|---:|---|---|\n")
-              for row in rows:
-                  fraction = "n/a" if row["dsg_valid_fraction"] is None else f"{row['dsg_valid_fraction']:.1%}"
-                  summary.write(
-                      f"| {row['label']} | {row['dates']} | {row['baseline_valid_dates']} | "
-                      f"{row['dsg_valid_dates']} | {fraction} | "
-                      f"{row['common_valid']}/{row['common_total']} ({row['common_fraction']:.1%}) | "
-                      f"{row['common_status']} | {row['series_id']} |\n"
-                  )
-              summary.write("\n**No track winner is selected automatically.** These are AOI-wide native-pixel diagnostics, not crop-area coverage or scientific validation. The DSG matched cohort is calculated only across its non-empty dates, following the existing pipeline's DSG exclusion rule.\n")
-              summary.write("\nReview the dated independent crop mask and the raw surface/retrieval flags before selecting a track. The undocumented surface flag values are not reinterpreted.\n")
-              summary.write("\nThis workflow does not run study analysis, attach rainfall, call the publisher, or write to public/agriculture/current.\n")
-          PY
+          python pipeline/agriculture_candidate_summary.py "$RUN_ID_141" "$RUN_ID_069"
 
       - name: Save non-sensitive inspection evidence
         uses: actions/upload-artifact@v4

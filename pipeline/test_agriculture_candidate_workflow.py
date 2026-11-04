@@ -57,13 +57,16 @@ class AgricultureCandidateWorkflowTests(unittest.TestCase):
         self.assertIn("agriculture_sme2_inspect.py", run_scripts)
         self.assertIn("--algorithm DSG", run_scripts)
         self.assertIn("inspection-dsg.json", self.source)
-        self.assertIn("matched cohort", run_scripts.lower())
+        summary_source = (ROOT / "pipeline" / "agriculture_candidate_summary.py").read_text(encoding="utf-8")
+        self.assertIn("agriculture_candidate_summary.py", run_scripts)
+        self.assertIn("matched_support", summary_source)
+        self.assertIn("No track winner is selected automatically", summary_source)
+        self.assertIn("EXTENDED_GAP_DAYS", summary_source)
         self.assertNotRegex(run_scripts, r"agriculture_sme2\.py\s+(?:analyze|publish)")
         write_commands = [line.strip() for line in run_scripts.splitlines()
                          if line.strip().startswith(("git add ", "cp ", "mv ", "install "))
                          and "public/agriculture/current" in line]
         self.assertEqual(write_commands, [])
-        self.assertIn("No track winner is selected automatically", run_scripts)
 
     def test_every_shell_block_passes_bash_syntax_check(self):
         checked = 0

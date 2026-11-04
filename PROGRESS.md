@@ -48,3 +48,14 @@
 - Added interactive crop-area, per-cell Mask QA and all-date crop-cohort map layers, clickable date coverage bars, common-support status, source provenance and crop-support columns in CSV export. The mask coverage preview distinctly shows adequate, partial and absent source pixels. Published assets remain display-only previews and summaries; source GeoTIFFs/HDF5/native rasters stay local.
 - Historical packages without crop observability remain valid. Missing masks display NOT ASSESSED; no AOI is assumed cropland.
 - The strict surfaceQualityFlag == 0 and all other existing SME2 quality checks are unchanged. No independent crop mask or field-validation dataset is published; synthetic raster fixtures remain test-only.
+
+
+## 2026-11-04 — Baniachong dual-track inspection (non-publishing)
+
+- Authenticated CMR discovery and Earthdata downloads completed for ten SME2 acquisitions on each preflight series. Every granule was checked against its download receipt and SHA-256 before HDF5 inspection. Evidence is retained in the non-public Actions artifact for run [#41825328589](https://github.com/Rubai106/beyonders-wetland/actions/runs/41825328589).
+- The root/baseline stream produced no quality-valid AOI pixels on either series (0/10 usable dates). The independently inspected DSG candidate stream produced five usable dates on each series (5/10); its dates are listed in the Actions summary.
+- The exact DSG all-usable-date intersection is 681/986 AOI pixels (69.1%) for track 141 and 684/986 (69.4%) for track 069. These are AOI-wide spatial-support fractions, not crop-area coverage.
+- Usable-date gaps are material: track 141 has a 48-day maximum interval between usable acquisitions; track 069 has a 72-day maximum. The 18-day cue in the summary is descriptive only, not a scientific acceptance threshold; no missing acquisition is interpolated.
+- The date-level surface audit records 750 snow/ice-flag pixels on non-usable dates, 43 precipitation-flag pixels, and 236 out-of-range surface-flag encodings per acquisition. Unsupported encodings remain separate and are not reinterpreted.
+- Added a testable, fail-closed summary generator for the candidate workflow. It cross-checks baseline/DSG identity, acquisition dates, usable-date counts, AOI bounds and exact-cohort counts before it renders the comparison and per-date timeline. Six regression tests cover gap derivation, report alignment, evidence consistency and the no-ranking caveat.
+- **Decision:** neither track is ranked for agricultural suitability. No independent crop mask has been applied, no crop-area result is claimed, and no public Agriculture study or preview was created. The existing SME2 quality filters and public publication pointer are unchanged.
