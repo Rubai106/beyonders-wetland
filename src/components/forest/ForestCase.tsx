@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ForestStudy, ForestPublication, ForestCandidates } from "@/lib/forest-study";
 import BandPenetrationExplainer from "../shared/BandPenetrationExplainer";
