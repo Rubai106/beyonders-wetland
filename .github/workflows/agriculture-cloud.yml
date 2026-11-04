@@ -98,7 +98,7 @@ jobs:
             END_DATE=$(jq -r '.end // empty' "$REQUEST_FILE")
             SERIES_ID=$(jq -r '.series_id // empty' "$REQUEST_FILE")
             ALGORITHM=$(jq -r '.algorithm // "baseline"' "$REQUEST_FILE")
-            ALLOW_MISSING=$(jq -r '.allow_missing_imerg // true' "$REQUEST_FILE")
+            ALLOW_MISSING=$(jq -r 'if has("allow_missing_imerg") then .allow_missing_imerg else true end' "$REQUEST_FILE")
           else
             WEST="$INPUT_WEST"
             SOUTH="$INPUT_SOUTH"
@@ -120,26 +120,43 @@ jobs:
             echo "::error::ALGORITHM must be baseline or DSG."
             exit 1
           fi
+          if [ -n "$SERIES_ID" ] && [[ ! "$SERIES_ID" =~ ^[a-f0-9]{12}$ ]]; then
+            echo "::error::SERIES_ID must be a 12-character lowercase hexadecimal CMR series ID."
+            exit 1
+          fi
+          if [ "$ALLOW_MISSING" != "true" ] && [ "$ALLOW_MISSING" != "false" ]; then
+            echo "::error::ALLOW_MISSING_IMERG must be true or false."
+            exit 1
+          fi
           python - "$WEST" "$SOUTH" "$EAST" "$NORTH" "$START_DATE" "$END_DATE" <<'PY'
           import sys
           from datetime import date
           west, south, east, north = map(float, sys.argv[1:5])
-          start, end = map(date.fromisoformat, sys.argv[5:7])
+          start_text, end_text = sys.argv[5:7]
+          try:
+              start, end = map(date.fromisoformat, (start_text, end_text))
+          except ValueError as exc:
+              raise SystemExit("Dates must use the exact YYYY-MM-DD format.") from exc
+          if start.isoformat() != start_text or end.isoformat() != end_text:
+              raise SystemExit("Dates must use the exact YYYY-MM-DD format.")
           if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
               raise SystemExit("AOI must be a valid WGS84 bounding box.")
-          if start.isoformat() < "2026-06-17" or start > end or end > date.today():
-              raise SystemExit("Date range is invalid, future-dated, or starts before 2026-06-17.")
+          if east - west > 2 or north - south > 2:
+              raise SystemExit("AOI must not exceed 2 degrees in either dimension.")
+          if (start.isoformat() < "2026-06-17" or start > end or end > date.today()
+                  or (end - start).days > 366):
+              raise SystemExit("Date range is invalid, future-dated, exceeds 366 days, or starts before 2026-06-17.")
           PY
           {
-            echo "west=$WEST"
-            echo "south=$SOUTH"
-            echo "east=$EAST"
-            echo "north=$NORTH"
-            echo "start=$START_DATE"
-            echo "end=$END_DATE"
-            echo "series_id=$SERIES_ID"
-            echo "algorithm=$ALGORITHM"
-            echo "allow_missing_imerg=$ALLOW_MISSING"
+            printf 'west=%s\n' "$WEST"
+            printf 'south=%s\n' "$SOUTH"
+            printf 'east=%s\n' "$EAST"
+            printf 'north=%s\n' "$NORTH"
+            printf 'start=%s\n' "$START_DATE"
+            printf 'end=%s\n' "$END_DATE"
+            printf 'series_id=%s\n' "$SERIES_ID"
+            printf 'algorithm=%s\n' "$ALGORITHM"
+            printf 'allow_missing_imerg=%s\n' "$ALLOW_MISSING"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Python
@@ -177,8 +194,9 @@ jobs:
 
       - name: Download the exact selected SME2 series
         shell: bash
+        env:
+          SERIES_ID: ${{ steps.request.outputs.series_id }}
         run: |
-          SERIES_ID="${{ steps.request.outputs.series_id }}"
           if [ -n "$SERIES_ID" ]; then
             python pipeline/agriculture_sme2.py download --run-id "$RUN_ID" --series-id "$SERIES_ID"
           else
@@ -192,6 +210,8 @@ jobs:
 
       - name: Attach NASA GPM IMERG Final rainfall context
         shell: bash
+        env:
+          ALLOW_MISSING_IMERG: ${{ steps.request.outputs.allow_missing_imerg }}
         run: |
           set +e
           python pipeline/agriculture_sme2.py rainfall --run-id "$RUN_ID" 2>&1 | tee "$RUNNER_TEMP/imerg.log"
@@ -201,8 +221,7 @@ jobs:
             echo "IMERG rainfall context attached." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          ALLOW_MISSING_IMERG="${{ steps.request.outputs.allow_missing_imerg }}"
-          if [ "$ALLOW_MISSING_IMERG" = "true" ] && grep -Eq "no GPM IMERG Final daily V07 granules|no complete rainfall window met the 90% native-cell spatial coverage rule" "$RUNNER_TEMP/imerg.log"; then
+          if [ "$ALLOW_MISSING_IMERG" = "true"  && grep -Eq "no GPM IMERG Final daily V07 granules|no complete rainfall window met the 90% native-cell spatial coverage rule" "$RUNNER_TEMP/imerg.log"; then
             echo "### IMERG not yet available" >> "$GITHUB_STEP_SUMMARY"
             echo "SME2 evidence will be published without rainfall context. No missing rainfall values were fabricated." >> "$GITHUB_STEP_SUMMARY"
             exit 0
