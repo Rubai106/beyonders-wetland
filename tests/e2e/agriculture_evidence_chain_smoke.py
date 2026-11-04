@@ -537,6 +537,42 @@ def main() -> int:
         require(True, "the walkthrough navigates to the Learn tab")
         page.get_by_role("button", name="Finish").click()
 
+        # Exercise the real Agriculture evidence panel at tablet and phone widths.
+        page.locator(".wx-drawer__tabs [role='tab']").nth(0).click()
+        page.wait_for_function(
+            """() => document.querySelector(".wx-drawer__tabs [role=tab][aria-selected=true]")?.textContent?.trim() === "Explore" """,
+            timeout=10_000,
+        )
+        mobile_overflow: list[str] = []
+        for width, height in ((768, 1024), (390, 844)):
+            page.set_viewport_size({"width": width, "height": height})
+            page.wait_for_timeout(250)
+            dimensions = page.evaluate("""() => {
+              const panel = document.querySelector(".agri-unknown-flags");
+              const rect = panel?.getBoundingClientRect();
+              return {
+                viewport: window.innerWidth,
+                document: document.documentElement.scrollWidth,
+                body: document.body.scrollWidth,
+                panel: rect ? { left: rect.left, right: rect.right, width: rect.width } : null,
+              };
+            }""")
+            valid = (
+                dimensions["panel"] is not None
+                and dimensions["panel"]["width"] > 0
+                and dimensions["panel"]["left"] >= -1
+                and dimensions["panel"]["right"] <= dimensions["viewport"] + 1
+                and dimensions["document"] <= dimensions["viewport"] + 1
+                and dimensions["body"] <= dimensions["viewport"] + 1
+            )
+            if not valid:
+                mobile_overflow.append(f"{width}px: {dimensions}")
+        require(
+            not mobile_overflow,
+            "Agriculture evidence panel remains visible without horizontal overflow at tablet and phone widths: "
+            + " | ".join(mobile_overflow),
+        )
+
         browser.close()
 
     require(

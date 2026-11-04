@@ -2121,3 +2121,25 @@
   color: #b4c0aa;
   font: 600 .52rem var(--font-mono, monospace);
 }
+
+
+/* Evidence diagnostics: lift micro-labels to a readable, consistent scale. */
+.agriculture-workspace .agri-observability__date { font-size: .62rem; }
+.agriculture-workspace .agri-observability__stats span { font-size: .65rem; }
+.agriculture-workspace .agri-observability__stats small,
+.agriculture-workspace .agri-observability__row small { font-size: .62rem; }
+.agriculture-workspace .agri-observability__row-head strong { font-size: .67rem; }
+.agriculture-workspace .agri-observability__row-head span { font-size: .63rem; }
+.agriculture-workspace .agri-observability__note { font-size: .64rem; }
+.agriculture-workspace .agri-flag-atlas__head > span { font-size: .6rem; }
+.agriculture-workspace .agri-flag-atlas__intro,
+.agriculture-workspace .agri-flag-atlas__empty { font-size: .64rem; }
+.agriculture-workspace .agri-flag-atlas__axis { font-size: .53rem; }
+.agriculture-workspace .agri-flag-atlas__axis-bits span { font-size: .52rem; }
+.agriculture-workspace .agri-unknown-flags__head span,
+.agriculture-workspace .agri-unknown-flags__fallback,
+.agriculture-workspace .agri-unknown-flags p,
+.agriculture-workspace .agri-unknown-flags > small { font-size: .64rem; }
+.agriculture-workspace .agri-unknown-flags__list li { font-size: .62rem; }
+.agriculture-workspace .agri-unknown-flags__list code,
+.agriculture-workspace .agri-unknown-flags__list span { font-size: .6rem; }
