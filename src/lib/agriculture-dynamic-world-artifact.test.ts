@@ -23,7 +23,7 @@ function run(id: number, created = "2026-11-04T10:00:00.000Z") {
     conclusion: "success",
     head_sha: sha,
     created_at: created,
-    html_url: \`https://github.com/\${repo}/actions/runs/\${id}\`,
+    html_url: `https://github.com/${repo}/actions/runs/${id}`,
     repository: { full_name: repo },
     head_repository: { full_name: repo },
   };
@@ -92,7 +92,7 @@ test("sorts most recent runs first and limits results to ten", () => {
   const runs = Array.from({ length: 12 }, (_, index) => {
     const id = 400 + index;
     const hour = String(index).padStart(2, "0");
-    return run(id, \`2026-11-04T\${hour}:00:00.000Z\`);
+    return run(id, `2026-11-04T${hour}:00:00.000Z`);
   });
   const artifacts = Object.fromEntries(runs.map((item) => [
     String(item.id),
