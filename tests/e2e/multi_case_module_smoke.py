@@ -87,7 +87,11 @@ def main() -> int:
             "latitude=23.81030" in pin_href and "longitude=90.41250" in pin_href,
             "keyboard and touch users can set an exact study location without dragging or tapping the globe",
         )
-        page.get_by_role("button", name="Cancel pin mode").click()
+        page.locator(".g3-pinbar").get_by_role("button", name="Cancel location selection").click()
+        require(
+            page.locator(".g3-pinbar").count() == 0,
+            "the coordinate pin panel has a reachable cancel action and closes cleanly",
+        )
 
         # Both seven-date wetland publications must use the same genuine
         # observation/timeline/map interaction, while keeping Tanguar default.

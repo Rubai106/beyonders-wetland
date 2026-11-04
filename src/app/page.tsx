@@ -392,6 +392,17 @@ export default function Home() {
           <div className="g3-pinbar">
             <span className="g3-pinbar-dot" aria-hidden="true" />
             <p><strong>Choose a study location.</strong> Select a point on the globe, or enter coordinates below. The pin is a proposed search area—not a detection.</p>
+            <button
+              type="button"
+              className="g3-btn g3-btn--ghost g3-btn--sm"
+              onClick={() => {
+                setPinMode(false);
+                setPin(null);
+                setPinError("");
+                setPinLatitude("");
+                setPinLongitude("");
+              }}
+            >Cancel location selection</button>
             <form className="g3-pinbar__form" onSubmit={submitPinCoordinates}>
               <label>
                 Latitude
