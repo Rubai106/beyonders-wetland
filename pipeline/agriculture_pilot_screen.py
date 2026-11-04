@@ -21,14 +21,29 @@ DEFAULT_SITES = ROOT / "pipeline" / "agriculture_pilot_sites.json"
 DEFAULT_OUTPUT = ROOT / "pipeline" / "output" / "agriculture" / "pilot-screening" / "report.json"
 
 
+MIN_SME2_START_DATE = date(2026, 6, 17)
+MAX_SEARCH_SPAN_DAYS = 366
+
+
 def _validate_range(start: str, end: str) -> None:
     try:
         start_day = date.fromisoformat(start)
         end_day = date.fromisoformat(end)
     except ValueError as exc:
         raise ValueError("Dates must use YYYY-MM-DD format.") from exc
+    if start_day.isoformat() != start or end_day.isoformat() != end:
+        raise ValueError("Dates must use YYYY-MM-DD format.")
+    if start_day < MIN_SME2_START_DATE:
+        raise ValueError(
+            "The SME2 pilot preflight cannot start before 2026-06-17, "
+            "the earliest date supported by the current cloud worker."
+        )
+    if end_day > date.today():
+        raise ValueError("The end date cannot be in the future.")
     if start_day >= end_day:
         raise ValueError("The start date must be earlier than the end date.")
+    if (end_day - start_day).days > MAX_SEARCH_SPAN_DAYS:
+        raise ValueError("The date range cannot exceed 366 days.")
 
 
 def summarize_series(
