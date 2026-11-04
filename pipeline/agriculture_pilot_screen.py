@@ -181,7 +181,7 @@ def screen_sites(
             else None
         ),
         "next_action": (
-            "Review the selected series identity and granule dates, then run the existing authenticated download/analyze workflow locally."
+            "Review the selected series identity and granule dates, then use the secure master-branch Agriculture cloud workflow to process the selected series. The runner uses the repository Actions secret EARTH_DATA; do not place credentials in the browser or workflow inputs."
             if any(item["status"] == "ELIGIBLE_FOR_OPERATOR_REVIEW" for item in results)
             else "No site passed the catalogue preflight. Inspect the returned dates/errors, revise the AOIs or date range, and do not start a download."
         ),
