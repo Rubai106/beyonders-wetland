@@ -342,7 +342,7 @@ def main() -> int:
             },
             "series": [
                 {
-                    "series_id": "qa-eligible-170",
+                    "series_id": "a170a0144005",
                     "signature": {
                         "release": "P05023", "track": "170", "direction": "A",
                         "frame": "014", "bandwidth": "4005", "polarization": "DHDH", "frequency": "A",
@@ -353,10 +353,20 @@ def main() -> int:
                     "median_revisit_days": 12,
                     "maximum_gap_days": 24,
                     "meets_preflight_gate": True,
-                    "granules": [],
+                    "granules": [
+                        {
+                            "date": date,
+                            "concept_id": f"TEST-170-{index:02d}",
+                            "title": "NISAR_L3_PR_SME2_024_170_A_014_4005_DHDH_A_P05023",
+                            "updated": None,
+                        }
+                        for index, date in enumerate(
+                            ["2026-06-17", "2026-06-29", "2026-07-11", "2026-08-04", "2026-08-16", "2026-08-28"]
+                        )
+                    ],
                 },
                 {
-                    "series_id": "qa-below-gate",
+                    "series_id": "b069a0144005",
                     "signature": {
                         "release": "P05023", "track": "069", "direction": "A",
                         "frame": "014", "bandwidth": "4005", "polarization": "DHDH", "frequency": "A",
@@ -367,10 +377,20 @@ def main() -> int:
                     "median_revisit_days": 12,
                     "maximum_gap_days": 12,
                     "meets_preflight_gate": False,
-                    "granules": [],
+                    "granules": [
+                        {
+                            "date": date,
+                            "concept_id": f"TEST-069-{index:02d}",
+                            "title": "NISAR_L3_PR_SME2_024_069_A_014_4005_DHDH_A_P05023",
+                            "updated": None,
+                        }
+                        for index, date in enumerate(
+                            ["2026-06-17", "2026-06-29", "2026-07-11", "2026-07-23", "2026-08-04"]
+                        )
+                    ],
                 },
             ],
-            "recommended_series_id": "qa-eligible-170",
+            "recommended_series_id": "a170a0144005",
             "status": "ELIGIBLE_FOR_OPERATOR_REVIEW",
             "interpretation_limits": ["Catalogue preflight is not HDF5 quality verification."],
         }
@@ -386,7 +406,7 @@ def main() -> int:
         page.locator(".agri-online-next__launch").wait_for(state="visible", timeout=10_000)
         require(
             "ref=master" in (page.locator(".agri-online-next__launch").get_attribute("href") or "")
-            and "qa-eligible-170" in page.locator(".agri-online-next").inner_text()
+            and "a170a0144005" in page.locator(".agri-online-next").inner_text()
             and "REMOTE WORKER AVAILABLE" in page.locator(".agri-online-next").inner_text(),
             "an eligible CMR series opens the secure master cloud-processing handoff with its selected inputs",
         )
@@ -398,7 +418,7 @@ def main() -> int:
         )
         copied_inputs = page.evaluate("navigator.clipboard.readText()")
         require(
-            "series_id=qa-eligible-170" in copied_inputs
+            "series_id=a170a0144005" in copied_inputs
             and "algorithm=baseline" in copied_inputs
             and "allow_missing_imerg=true" in copied_inputs,
             "the workflow handoff copies the selected series and all required cloud inputs",
