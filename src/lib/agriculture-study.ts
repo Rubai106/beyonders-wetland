@@ -405,9 +405,11 @@ function validCropSourceTemporalCoverage(
 ): value is AgricultureCropSourceTemporalCoverage {
   if (!isRecord(value) || value.dataset !== "GOOGLE/DYNAMICWORLD/V1" || value.band !== "crops") return false;
   const window = isRecord(value.requested_window) ? value.requested_window : null;
+  const windowStart = window?.start;
+  const windowEnd = window?.end;
   const dates = Array.isArray(value.acquisition_dates) ? value.acquisition_dates : null;
   const recency = isRecord(value.latest_scene_recency) ? value.latest_scene_recency : null;
-  if (!window || !isoDay(window.start) || !isoDay(window.end) || window.start > window.end ||
+  if (!window || !isoDay(windowStart) || !isoDay(windowEnd) || windowStart > windowEnd ||
       !dates || dates.length < 1 || !dates.every(isoDay) ||
       Number(value.unique_acquisition_dates) !== dates.length ||
       !Number.isInteger(value.unique_acquisition_dates) ||
@@ -425,13 +427,13 @@ function validCropSourceTemporalCoverage(
 
   if (new Set(dates).size !== dates.length ||
       dates.some((item, index) => index > 0 && dates[index - 1] >= item) ||
-      dates.some((item) => item < window.start || item > window.end)) return false;
+      dates.some((item) => item < windowStart || item > windowEnd)) return false;
   const expectedMaximumGap = dates.length < 2 ? null : Math.max(
     ...dates.slice(1).map((item, index) =>
       (Date.parse(item + "T00:00:00Z") - Date.parse(dates[index] + "T00:00:00Z")) / 86_400_000),
   );
   if (value.maximum_gap_between_acquisition_dates_days !== expectedMaximumGap) return false;
-  const latestGap = (Date.parse(window.end + "T00:00:00Z") -
+  const latestGap = (Date.parse(windowEnd + "T00:00:00Z") -
     Date.parse(dates[dates.length - 1] + "T00:00:00Z")) / 86_400_000;
   const expectedRecency = latestGap <= 18
     ? "RECENT_WITHIN_18_DAY_WINDOW"
