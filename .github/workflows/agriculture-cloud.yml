@@ -60,7 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}
       RUN_ID: agri-${{ github.run_id }}
 
     steps:
@@ -68,6 +67,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: master
+          persist-credentials: false
 
       - name: Resolve AOI and date inputs
         id: request
@@ -185,6 +185,8 @@ jobs:
 
       - name: Validate secure Earthdata configuration
         shell: bash
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}
         run: |
           if [ -z "${EARTHDATA_TOKEN}" ]; then
             echo "::error::Add an Actions secret named EARTH_DATA before running this workflow."
@@ -195,6 +197,7 @@ jobs:
       - name: Download the exact selected SME2 series
         shell: bash
         env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}
           SERIES_ID: ${{ steps.request.outputs.series_id }}
         run: |
           if [ -n "$SERIES_ID" ]; then
@@ -211,6 +214,7 @@ jobs:
       - name: Attach NASA GPM IMERG Final rainfall context
         shell: bash
         env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTH_DATA }}
           ALLOW_MISSING_IMERG: ${{ steps.request.outputs.allow_missing_imerg }}
         run: |
           set +e
@@ -239,6 +243,8 @@ jobs:
 
       - name: Commit the publication package to master
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -247,7 +253,9 @@ jobs:
             echo "No publication changes to commit."
           else
             git commit -m "Publish cloud-verified Agriculture study ($RUN_ID)"
-            git push origin HEAD:master
+            AUTH_HEADER="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 -w0)"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH_HEADER" push origin HEAD:master
+            unset AUTH_HEADER
           fi
 
       - name: Save non-sensitive processing receipts
