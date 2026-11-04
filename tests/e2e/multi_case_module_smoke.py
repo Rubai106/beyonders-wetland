@@ -180,7 +180,7 @@ def main() -> int:
             "return status && status.textContent?.trim() !== 'Checking published study'; }",
             timeout=30_000,
         )
-        agriculture_state = (agriculture_status.inner_text() or "").strip()
+        agriculture_state = (agriculture_status.evaluate("(el) => el.textContent?.trim()") or "").strip()
         agriculture_timeline = page.locator(".agri-chart .agri-chart-point button")
         agriculture_toolbar = page.locator(".agri-map-toolbar")
         agriculture_map_height = page.locator(".agri-map").evaluate(
