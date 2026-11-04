@@ -2,7 +2,7 @@ name: Agriculture and project QA
 
 on:
   push:
-    branches: [master, Rubai-dev]
+    branches: [master]
     paths:
       - '.github/workflows/**'
       - 'pipeline/**'
@@ -19,7 +19,7 @@ on:
       - 'README.md'
       - 'docs/agriculture-*.md'
   pull_request:
-    branches: [master, Rubai-dev]
+    branches: [master]
 
 permissions:
   contents: read
