@@ -16,6 +16,8 @@ export const metadata: Metadata = {
     "wetland",
     "volcano",
     "forest",
+    "agriculture",
+    "soil moisture",
     "SAR",
     "radar",
     "inundation",
