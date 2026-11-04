@@ -163,10 +163,9 @@ export default function FieldVolumeScene({
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "low-power" });
     } catch {
-      setWebglAvailable(false);
-      return;
+      const fallbackFrame = requestAnimationFrame(() => setWebglAvailable(false));
+      return () => cancelAnimationFrame(fallbackFrame);
     }
-    setWebglAvailable(true);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -206,7 +205,7 @@ export default function FieldVolumeScene({
 
     observations.forEach((datum, index) => {
       const x = (index - (observations.length - 1) / 2) * slotWidth;
-      const isSelected = datum.id === selectedId;
+      const isSelected = datum.id === callbacksRef.current.selectedId;
       const isAvailable = datum.available !== false;
       const normalized = isAvailable ? Math.max(0, (datum.value - minimum) / range) : 0;
       const height = isAvailable ? (datum.value === 0 ? 0.035 : 0.11 + normalized * 1.25) : 0.035;
@@ -342,7 +341,7 @@ export default function FieldVolumeScene({
       canvas.remove();
       sceneRef.current = null;
     };
-  }, [kind, observations, title, palette.accent, palette.deep, palette.glow]);
+  }, [kind, observations, title, palette]);
 
   return (
     <div className="field-volume-scene">
