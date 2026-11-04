@@ -87,7 +87,7 @@ class AgriculturePilotScreenTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cannot start before 2026-06-17"):
             screen_sites([site], "2026-01-01", "2026-10-31", searcher=lambda *_: [])
 
-        with self.assertRaisesRegex(ValueError, "cannot exceed 366 days"):
+        with self.assertRaisesRegex(ValueError, "end date cannot be in the future"):
             screen_sites([site], "2026-06-17", "2027-07-01", searcher=lambda *_: [])
 
     def test_eligible_report_points_to_master_cloud_workflow(self):
