@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/check-node-version.mjs",
     "dev": "next dev --webpack",
+    "prebuild": "node scripts/check-node-version.mjs",
     "build": "next build --webpack",
+    "prestart": "node scripts/check-node-version.mjs",
     "start": "next start",
     "lint": "eslint",
-    "test:unit": "node --experimental-strip-types --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/*.test.ts"
+    "test": "npm run test:unit",
+    "test:unit": "node --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/*.test.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",
@@ -28,5 +32,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }
