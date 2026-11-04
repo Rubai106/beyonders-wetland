@@ -10,7 +10,7 @@ function isRecord(value: unknown): value is RecordValue {
 }
 
 function isIsoDay(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(value + "T00:00:00Z");
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
@@ -25,12 +25,12 @@ function daysBetween(first: string, second: string): number {
 
 function isSignature(value: unknown): value is AgricultureSME2Signature {
   if (!isRecord(value)) return false;
-  return typeof value.release === "string" && /^P\\d{5}$/.test(value.release) &&
+  return typeof value.release === "string" && /^P\d{5}$/.test(value.release) &&
     Number(value.release.slice(1)) >= 5023 &&
-    typeof value.track === "string" && /^\\d{3}$/.test(value.track) &&
+    typeof value.track === "string" && /^\d{3}$/.test(value.track) &&
     (value.direction === "A" || value.direction === "D") &&
-    typeof value.frame === "string" && /^\\d{3}$/.test(value.frame) &&
-    typeof value.bandwidth === "string" && /^\\d{4}$/.test(value.bandwidth) &&
+    typeof value.frame === "string" && /^\d{3}$/.test(value.frame) &&
+    typeof value.bandwidth === "string" && /^\d{4}$/.test(value.bandwidth) &&
     typeof value.polarization === "string" && /^[A-Z0-9]{2,8}$/.test(value.polarization) &&
     (value.frequency === "A" || value.frequency === "B");
 }
