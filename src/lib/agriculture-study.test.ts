@@ -145,6 +145,8 @@ test("validates the per-date SME2 surface-flag observability audit", () => {
   assert.equal(isAgricultureStudy(documentedValueInUnsupportedList), false);
 
   const boundedHistogram = structuredClone(changed);
+  boundedHistogram.observations[0].surface_flag_diagnostics.encoded_pixels = 79;
+  boundedHistogram.observations[0].surface_flag_diagnostics.unflagged_pixels = 54;
   boundedHistogram.observations[0].surface_flag_diagnostics.unsupported_encoding_pixels = 17;
   boundedHistogram.observations[0].surface_flag_diagnostics.unsupported_values = Array.from(
     { length: 16 }, (_, index) => ({ value: 256 + index, pixels: 1 }),
