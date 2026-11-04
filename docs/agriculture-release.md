@@ -53,9 +53,9 @@ python pipeline/agriculture_sme2.py publish --run-id agri-pilot-01
 
 The stage queries NASA CMR for GPM_3IMERGDF version 07 daily granules covering the exact UTC days needed before each SME2 acquisition, authenticates/downloads exact concept IDs with earthaccess, and reads the daily precipitation plus half-hourly sample-count fields. It uses native 0.1-degree grid cells and spherical cell/AOI overlap area weights. A daily AOI estimate is accepted only at 90% or greater spatial support. Incomplete 1-, 3-, 7- or 12-day windows remain null; no missing value is converted to zero. The study embeds a per-granule receipt and aggregate source-manifest digest. Raw NetCDF4 data and daily diagnostics stay in ignored local operator storage; publication copies only the compact study summary and existing preview assets.
 
-The browser has an acquisition-aligned rainfall timeline with four accumulation windows, explicit missing-state markers, spatial-coverage and half-hour-sample support, and an official NASA dataset link. It only appears for a checksum-verified study that contains a schema-valid rainfall context. The existing no-publication state remains unchanged.
+The browser has an acquisition-aligned rainfall timeline with four accumulation windows, explicit missing-state markers, spatial-coverage and half-hour-sample support, and an official NASA dataset link. It only appears for a checksum-verified study that contains a schema-valid rainfall context. The published Naogaon SME2 release does not contain rainfall context, so its browser state correctly remains unavailable rather than plotting zero rainfall.
 
-This integration is code-complete on Rubai-dev, but a real Earthdata-authenticated run has not been completed here. The CMR/download/NetCDF4 integration, new Python regression tests, updated TypeScript schema tests, lint, production build and browser smoke test must pass before this milestone is considered QA-complete. No actual Agriculture rainfall values or SME2 study are claimed by the implementation itself.
+The SME2 cloud run completed authenticated granule discovery/download, analysis, publication and the public build. It did not attach an IMERG series to the published study. Keep rainfall claims separate from the verified SME2 measurements; no rainfall values are inferred.
 
 ## Explicit SME2 algorithm stream and zero-clear DSG semantics
 
@@ -71,7 +71,15 @@ For DSG, dates with no valid AOI pixels are excluded from the plotted and statis
 - SME2 PROVISIONAL measurements are not fully calibrated; outputs remain exploratory.
 - The current public index points to immutable release `agri-41647231453`, a checksum-verified Naogaon study using the separate DSG algorithm-candidate stream.
 - The release contains six valid acquisition dates: 12 August, 24 August, 17 September, 29 September, 11 October and 23 October 2026. Four other dates are explicitly recorded as exclusions because no valid DSG AOI retrieval remained; they are not interpolated.
-- Its change summary has 21.31% valid AOI coverage and its fixed all-date cohort has 21.28% coverage, only slightly above the fixed 20% policy floor. These are exploratory sup## QA execution status
+- Its change summary has 21.31% valid AOI coverage and its fixed all-date cohort has 21.28% coverage, only slightly above the fixed 20% policy floor. These are exploratory support measures, not evidence of broad representativeness.
+- No independent crop mask, IMERG rainfall context, field reference or agricultural accuracy estimate is included in this release.
+- No claim is made about crop stress, drought, irrigation need, crop type, field boundaries or yield.
+- The baseline is the first three unique observations in a compatible series; the target is the latest observation.
+- The 20% AOI coverage floor is fixed. Below-floor target or change coverage is inconclusive.
+- The reported change-layer uncertainty is the target observation's product uncertainty, not a propagated uncertainty for the difference.
+- Synthetic HDF5 fixtures are test-only and never published.
+
+## QA execution status
 
 The previously recorded full QA run [#162](https://github.com/Rubai106/beyonders-wetland/actions/runs/41510560042) completed successfully on the earlier `Rubai-dev` commit `9b4f62e7c010dde15a5d47eb682463c03e295e71`. Its Python compilation, Python regression suite, TypeScript tests, ESLint, production build, TypeScript check and Chromium smoke job all passed. That run predates the currently published Naogaon release and therefore does not verify the present `master` head or the newer published-study browser assertions.
 
@@ -90,12 +98,6 @@ The active QA concurrency policy no longer cancels a running regression job just
 
 The cloud run's download, analyze, publish and website-build steps completed successfully. That establishes a processed, checksum-verified exploratory SME2 package; it does not establish independent agricultural accuracy or validate the scientific interpretation against field measurements.
 
-iscovery and Earthdata-authenticated granule download | NOT RUN — Earthdata credentials and operator-selected AOI required |
-| Real PROVISIONAL SME2 HDF5 hierarchy, units, projection, fill values and flag verification | NOT RUN — no authenticated operator granule review is claimed |
-| Independent crop-mask processing on a real SME2 series | NOT RUN — no real crop mask/pilot is published |
-| Interactive overlap-atlas review using the current published Naogaon study | Covered by the current master Chromium evidence-chain test; latest master Actions result not yet verified |
-
-Do not represent synthetic regression fixtures or a passing production build as a real-data agricultural validation result.
 
 ## Next pilot plan
 
@@ -103,7 +105,7 @@ Do not represent synthetic regression fixtures or a passing production build as 
    ```powershell
    python -m unittest pipeline.test_agriculture_sme2 -v
    python -m py_compile pipeline/agriculture_sme2.py pipeline/test_agriculture_sme2.py
-   node --experimental-strip-types --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/agriculture-study.test.ts
+   npm test
    npm run lint
    npx tsc --noEmit
    npm run build
