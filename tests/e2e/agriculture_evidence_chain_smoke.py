@@ -50,7 +50,8 @@ def verify_field_volume(page) -> None:
     toggle.click()
     canvas = disclosure.locator("canvas.field-volume-canvas")
     canvas.wait_for(state="visible", timeout=20_000)
-    observations = disclosure.locator(".field-volume-scene__dates button")
+    date_list = disclosure.locator(".field-volume-scene__dates")
+    observations = date_list.locator("button")
     require(
         canvas.is_visible() and observations.count() >= 4,
         "Agriculture renders a data-bound 3D scene with the published dated SME2 observations",
@@ -71,7 +72,7 @@ def verify_field_volume(page) -> None:
     )
     require(
         target.get_attribute("aria-pressed") == "true"
-        and observations.locator("button[aria-pressed='true']").count() == 1,
+        and date_list.locator("button[aria-pressed='true']").count() == 1,
         "Agriculture date selection updates the active 3D measurement",
     )
     observations.nth(initial_index).click()
