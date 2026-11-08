@@ -4,10 +4,24 @@
 import Link from "next/link";
 import { buildPlatformHealth, MATURITY_STAGES, OBSERVATION_STATES } from "@/lib/observation-health";
 import type { StudyHealth } from "@/lib/observation-health";
-import { allStudyQuality, qualityBarWidth } from "@/lib/evidence-quality";
+import { qualityBarWidth } from "@/lib/evidence-quality";
+import { loadStudyQuality } from "@/lib/evidence-quality-server";
 import "./observability.css";
 
 export const dynamic = "force-dynamic";
+
+/** Honest checksum wording: a published declaration is not proof that the
+    files were re-hashed and matched in this session. */
+function integrityLabel(study: StudyHealth): string {
+  if (study.integrity === "VERIFIED") return "Published and verified";
+  if (study.integrity === "PUBLISHED_NOT_VERIFIED") {
+    const count = Object.keys(study.digests ?? {}).length;
+    return count > 0
+      ? `Published (${count} digests declared) — not verified in this session`
+      : "Published — not verified in this session";
+  }
+  return "Not published for this study";
+}
 
 function MaturityLadder({ stages }: { stages: StudyHealth["stages"] }) {
   return (
@@ -87,8 +101,11 @@ function MaturityMatrix({ domains }: { domains: { domain: string; label: string;
   );
 }
 
-function QualityExplorer() {
-  const studies = allStudyQuality();
+async function QualityExplorer() {
+  // Figures are derived from the published files on every load (with
+  // per-figure provenance), not read from a hardcoded table — so a study
+  // version change can never silently serve stale numbers.
+  const { studies, missing } = await loadStudyQuality();
   return (
     <section className="obs-quality" aria-label="Evidence quality explorer">
       <h2>How much was actually covered?</h2>
@@ -98,6 +115,12 @@ function QualityExplorer() {
         zero is shown as a zero with its denominator, never as missing data. A
         missing figure is labelled “not recorded”, never shown as zero.
       </p>
+      {missing.length > 0 && (
+        <p className="obs-empty">
+          Could not read the publication files for: {missing.join(", ")}. Those
+          studies are reported as missing, not as zero.
+        </p>
+      )}
       {studies.map((study) => (
         <article key={study.studyId} className="obs-quality__study">
           <h3>{study.studyName}</h3>
@@ -142,7 +165,7 @@ function StudyCard({ study }: { study: StudyHealth }) {
         <div><dt>Product</dt><dd>{study.product}</dd></div>
         <div><dt>Maturity</dt><dd>{study.productMaturity}</dd></div>
         <div><dt>Observations</dt><dd>{study.observationDates.length ? `${study.observationDates.length} date${study.observationDates.length === 1 ? "" : "s"} (${study.observationDates[0]} → ${study.observationDates[study.observationDates.length - 1]})` : "Dates not recorded in the manifest"}</dd></div>
-        <div><dt>Checksums</dt><dd>{study.checksumsPresent ? "Published and verifiable" : "Not published for this study"}</dd></div>
+        <div><dt>Checksums</dt><dd>{integrityLabel(study)}</dd></div>
         {study.runId && <div><dt>Run ID</dt><dd><code>{study.runId}</code></dd></div>}
         {study.publishedAt && <div><dt>Published</dt><dd>{study.publishedAt.slice(0, 10)}</dd></div>}
       </dl>

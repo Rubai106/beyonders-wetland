@@ -339,7 +339,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
   const [coverageRefreshing, setCoverageRefreshing] = useState(false);
   const [coverageError, setCoverageError] = useState("");
   const [coverageRefreshKey, setCoverageRefreshKey] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(initialRunId));
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const closeMapComparison = useCallback(() => {
@@ -365,7 +365,16 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
     setCandidateDate("");
     setCandidateSelection(null);
     setError("");
-    setLoading(true);
+    if (!runId) {
+      // No run chosen: clear any previous run's detections in this same
+      // event, so the explorer shows the honest empty state. The fetch
+      // effect below skips entirely when no run is selected; it must not
+      // set state itself (React 19 forbids setState directly in an effect).
+      setData(null);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setFocusStudyArea(Boolean(runId));
     setAreaBounds(null);
     setAreaBoundary(null);
@@ -423,6 +432,14 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
   }, [refreshKey]);
 
   useEffect(() => {
+    // No run chosen means no detections: the explorer must not silently load
+    // the latest completed run (Tanguar in public mode) and present it as the
+    // initial state. Worldwide footprints are acquisitions, not detections,
+    // until the user explicitly picks a saved study (or arrives via ?run=).
+    // Clearing happens in selectRun, the event that changes the selection.
+    if (!selectedRun) {
+      return;
+    }
     const controller = new AbortController();
     const params = new URLSearchParams();
     if (candidateDate) params.set("date", candidateDate);
@@ -587,7 +604,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
   const headerCaseName = data?.site_name || data?.case_study?.site || (isNisar ? "Latest processed study" : "Global observations");
   const railCaseName = headerCaseName.replace(/\s+(?:event\s+)?study box$/i, "").replace(/\s+mapped boundary$/i, "");
   const caseControl = <select className="wx-casepick" aria-label="Choose a saved study run" value={selectedRun} onChange={(event) => selectRun(event.target.value)}>
-    <option value="">Latest completed result</option>
+    <option value="">No study selected</option>
     {savedRuns.map((run) => <option key={run.run_id} value={run.run_id}>{run.site_name} · {run.baseline_date} → {run.selected_date}</option>)}
   </select>;
   const questContent = questCandidates.length ? <div className="wx-quest__chips" aria-label="Largest candidates in this selected observation">
@@ -967,7 +984,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
             </div>
               <label className="detection-field-label" htmlFor="nisar-saved-run">Saved study areas and runs</label>
               <select id="nisar-saved-run" className="detection-select" value={selectedRun} onChange={(event) => selectRun(event.target.value)}>
-                <option value="">Latest completed result</option>
+                <option value="">No study selected</option>
                 {savedRuns.map((run) => <option key={run.run_id} value={run.run_id}>{run.site_name} · {run.baseline_date} → {run.selected_date} · {run.run_id.slice(0, 6)}</option>)}
               </select>
               {runsError && <p className="nisar-tool-error">{runsError}</p>}

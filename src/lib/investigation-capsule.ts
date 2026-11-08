@@ -16,6 +16,7 @@
  */
 
 import type { QualityFigure } from "./evidence-quality";
+import type { IntegrityState } from "./observation-health";
 
 export interface CapsuleReference {
   label: string;
@@ -39,6 +40,11 @@ export interface CapsuleInput {
   validationNote: string;
   nextStep: string;
   checksumsPresent: boolean;
+  /** Integrity state of the published digests (see observation-health.ts):
+      a declaration is not proof of verification. */
+  integrity: IntegrityState;
+  /** Declared SHA-256 digests (path → digest), when published. */
+  digests: Record<string, string> | null;
   quality: QualityFigure[];
   references: CapsuleReference[];
   limitations: string[];
@@ -67,9 +73,22 @@ export interface InvestigationCapsule {
   references: CapsuleReference[];
   validation: { note: string; nextStep: string };
   limitations: string[];
-  integrity: { checksumsPublished: boolean; verification: string };
+  integrity: {
+    checksumsPublished: boolean;
+    /** NOT_PUBLISHED = no digests published; PUBLISHED_NOT_VERIFIED =
+        digests are declared but not re-hashed in this session; VERIFIED =
+        a verification record exists from hashing the files. */
+    state: IntegrityState;
+    digests: Record<string, string> | null;
+    verification: string;
+  };
   reproducibility: {
-    status: "verifiable" | "partial" | "not-verifiable";
+    /** "artifact-verifiable" means only that a reader can check the
+        published artifacts against their declared digests. It is NOT a
+        claim that the result can be re-derived — that needs the source
+        granules, the pipeline version, and the screening rules listed in
+        `requires`. */
+    status: "artifact-verifiable" | "partial" | "not-verifiable";
     requires: string[];
     note: string;
   };
@@ -86,7 +105,7 @@ export function buildCapsule(input: CapsuleInput): InvestigationCapsule {
   const hasDates = input.observationDates.length > 0;
   const status: InvestigationCapsule["reproducibility"]["status"] =
     input.checksumsPresent && hasRun && hasDates
-      ? "verifiable"
+      ? "artifact-verifiable"
       : input.checksumsPresent || hasRun
         ? "partial"
         : "not-verifiable";
@@ -113,16 +132,21 @@ export function buildCapsule(input: CapsuleInput): InvestigationCapsule {
     limitations: [...input.limitations],
     integrity: {
       checksumsPublished: input.checksumsPresent,
-      verification: input.checksumsPresent
-        ? "SHA-256 digests are published for this study's artifacts; re-hash the files and compare."
-        : "No checksums are published for this study, so the artifacts in this capsule cannot be independently verified from the capsule alone.",
+      state: input.integrity,
+      digests: input.digests,
+      verification:
+        input.integrity === "VERIFIED"
+          ? "SHA-256 digests are published for this study's artifacts and were re-hashed and matched in the verification record."
+          : input.checksumsPresent
+            ? "SHA-256 digests are published for this study's artifacts; re-hash the files and compare. The digests have not been re-verified in this session — a declaration is not proof of verification."
+            : "No checksums are published for this study, so the artifacts in this capsule cannot be independently verified from the capsule alone.",
     },
     reproducibility: {
       status,
       requires: REPRODUCIBILITY_REQUIRES,
       note:
-        status === "verifiable"
-          ? "This capsule lets a reader verify the published artifacts and re-derive the result with the listed requirements. It does not reproduce the result on its own."
+        status === "artifact-verifiable"
+          ? "Artifact-verifiable only: a reader can check that the published artifacts match their declared digests by re-hashing them. That checks integrity, not reproduction — re-deriving the result needs the listed requirements, and nothing here proves the result could be reproduced."
           : status === "partial"
             ? "Part of the reproduction trail is missing (see integrity and run ID above). The capsule records what exists; it does not fill the gap."
             : "The reproduction trail is not published for this study. The capsule records the result and its limits; it cannot support independent re-derivation.",

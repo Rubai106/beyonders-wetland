@@ -82,7 +82,7 @@ End with the product proposition:
 | Worldwide NISAR scene footprints | `/wetland/global/scenes` | Acquisitions only; not global flood detections |
 | Rondônia forest study | `/forest/rondonia` | Exploratory radar/optical comparison, not validated forest-loss classification |
 | Hayli Gubbi volcano study | `/volcano/hayli-gubbi` | Phase/coherence investigation, not forecast or causal attribution |
-| Agriculture / SME2 workspace | `/agriculture` | Currently no genuine local SME2 study is published; do not present it as a crop-stress or drought result |
+| Agriculture / SME2 workspace | `/agriculture` | Genuine local SME2 study published: Naogaon `agri-41647231453` (6 valid dates, 12 Aug–23 Oct 2026, matched-pixel cohort of 1,336). Exploratory soil-moisture evidence only; do not present it as a crop-stress or drought result |
 
 ## Claims we can defend
 
@@ -106,7 +106,7 @@ End with the product proposition:
 
 ### Before the presentation
 
-- Deploy from the exact reviewed `Rubai-dev` commit; verify the deployment reports the expected commit and contains the Chókwè deep link.
+- Deploy from the exact reviewed `master` commit; verify the deployment reports the expected commit and contains the Chókwè deep link. (`master` is the canonical delivery branch since 2026-11-08; do not deploy from `Rubai-dev`.)
 - Open the homepage and every route in the quick-reference table on the actual demo device.
 - Test the Chókwè deep link in a fresh browser tab. Confirm the Learn tab opens and the Chókwè heading is visible.
 - Test **Open the processed Chókwè run**, candidate inspection, evidence images and source links.

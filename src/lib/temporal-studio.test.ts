@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  forestReferenceText,
   formatMetric,
   hlsAttemptDates,
   hlsSceneDate,
@@ -57,6 +58,29 @@ test("formatMetric rounds to the scale of the value", () => {
   assert.equal(formatMetric(0.0128, "km²"), "0.0128 km²");
   assert.equal(formatMetric(0, "km²"), "0 km²");
   assert.equal(formatMetric(null, "km²"), "Not published");
+});
+
+test("forestReferenceText never turns missing coverage into zero", () => {
+  assert.equal(
+    forestReferenceText({ status: "CROSS_SENSOR_CHECK", common_clear_fraction: 0.9745, support_overlap_fraction: 0.7109 }),
+    "Optical check: cross-sensor check · 97.5% common clear · 71.1% candidate overlap with index decreases.",
+  );
+  // Missing fraction is "not recorded", not 0%.
+  assert.match(
+    forestReferenceText({ status: "CROSS_SENSOR_CHECK", common_clear_fraction: null }) ?? "",
+    /common clear coverage not recorded/,
+  );
+  assert.match(
+    forestReferenceText({ status: "CROSS_SENSOR_CHECK" }) ?? "",
+    /common clear coverage not recorded/,
+  );
+  // A recorded zero is a zero, not "not recorded".
+  assert.match(
+    forestReferenceText({ status: "CROSS_SENSOR_CHECK", common_clear_fraction: 0 }) ?? "",
+    /0\.0% common clear/,
+  );
+  assert.equal(forestReferenceText(null), undefined);
+  assert.equal(forestReferenceText(undefined), undefined);
 });
 
 test("hlsSceneDate parses day-of-year scene names", () => {

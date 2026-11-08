@@ -26,6 +26,7 @@ interface Row {
 function rowsFor(a: TemporalStudy, aHealth: StudyHealth | undefined, b: TemporalStudy, bHealth: StudyHealth | undefined): Row[] {
   const peakA = peakEntry(a.entries);
   const peakB = peakEntry(b.entries);
+  const sameDomain = a.domain === b.domain;
   const span = (s: TemporalStudy) =>
     s.entries.length > 1
       ? `${s.entries.length} dates, ${fmtDate(s.entries[0].date)} – ${fmtDate(s.entries[s.entries.length - 1].date)}`
@@ -38,7 +39,13 @@ function rowsFor(a: TemporalStudy, aHealth: StudyHealth | undefined, b: Temporal
     { label: "Product maturity", a: aHealth?.productMaturity ?? "Not published", b: bHealth?.productMaturity ?? "Not published" },
     { label: "Observation dates", a: span(a), b: span(b) },
     {
-      label: "Headline metric",
+      // Same domain: the headline numbers share a unit and can be compared.
+      // Different domains: km², m³/m³ and cm are different physical
+      // quantities — showing them side by side as "the metric" would invite
+      // a meaningless comparison. Label them honestly instead.
+      label: sameDomain
+        ? "Headline metric"
+        : "Headline measurement (different quantities — not comparable)",
       a: peakA ? `${peakA.metricLabel} on ${fmtDate(peakA.date)}` : "Not published",
       b: peakB ? `${peakB.metricLabel} on ${fmtDate(peakB.date)}` : "Not published",
     },
@@ -96,6 +103,13 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           look similar on a map and differ completely in what their evidence actually supports.
           Every value below is read from the published files.
         </p>
+        {a.domain !== b.domain && (
+          <p className="compare-missing" role="note">
+            These two studies measure different things ({a.metricName} vs {b.metricName}), so
+            their headline numbers are not comparable. Compare their evidence maturity and
+            methodological completeness in the rows below instead.
+          </p>
+        )}
         {missing.length > 0 && (
           <p className="compare-missing" role="status">
             Not loaded from disk: {missing.join(", ")}. They are reported as missing, not as zero.

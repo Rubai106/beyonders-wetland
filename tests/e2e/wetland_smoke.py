@@ -164,12 +164,15 @@ with sync_playwright() as p:
 
     # ── global mission control (live UI: FIELD ASSIGNMENT explorer, honest empty state) ──
     page.goto(BASE + "/wetland/global"); page.wait_for_selector(".global-map-wrap", timeout=25000); page.wait_for_timeout(4000)
-    header_text = page.locator("header").first.inner_text()
+    # The overhaul removed the duplicate brand link from the workspace
+    # masthead (the shared primary nav now carries the brand on every page),
+    # so the brand is read from the nav, not from the first <header>.
+    brand_text = page.inner_text(".hazard-nav__brand")
     body_text = page.inner_text("body")
     check("global header is the field assignment explorer", "FIELD ASSIGNMENT" in body_text and "Explore NISAR across the world" in body_text)
     check("global page is honest about no selected study", "No processed study selected" in body_text)
     check("global page shows real scene footprints", "scene footprints" in body_text)
-    check("global header shows the BEYONDERS brand", "BEYONDERS" in header_text or "Beyonders" in header_text or "GeoNexSAR" in header_text)
+    check("global header shows the BEYONDERS brand", "BEYONDERS" in brand_text or "Beyonders" in brand_text or "GeoNexSAR" in brand_text)
     page.screenshot(path="/tmp/e2e_global.png")
 
     # ── multi-case showcase plumbing ──
@@ -184,7 +187,9 @@ with sync_playwright() as p:
     page.goto(BASE + "/"); page.wait_for_timeout(9000)
     check("globe renders a real-case marker label", page.locator(".globe-tag--case").count() >= 1, str(page.locator(".globe-tag--case").count()))
     check("marker names Tanguar Haor", "Tanguar Haor" in " | ".join(page.locator(".globe-tag--case").all_inner_texts()))
-    check("home brand present", "geonexsar" in page.inner_text(".g3-top").lower() or "beyonders" in page.inner_text("body").lower())
+    # The landing header (.g3-top) was removed by the overhaul redesign; the
+    # brand now lives in the shared primary nav on every page.
+    check("home brand present", "geonexsar" in page.inner_text(".hazard-nav__brand").lower() or "beyonders" in page.inner_text("body").lower())
     page.screenshot(path="/tmp/e2e_landing_marker.png")
 
     # ── forest + volcano workspaces (real pages, not retired briefing screens) ──

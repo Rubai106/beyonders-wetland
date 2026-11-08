@@ -3,6 +3,16 @@
 Date: 2026-11-08. No numeric score is assigned — the brief forbids inventing
 one. This is an evidence-backed assessment of strengths and weaknesses.
 
+> **Status update — 2026-11-08 (after this review was written).** The two
+> blockers in "Weaknesses" below are resolved: the Phase 1–4 master migration
+> is applied, verified, and pushed to `master` on GitHub (remote head
+> `72731abf`, tree byte-identical to the verified local HEAD), and the
+> Temporal Investigation Studio is built and browser-verified (all 7 studies
+> loading, chart + scrubber + per-date evidence, mobile clean), as are the
+> Hypothesis Workspace and study comparison. The review body below is kept
+> as the record of what was true when it was written; the remaining open
+> weakness is the absence of independent validation anywhere.
+
 ## The four judge questions, answered with the product
 
 **What did the satellite actually observe?**

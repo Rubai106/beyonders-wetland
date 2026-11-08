@@ -39,11 +39,16 @@ function MetricChart({ entries, selected }: { entries: readonly TemporalEntry[];
   const BASE_Y = 188;
   const values = entries.map((e) => e.metricValue);
   const max = Math.max(0, ...values.filter((v): v is number => v !== null));
+  // A recorded zero is a value, not missing data: it plots on the baseline.
+  // Only a missing metric (null) leaves a gap. An all-zero series uses a
+  // unit scale so the baseline dots still render instead of vanishing.
+  const scaleMax = max > 0 ? max : 1;
+  const hasRecordedValue = values.some((v) => v !== null);
   const positions = timelinePositions(entries);
   const point = (i: number): { x: number; y: number } | null => {
     const v = values[i];
-    if (v === null || max === 0) return null;
-    return { x: PAD_X + positions[i] * (W - PAD_X - 16), y: BASE_Y - (v / max) * (BASE_Y - PAD_TOP - 24) };
+    if (v === null) return null;
+    return { x: PAD_X + positions[i] * (W - PAD_X - 16), y: BASE_Y - (v / scaleMax) * (BASE_Y - PAD_TOP - 24) };
   };
   // Consecutive non-null runs, so the line breaks honestly at missing dates.
   const runs: { x: number; y: number }[][] = [];
@@ -79,7 +84,7 @@ function MetricChart({ entries, selected }: { entries: readonly TemporalEntry[];
     >
       <line x1={PAD_X} y1={BASE_Y} x2={W - 16} y2={BASE_Y} className="temporal-chart__axis" />
       <text x={8} y={BASE_Y + 4} className="temporal-chart__tick">0</text>
-      <text x={8} y={PAD_TOP + 20} className="temporal-chart__tick">{max > 0 ? formatMetric(max, "") : "—"}</text>
+      <text x={8} y={PAD_TOP + 20} className="temporal-chart__tick">{max > 0 ? formatMetric(max, "") : hasRecordedValue ? "0" : "—"}</text>
       <path d={areaPath} className="temporal-chart__area" />
       <path d={linePath} className="temporal-chart__line" fill="none" />
       {entries.map((e, i) => {
@@ -102,14 +107,24 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
   );
   const study = studies.find((s) => s.id === studyId) ?? studies[0];
   const [index, setIndex] = useState(() => (study ? peakIndex(study.entries) : 0));
+  const [series, setSeries] = useState<"per-date" | "matched">("per-date");
+  // Naogaon has two honest views of the same dates: per-date valid pixels
+  // (coverage changes) and the fixed same-pixel cohort (comparable change).
+  // Memoised on its own so the positions memo below has a stable input.
+  const activeEntries = useMemo(
+    () => (series === "matched" && study?.matchedEntries?.length ? study.matchedEntries : study?.entries ?? []),
+    [series, study],
+  );
+  const safeIndex = Math.min(index, Math.max(0, activeEntries.length - 1));
 
-  const positions = useMemo(() => (study ? timelinePositions(study.entries) : []), [study]);
-  const entry = study?.entries[index];
-  const peak = study ? peakEntry(study.entries) : null;
+  const positions = useMemo(() => timelinePositions(activeEntries), [activeEntries]);
+  const entry = activeEntries[safeIndex];
+  const peak = peakEntry(activeEntries);
 
   const pickStudy = (id: string) => {
     const next = studies.find((s) => s.id === id);
     setStudyId(id);
+    setSeries("per-date");
     // Reset the scrubber to the new study's peak in the same event —
     // no effect sync needed.
     if (next) setIndex(peakIndex(next.entries));
@@ -122,8 +137,8 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
     return <p className="temporal-empty" role="status">No published study timeline is available.</p>;
   }
 
-  const spanStart = study.entries[0]?.date;
-  const spanEnd = study.entries[study.entries.length - 1]?.date;
+  const spanStart = activeEntries[0]?.date;
+  const spanEnd = activeEntries[activeEntries.length - 1]?.date;
   const spanMs =
     spanStart && spanEnd
       ? new Date(`${spanEnd}T00:00:00Z`).getTime() - new Date(`${spanStart}T00:00:00Z`).getTime()
@@ -157,7 +172,7 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
         <div className="temporal-panel__head">
           <div>
             <p className="temporal-micro">
-              {study.domain} · {study.entries.length} observation date{study.entries.length === 1 ? "" : "s"}
+              {study.domain} · {activeEntries.length} observation date{activeEntries.length === 1 ? "" : "s"}
               {spanStart && spanEnd ? ` · ${fmtShort(spanStart)} – ${fmtShort(spanEnd)}` : ""}
             </p>
             <h2>{study.name}</h2>
@@ -170,17 +185,33 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
           </Link>
         </div>
 
-        <MetricChart entries={study.entries} selected={index} />
+        {study.matchedEntries?.length ? (
+          <div className="temporal-series" role="group" aria-label="Soil-moisture series">
+            <button type="button" aria-pressed={series === "per-date"} onClick={() => setSeries("per-date")}>
+              Per-date valid pixels
+            </button>
+            <button type="button" aria-pressed={series === "matched"} onClick={() => setSeries("matched")}>
+              Same-pixel cohort (1,336 pixels)
+            </button>
+            <p className="temporal-note">
+              {series === "matched"
+                ? study.matchedNote
+                : "Per-date medians use every valid pixel on that date — coverage changes between dates, so the medians are not strictly comparable."}
+            </p>
+          </div>
+        ) : null}
+
+        <MetricChart entries={activeEntries} selected={safeIndex} />
 
         <div className="temporal-track" role="group" aria-label="Observation dates">
-          {study.entries.map((e, i) => (
+          {activeEntries.map((e, i) => (
             <button
               key={e.date}
               type="button"
-              className={i === index ? "temporal-track__node is-selected" : "temporal-track__node"}
+              className={i === safeIndex ? "temporal-track__node is-selected" : "temporal-track__node"}
               style={{ left: `${(positions[i] ?? 0) * 100}%` }}
-              aria-label={`${fmtDate(e.date)}: ${e.metricLabel}${i === index ? " (selected)" : ""}`}
-              aria-pressed={i === index}
+              aria-label={`${fmtDate(e.date)}: ${e.metricLabel}${i === safeIndex ? " (selected)" : ""}`}
+              aria-pressed={i === safeIndex}
               onClick={() => setIndex(i)}
             >
               <span className="temporal-track__dot" />
@@ -191,22 +222,22 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
         </div>
 
         <div className="temporal-scrub">
-          <button type="button" onClick={() => setIndex((v) => Math.max(0, v - 1))} disabled={index === 0} aria-label="Previous date">
+          <button type="button" onClick={() => setIndex((v) => Math.max(0, v - 1))} disabled={safeIndex === 0} aria-label="Previous date">
             ← Earlier
           </button>
           <input
             type="range"
             min={0}
-            max={study.entries.length - 1}
+            max={activeEntries.length - 1}
             step={1}
-            value={index}
+            value={safeIndex}
             onChange={(e) => setIndex(Number(e.target.value))}
-            aria-label={`Date ${index + 1} of ${study.entries.length}: ${fmtDate(entry.date)}`}
+            aria-label={`Date ${safeIndex + 1} of ${activeEntries.length}: ${fmtDate(entry.date)}`}
           />
           <button
             type="button"
-            onClick={() => setIndex((v) => Math.min(study.entries.length - 1, v + 1))}
-            disabled={index === study.entries.length - 1}
+            onClick={() => setIndex((v) => Math.min(activeEntries.length - 1, v + 1))}
+            disabled={safeIndex === activeEntries.length - 1}
             aria-label="Next date"
           >
             Later →

@@ -25,6 +25,13 @@ export interface QualityFigure {
   status: QualityStatus;
   /** Published file the figure was read from. */
   source: string;
+  /** Provenance kept with every derived number (loader-filled). */
+  sourceField?: string | null;
+  numerator?: number | null;
+  denominator?: number | null;
+  /** Acquisition date the number describes, when one applies. */
+  acquiredAt?: string | null;
+  method?: string | null;
 }
 
 export interface StudyQuality {
@@ -33,7 +40,16 @@ export interface StudyQuality {
   figures: QualityFigure[];
 }
 
-/** Per-study quality figures, keyed by the observability study id. */
+/** Per-study quality figures, keyed by the observability study id.
+ *
+ * TEST ORACLE ONLY — do not use this table in production code. The live
+ * pages and the capsule route read figures from
+ * src/lib/evidence-quality-server.ts, which derives them from the
+ * published files on every load. This table exists so the regression tests
+ * can catch the loader drifting from the values that were hand-verified
+ * against the publication records (see evidence-quality-server.test.ts).
+ * If a study version changes, update the loader's derivation AND this
+ * oracle together, from the raw files. */
 export const STUDY_QUALITY: Record<string, StudyQuality> = {
   "tanguar-haor": {
     studyId: "tanguar-haor",

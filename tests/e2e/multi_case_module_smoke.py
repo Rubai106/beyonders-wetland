@@ -412,8 +412,11 @@ def main() -> int:
         page.set_viewport_size({"width": 390, "height": 844})
         page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30_000)
         mobile_menu = page.locator(".g3-mobile-nav")
+        # The old landing header (.g3-top) was removed by the overhaul
+        # redesign; the desktop links now live in .hazard-nav__links, hidden
+        # at phone width in favour of the compact menu.
         require(
-            mobile_menu.is_visible() and not page.locator(".g3-top > nav").is_visible(),
+            mobile_menu.is_visible() and not page.locator(".hazard-nav__links").is_visible(),
             "the landing page switches to a compact mobile navigation instead of squeezing desktop links",
         )
         mobile_menu.locator("summary").click()

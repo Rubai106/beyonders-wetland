@@ -133,9 +133,11 @@ export default function HypothesisWorkspace() {
             <p className="hypo-micro">{study.domain} · Analysis of Competing Hypotheses</p>
             <h2>{study.studyName}</h2>
             <p className="hypo-intro">
-              Rate each piece of evidence against each explanation. The explanation with the fewest
-              contradictions ranks first — agreement alone does not win. Tap any cell to change it;
-              your ratings are saved in this browser only.
+              Rate each piece of evidence against each explanation. Explanations are ordered by
+              fewest contradictions first — that ordering is a comparative presentation of this
+              assessment, not a verdict and not a probability. No explanation wins here; the
+              counts are seeded qualitative assessments you can change. Tap any cell to change
+              it; your ratings are saved in this browser only.
             </p>
           </div>
           <Link className="hypo-case-link" href={study.href}>
@@ -143,10 +145,10 @@ export default function HypothesisWorkspace() {
           </Link>
         </div>
 
-        <div className="hypo-ranking" aria-label="Ranking">
+        <div className="hypo-ranking" aria-label="Explanations ordered by fewest contradictions">
           {ranked.map((r, i) => (
-            <article key={r.hypothesis.id} className={i === 0 ? "hypo-rank is-first" : "hypo-rank"}>
-              <p className="hypo-rank__place">{i === 0 ? "Strongest" : `#${i + 1}`}</p>
+            <article key={r.hypothesis.id} className="hypo-rank">
+              <p className="hypo-rank__place">#{i + 1} · {r.inconsistent} contradiction{r.inconsistent === 1 ? "" : "s"}</p>
               <p className="hypo-rank__statement">{r.hypothesis.statement}</p>
               <p className="hypo-rank__score">
                 {r.inconsistent} contradiction{r.inconsistent === 1 ? "" : "s"} · {r.consistent} fit{r.consistent === 1 ? "" : "s"}

@@ -1,4 +1,4 @@
-/* Hypothesis Workspace — Analysis of Competing Hypotheses (ACH) for the
+/* Hypothesis & Falsification Lab — Analysis of Competing Hypotheses (ACH) for the
    published studies. Every hypothesis, evidence item, and seeded rating
    comes from the studies' own documented facts (values from the published
    files). The platform's seeded ratings are a starting assessment; the user
@@ -152,8 +152,8 @@ export const HYPOTHESIS_STUDIES: HypothesisStudy[] = [
     evidence: [
       { id: "peak", text: "7 dates; peak 2.57 km² on 17 Jul, 213 patches.", source: "observations.json + patches" },
       { id: "check", text: "27 Sep cross-sensor check: precision 12.9%, recall 5.2%, F1 7.4% — weak agreement.", source: "date_checks/2026-09-27/evidence.json" },
-      { id: "headline", text: "The headline 23 Jun → 17 Jul pair is unassessable: only 9 cloud-free pixels overlap.", source: "date_checks/2026-09-27/evidence.json" },
-      { id: "coverage", text: "Common clear fraction 47.8% on 27 Sep — above the 20% floor, so the check itself is assessable.", source: "date_checks/2026-09-27/evidence.json" },
+      { id: "headline", text: "The headline 23 Jun → 17 Jul pair is unassessable: only 9 cloud-free pixels overlap.", source: "case_study.json (reference_validation)" },
+      { id: "coverage", text: "Common clear coverage 50.7% on 27 Sep (HLS grid; 47.8% on the radar grid) — above the 20% floor, so the check itself is assessable.", source: "date_checks/2026-09-27/evidence.json (optical_support)" },
     ],
     assessments: {
       peak: { flood: "consistent", "false-positives": "neutral", irrigation: "neutral" },

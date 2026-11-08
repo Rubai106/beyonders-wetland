@@ -95,6 +95,11 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* The primary nav is sticky (52px). Leave clearance above any element a
+     scroll-into-view or anchor jump lands on, so controls such as the
+     workspace masthead's "Return to overview" button are never left
+     underneath the nav and unclickable. */
+  scroll-padding-top: 64px;
 }
 
 body {
@@ -2164,7 +2169,18 @@ button:disabled { cursor: default; opacity: 0.45; }
 .hazard-nav__links a { display: inline-flex; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; color: #d1d6d1; font-size: 0.82rem; text-decoration: none; transition: color 140ms ease, border-color 140ms ease; }
 .hazard-nav__links a:hover { color: #ffffff; }
 .hazard-nav__links a[aria-current="page"] { border-color: #f1a24b; color: #ffd39a; }
-.hazard-nav__mission { margin-left: auto; color: #9da8a3; font-size: 0.7rem; letter-spacing: 0.04em; }
+/* "More" menu: the advanced analysis tools, kept out of the primary row. */
+.hazard-nav__more { position: relative; display: inline-flex; align-items: stretch; }
+.hazard-nav__more > summary { display: inline-flex; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; color: #d1d6d1; font-size: 0.82rem; cursor: pointer; list-style: none; }
+.hazard-nav__more > summary::-webkit-details-marker { display: none; }
+.hazard-nav__more > summary:hover { color: #ffffff; }
+.hazard-nav__more > summary[aria-current="page"] { border-color: #f1a24b; color: #ffd39a; }
+.hazard-nav__more-panel { position: absolute; top: 52px; left: 0; z-index: 1501; display: flex; flex-direction: column; min-width: 250px; padding: 6px 0; border: 1px solid #2c3334; border-top: none; background: #192020; }
+.hazard-nav__more-panel a { padding: 10px 16px; color: #d1d6d1; font-size: 0.82rem; text-decoration: none; }
+.hazard-nav__more-panel a:hover { color: #ffffff; background: #222a2a; }
+.hazard-nav__more-panel a[aria-current="page"] { color: #ffd39a; }
+/* Compact mobile navigation — hidden on desktop, takes over at phone width. */
+.hazard-nav__mobile { display: none; }
 
 /* Forest evidence follows the existing paper/map layout, with canopy-green context. */
 .forest-page { min-height: calc(100dvh - 52px); padding: clamp(22px,4vw,54px) clamp(16px,5vw,72px) 28px; background:#f0f1e9; color:#192b22; font-family:var(--font-sans); }
@@ -2284,7 +2300,7 @@ button:disabled { cursor: default; opacity: 0.45; }
 .volcano-controls { display: flex; min-width: 0; flex-direction: column; padding: 17px; border-left: 1px solid var(--volcano-line); font-family: var(--font-sans); }
 .volcano-controls > label, .volcano-date-range > label { margin-bottom: 6px; color: #3f4944; font-size: 0.73rem; font-weight: 700; }
 .volcano-controls input { min-width: 0; height: 39px; padding: 0 10px; border: 1px solid #92978d; border-radius: 0; background: #fffefa; color: #1d2521; font-size: 0.78rem; }
-.volcano-controls input:focus-visible, .volcano-controls button:focus-visible, .hazard-nav a:focus-visible, .volcano-page a:focus-visible { outline: 2px solid #b45d1e; outline-offset: 2px; }
+.volcano-controls input:focus-visible, .volcano-controls button:focus-visible, .hazard-nav a:focus-visible, .hazard-nav summary:focus-visible, .volcano-page a:focus-visible { outline: 2px solid #b45d1e; outline-offset: 2px; }
 .volcano-results { display: grid; max-height: 235px; overflow: auto; margin: 7px 0 14px; border-top: 1px solid var(--volcano-line); }
 .volcano-results button { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 8px; border: 0; border-bottom: 1px solid #deded6; background: transparent; color: #26302b; cursor: pointer; text-align: left; }
 .volcano-results button[aria-selected="true"] { border-left: 3px solid var(--volcano-ember); background: #f8efe3; }
@@ -2554,7 +2570,6 @@ button:disabled { cursor: default; opacity: 0.45; }
   .hazard-nav__brand { font-size: 0.85rem; }
   .hazard-nav__links { flex: 1 1 100%; flex-wrap: wrap; height: auto; gap: 0; }
   .hazard-nav__links a { padding: 0 9px; font-size: 0.73rem; }
-  .hazard-nav__mission { display: none; }
   .volcano-page { padding: 22px 12px; }
   .volcano-page__heading { align-items: start; flex-direction: column; gap: 16px; }
   .volcano-status-strip { align-items: start; flex-wrap: wrap; }
@@ -2587,6 +2602,57 @@ button:disabled { cursor: default; opacity: 0.45; }
   .band-xray__heading { flex-direction:column; gap:10px; }
   .band-xray__controls,.band-xray__body { grid-template-columns:1fr; }
   .band-xray__explanation { min-height:0; }
+}
+
+/* Phone widths: the desktop link row hides and the compact menu takes over. */
+@media (max-width: 860px) {
+  .hazard-nav__links { display: none; }
+  .hazard-nav__mobile { display: block; position: relative; margin-left: auto; }
+  .hazard-nav__mobile > summary {
+    display: flex;
+    min-width: 92px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid #2c3334;
+    border-radius: 8px;
+    background: #222a2a;
+    color: #f6f3e9;
+    cursor: pointer;
+    font-size: 0.82rem;
+    list-style: none;
+  }
+  .hazard-nav__mobile > summary::-webkit-details-marker { display: none; }
+  .hazard-nav__mobile > summary:focus-visible { outline: 2px solid #b45d1e; outline-offset: 2px; }
+  .hazard-nav__mobile[open] > nav {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 1501;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+    width: min(252px, calc(100vw - 36px));
+    padding: 8px;
+    border: 1px solid #2c3334;
+    border-radius: 10px;
+    background: #192020;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+  }
+  .hazard-nav__mobile[open] > nav a {
+    display: flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: #d1d6d1;
+    font-size: 0.82rem;
+    text-decoration: none;
+  }
+  .hazard-nav__mobile[open] > nav a:hover { color: #ffffff; background: #222a2a; }
+  .hazard-nav__mobile[open] > nav a[aria-current="page"] { color: #ffd39a; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hazard-nav__links a { transition: none; }

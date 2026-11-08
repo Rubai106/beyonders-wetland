@@ -80,24 +80,6 @@ function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: num
   return <span ref={ref}>{val.toFixed(decimals)}{suffix}</span>;
 }
 
-/* — 3D tilt card — */
-function Tilt({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  return (
-    <div
-      ref={ref} className={`tilt ${className}`}
-      onMouseMove={(e) => {
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-        const el = ref.current; if (!el) return;
-        const r = el.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-        el.style.transform = `perspective(900px) rotateX(${(-y * 7).toFixed(2)}deg) rotateY(${(x * 9).toFixed(2)}deg) translateY(-4px)`;
-      }}
-      onMouseLeave={() => { if (ref.current) ref.current.style.transform = ""; }}
-    >{children}</div>
-  );
-}
-
 /* — Mini hydrograph: the shape of the real monsoon pulse.
    Values come from the exported showcase pulse (public/showcase/featured/pulse.json),
    never from hardcoded numbers. */
@@ -303,28 +285,8 @@ export default function Home() {
           onHoverCoord={(lat, lng) => setHover(lat == null || lng == null ? null : { lat, lng })}
         />
 
-        <header className="g3-top">
-          <span className="g3-brand"><em>GeoNexSAR</em> · mission control</span>
-          <nav aria-label="Primary">
-            <Link href="/wetland">Wetlands</Link>
-            <Link href="/forest/rondonia">Forests</Link>
-            <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
-            <Link href="/agriculture">Agriculture</Link>
-            <Link href="/observability">Observation health</Link>
-            <Link href="/wetland/global">NISAR worldwide</Link>
-          </nav>
-          <details className="g3-mobile-nav">
-            <summary>Explore <span aria-hidden="true">⌄</span></summary>
-            <nav aria-label="Mobile primary">
-              <Link href="/wetland">Wetlands</Link>
-              <Link href="/forest/rondonia">Forests</Link>
-              <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
-              <Link href="/agriculture">Agriculture</Link>
-              <Link href="/observability">Observation health</Link>
-              <Link href="/wetland/global">NISAR worldwide</Link>
-            </nav>
-          </details>
-        </header>
+        {/* Primary navigation lives in the shared HazardNavigation bar above
+            the hero — this page no longer carries its own second nav. */}
 
         <section className="g3-map-filter" aria-label="Choose the study type shown on the globe">
           <p className="g3-map-filter__eyebrow">Globe focus · published studies</p>
@@ -380,9 +342,8 @@ export default function Home() {
           <h1>Watch Earth<br /><span>breathe.</span></h1>
           <p className="g3-lede">NISAR is a NASA–ISRO radar satellite that watches Earth&rsquo;s surface breathe — through cloud, through darkness. Spin the planet. Open a case measured for real, or drop a pin to check NISAR observation coverage and start a real study.</p>
           <div className="g3-ctas">
-            <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Inspect the Chókwè event case</Link>
-            <Link href="/wetland" className="g3-btn g3-btn--ghost">Open the Tanguar Haor case</Link>
-            <Link href="/wetland?case=hakaluki" className="g3-btn g3-btn--ghost">Open the Hakaluki Haor case</Link>
+            <Link href="/wetland/global" className="g3-btn g3-btn--primary">Explore Earth</Link>
+            <Link href="/investigations" className="g3-btn g3-btn--ghost">View investigations</Link>
             {!pinMode && (
               <button
                 type="button"
@@ -398,8 +359,10 @@ export default function Home() {
                 Drop a pin anywhere
               </button>
             )}
-            <Link href="#g3-phen" className="g3-btn g3-btn--ghost g3-btn--features">Explore all study features ↓</Link>
           </div>
+          <p className="g3-featured-case">
+            Featured case — <Link href="/wetland/global?story=chokwe">Inspect the Chókwè event case</Link>
+          </p>
         </div>
 
         {pinMode && (
@@ -497,7 +460,7 @@ export default function Home() {
             <div><strong>Derived</strong><p>What our rules calculated from it.</p></div>
             <div><strong>Uncertain</strong><p>What nobody can claim — stated plainly.</p></div>
           </div>
-          <Link href="/wetland" className="g3-btn g3-btn--primary">Interrogate the case →</Link>
+          <Link href="/wetland" className="g3-btn g3-btn--primary">Open the Tanguar Haor case</Link>
         </Reveal>
       </section>
 
@@ -511,16 +474,16 @@ export default function Home() {
         <div className="g3-presets">
           {PRESET_PINS.map((p, i) => (
             <Reveal key={p.name} delay={i * 90}>
-              <Tilt className="g3-preset">
+              <div className="g3-preset">
                 <p className="g3-eyebrow">{fmt(p).replace(" ", " · ")}</p>
                 <h3>{p.name}</h3>
                 <p>{p.blurb}</p>
                 <Link href={`/wetland/global?latitude=${p.lat}&longitude=${p.lng}&analyze=1&site=${encodeURIComponent(p.name)}`}>Check real NISAR coverage →</Link>
-              </Tilt>
+              </div>
             </Reveal>
           ))}
         </div>
-        <Reveal><p className="g3-fine">Only observed acquisitions and processed real-data results are shown. A location without valid processed outputs has no detection overlay.</p></Reveal>
+        <Reveal><p className="g3-fine">Only observed acquisitions and processed real-data results are shown. A location without valid processed outputs has no detection overlay. <Link href="/wetland/global">NISAR worldwide →</Link></p></Reveal>
       </section>
 
       {/* ══════════ PHENOMENA ══════════ */}
@@ -533,7 +496,7 @@ export default function Home() {
         <div className="g3-phen-grid">
           {PHENOMENA.map((p, i) => (
             <Reveal key={p.id} delay={i * 90}>
-              <Tilt className={`g3-phen-card${p.status === "AVAILABLE" ? " is-live" : ""}`}>
+              <div className={`g3-phen-card${p.status === "AVAILABLE" ? " is-live" : ""}`}>
                 <p className="g3-eyebrow">{p.status === "AVAILABLE" ? "Workspace available" : "In development"}</p>
                 <h3>{p.name}</h3>
                 <p className="g3-tagline">{p.tagline}</p>
@@ -548,7 +511,7 @@ export default function Home() {
                   <Link className="g3-btn g3-btn--primary g3-btn--sm" href={p.caseHref}>{p.caseLabel} →</Link>
                   {p.href && <Link className="g3-phen-browse" href={p.href}>Browse global map</Link>}
                 </div>
-              </Tilt>
+              </div>
             </Reveal>
           ))}
         </div>
@@ -557,7 +520,7 @@ export default function Home() {
       <footer className="g3-foot">
         <p><strong>GeoNexSAR</strong></p>
         <p>GeoNexSAR shows observed data and derived results with provenance. A radar-change candidate is never presented as a confirmed flood.</p>
-        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link><Link href="/observability">Observation health</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
+        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link><Link href="/">Explore</Link><Link href="/investigations">Investigations</Link><Link href="/observability">Evidence</Link><Link href="/operator-guide">Method</Link><Link href="/lineage">Evidence lineage</Link><Link href="/temporal">Temporal Studio</Link><Link href="/hypotheses">Hypothesis &amp; Falsification Lab</Link><Link href="/compare">Compare studies</Link></nav>
       </footer>
     </main>
   );

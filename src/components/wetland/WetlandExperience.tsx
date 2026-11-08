@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useWetlandStore, type PanelTab, type ViewMode } from "@/lib/store";
-import { fmtDate, opticalState, regionLabel } from "@/lib/story";
-import { datesWithPatches, loadShowcasePatches, loadShowcaseRadar, nextAvailableIndex, type RadarPreview } from "@/lib/showcase";
-import type { WetlandPatch } from "@/lib/types";
+import { fmtDate, opticalState } from "@/lib/story";
+import { datesWithPatches, loadShowcaseRadar, nextAvailableIndex, type RadarPreview } from "@/lib/showcase";
 import TimeMachine from "./TimeMachine";
 import { Icon } from "./icons";
 import { TierBadge } from "./ui";
@@ -113,81 +112,6 @@ function ContextRail() {
       <p className="wx-src">{showcase ? <>Source: {showcase.manifest.product ?? "NISAR L2 GCOV"}, provisional.</> : `${pulseData.product ?? "NISAR L2 GCOV"}, provisional.`}</p>
       <Link className="wx-rail-link" href="/wetland/global">See worldwide NISAR coverage →</Link>
     </aside>
-  );
-}
-
-/** Field assignment: the three largest regions at the August peak. A tiny quest, zero new tech. */
-function QuestBanner() {
-  const { dataTier, showcase, pulseData, patches, setSelectedDateIndex, setSelectedPatch, setDrawer } = useWetlandStore();
-  const [dismissed, setDismissed] = useState(false);
-  const [questRegions, setQuestRegions] = useState<WetlandPatch[] | null>(null);
-  const pendingSelect = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (dismissed || dataTier !== "SHOWCASE" || !showcase || !pulseData) return;
-    let live = true;
-    void loadShowcasePatches(showcase, pulseData.peak.date)
-      .then((ps) => { if (live) setQuestRegions([...ps].sort((a, b) => b.area_km2 - a.area_km2).slice(0, 3)); })
-      .catch(() => { if (live) setQuestRegions(null); });
-    return () => { live = false; };
-  }, [dismissed, dataTier, showcase, pulseData]);
-
-  useEffect(() => {
-    if (pendingSelect.current) {
-      const hit = patches.find((x) => x.id === pendingSelect.current);
-      if (hit) { setSelectedPatch(hit); pendingSelect.current = null; }
-    }
-  }, [patches, setSelectedPatch]);
-
-  if (dismissed || dataTier !== "SHOWCASE" || !questRegions?.length || !pulseData) return null;
-  const peakIdx = pulseData.dates.findIndex((x) => x.date === pulseData.peak.date);
-  return (
-    <div className="wx-quest" role="note" aria-label="Field assignment">
-      <p className="wx-micro">Field assignment 01</p>
-      <p>Three regions changed most at the {fmtDate(pulseData.peak.date, { month: "long" })} peak. Find them — click to interrogate.</p>
-      <div className="wx-quest__chips">
-        {questRegions.map((p) => (
-          <button key={p.id} type="button" onClick={() => { pendingSelect.current = p.id; setSelectedDateIndex(Math.max(0, peakIdx)); setDrawer("EXPLORE"); }}>
-            <span className="wx-mono">{regionLabel(p.id)}</span><span>{p.area_km2.toFixed(2)} km²</span>
-          </button>
-        ))}
-      </div>
-      <button type="button" className="wx-quest__x" aria-label="Dismiss field assignment" onClick={() => setDismissed(true)}>{Icon.close}</button>
-    </div>
-  );
-}
-
-const TOUR: { title: string; text: string }[] = [
-  { title: "Watch the monsoon", text: "It opens at the August peak — the haor glowing with radar-change candidates. It's already playing: watch the waters recede, then replay the full June-to-September dance." },
-  { title: "Interrogate a region", text: "Click any glowing patch. You'll see exactly what the radar measured there — then you get to challenge it." },
-  { title: "Check the evidence", text: "Open 02 · Check it. Does the detection survive a stricter cutoff? Does optical imagery agree? Don't trust — verify." },
-];
-
-function FirstRunTour() {
-  const { showcaseChecked, dataTier } = useWetlandStore();
-  const [step, setStep] = useState<number | null>(null);
-  useEffect(() => {
-    if (!showcaseChecked || dataTier !== "SHOWCASE") return;
-    if (typeof localStorage !== "undefined" && localStorage.getItem("geonexsar_tour_v1")) return;
-    const t = window.setTimeout(() => setStep(0), 2200);
-    return () => window.clearTimeout(t);
-  }, [showcaseChecked, dataTier]);
-  if (step === null) return null;
-  const done = () => { try { localStorage.setItem("geonexsar_tour_v1", "1"); } catch { /* private mode */ } setStep(null); };
-  return (
-    <div className="wx-tour" role="dialog" aria-label="Quick tour">
-      <p className="wx-micro">Quick tour · {step + 1} of {TOUR.length}</p>
-      <h3>{TOUR[step].title}</h3>
-      <p>{TOUR[step].text}</p>
-      <div className="wx-tour__dots" aria-hidden="true">{TOUR.map((_, i) => <i key={i} className={i === step ? "is-on" : ""} />)}</div>
-      <div className="wx-tour__row">
-        <button type="button" className="wx-btn" onClick={done}>Skip tour</button>
-        {step > 0 && <button type="button" className="wx-btn" onClick={() => setStep(step - 1)}>Back</button>}
-        {step < TOUR.length - 1
-          ? <button type="button" className="wx-btn wx-btn--primary" onClick={() => setStep(step + 1)}>Next</button>
-          : <button type="button" className="wx-btn wx-btn--primary" onClick={done}>Start exploring</button>}
-      </div>
-    </div>
   );
 }
 
@@ -310,7 +234,6 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
     <div className="wx-root wx-root--drawer-tabs" data-tier={dataTier} data-detective={probeActive ? "true" : "false"} data-drawer={activeTab !== "NONE" ? "open" : "closed"}>
       <Hatch />
       <header className="wx-mast">
-        <Link href="/" className="wx-brand" aria-label="GeoNexSAR home">GeoNexSAR</Link>
         <span className="wx-case"><span className="wx-micro">Case</span>
           {dataTier === "SHOWCASE" && s.showcaseCases.length > 1 ? (
             <select className="wx-casepick" value={s.showcaseId} onChange={(e) => {
@@ -347,7 +270,6 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
           <p className="wx-empty-state__foot">Satellite coverage is not a detection. Candidate results appear only when a compatible real-data run has completed and its outputs have loaded.</p>
         </main>
       ) : <>
-      <QuestBanner />
 
       {acquisitionsOnly ? <AcquisitionsOnly /> : <ContextRail />}
 
@@ -386,7 +308,6 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
       )}
 
       {!acquisitionsOnly && <TimeMachine />}
-      <FirstRunTour />
       </>}
     </div>
   );

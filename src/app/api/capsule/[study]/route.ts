@@ -14,7 +14,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { buildPlatformHealth, MATURITY_STAGES } from "@/lib/observation-health";
-import { studyQuality } from "@/lib/evidence-quality";
+import { loadStudyQuality } from "@/lib/evidence-quality-server";
 import { buildCapsule, capsuleFilename } from "@/lib/investigation-capsule";
 import type { CapsuleReference } from "@/lib/investigation-capsule";
 import { loadLineageChains } from "@/lib/lineage-studies";
@@ -45,7 +45,11 @@ export async function GET(
     );
   }
 
-  const quality = studyQuality(studyId);
+  // Quality figures come from the server loader, which derives them from
+  // the published files (with per-figure provenance) instead of the
+  // hardcoded STUDY_QUALITY table.
+  const { studies } = await loadStudyQuality();
+  const quality = studies.find((s) => s.studyId === studyId);
   const { chains } = await loadLineageChains();
   const chain = chains.find((c) => {
     const haystack = normalize(`${c.study_title} ${c.site_name} ${c.study_id ?? ""}`);
@@ -91,6 +95,8 @@ export async function GET(
     validationNote: study.validationNote,
     nextStep: study.nextStep,
     checksumsPresent: study.checksumsPresent,
+    integrity: study.integrity,
+    digests: study.digests,
     quality: quality?.figures ?? [],
     references,
     limitations,

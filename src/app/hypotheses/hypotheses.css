@@ -25,7 +25,6 @@
 
 .hypo-ranking { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .hypo-rank { border: 1px solid #24343d; border-radius: 10px; background: #101a1f; padding: 14px 16px; }
-.hypo-rank.is-first { border-color: #6fd3c0; background: #12262b; }
 .hypo-rank__place { margin: 0 0 6px; color: #6fd3c0; font: 700 0.66rem var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
 .hypo-rank__statement { margin: 0 0 8px; color: #f3f6f5; font-size: 15px; font-weight: 600; line-height: 1.4; }
 .hypo-rank__score { margin: 0 0 10px; color: #8fa6ac; font-size: 12.5px; }

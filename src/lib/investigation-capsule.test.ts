@@ -19,6 +19,8 @@ function baseInput(overrides: Partial<CapsuleInput> = {}): CapsuleInput {
     validationNote: "HLS optical comparison is inconclusive.",
     nextStep: "A conclusive independent reference is needed.",
     checksumsPresent: true,
+    integrity: "PUBLISHED_NOT_VERIFIED",
+    digests: { "manifest.json": "9f86d081884c7d659a2feaa0c55ad015" },
     quality: [
       {
         label: "Reference overlap",
@@ -57,19 +59,34 @@ test("capsule carries every required section for a complete study", () => {
   assert.equal(capsule.references.length, 1);
   assert.equal(capsule.limitations.length, 1);
   assert.equal(capsule.integrity.checksumsPublished, true);
+  assert.equal(capsule.integrity.state, "PUBLISHED_NOT_VERIFIED");
+  assert.deepEqual(capsule.integrity.digests, { "manifest.json": "9f86d081884c7d659a2feaa0c55ad015" });
 });
 
-test("a complete study is verifiable — but the note never promises one-click reproduction", () => {
+test("a complete study is artifact-verifiable — never 'reproducible'", () => {
   const capsule = buildCapsule(baseInput());
-  assert.equal(capsule.reproducibility.status, "verifiable");
-  assert.match(capsule.reproducibility.note, /does not reproduce the result on its own/);
+  assert.equal(capsule.reproducibility.status, "artifact-verifiable");
+  // The note must say what artifact-verifiable means and what it does not.
+  assert.match(capsule.reproducibility.note, /checks integrity, not reproduction/);
+  assert.match(capsule.reproducibility.note, /re-deriving the result needs/);
   assert.ok(capsule.reproducibility.requires.some((r) => r.includes("Earthdata")));
+  // A declaration is not proof of verification.
+  assert.match(capsule.integrity.verification, /have not been re-verified in this session/);
+});
+
+test("a verified integrity state says so explicitly", () => {
+  const capsule = buildCapsule(baseInput({ integrity: "VERIFIED" }));
+  assert.match(capsule.integrity.verification, /re-hashed and matched/);
 });
 
 test("missing checksums and run ID downgrade reproducibility instead of being hidden", () => {
-  const capsule = buildCapsule(baseInput({ checksumsPresent: false, runId: null }));
+  const capsule = buildCapsule(
+    baseInput({ checksumsPresent: false, runId: null, integrity: "NOT_PUBLISHED", digests: null }),
+  );
   assert.equal(capsule.reproducibility.status, "not-verifiable");
   assert.match(capsule.integrity.verification, /cannot be independently verified/);
+  assert.equal(capsule.integrity.state, "NOT_PUBLISHED");
+  assert.equal(capsule.integrity.digests, null);
   assert.equal(capsule.study.runId, null);
 });
 

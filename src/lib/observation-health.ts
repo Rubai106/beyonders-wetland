@@ -25,6 +25,8 @@ export const MATURITY_STAGES: { id: MaturityStage; label: string; meaning: strin
   { id: "reproducible", label: "Scientifically reproducible", meaning: "Run ID, method, and checksums are published so the result can be re-derived." },
 ];
 
+export type IntegrityState = "NOT_PUBLISHED" | "PUBLISHED_NOT_VERIFIED" | "VERIFIED";
+
 /** Distinct observation states — never conflated (see docs/OBSERVABILITY_ARCHITECTURE.md). */
 export type ObservationState =
   | "NO_OBSERVATIONS"
@@ -64,6 +66,13 @@ export interface StudyHealth {
   /** What is still missing before the next maturity stage. */
   nextStep: string;
   checksumsPresent: boolean;
+  /** Integrity of the published digests. A declaration is NOT proof of
+      verification: PUBLISHED_NOT_VERIFIED means digests are published but
+      have not been re-hashed in this session. VERIFIED requires a
+      verification record produced by hashing the files. */
+  integrity: IntegrityState;
+  /** Declared SHA-256 digests (path → digest), when published. */
+  digests: Record<string, string> | null;
   publishedAt: string | null;
   runId: string | null;
 }
@@ -115,6 +124,11 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       validationNote: "HLS optical comparison is inconclusive: common clear coverage is about 0.333% of the study area, below the 20% floor.",
       nextStep: "A conclusive independent reference (more clear optical coverage or field evidence) is needed before validation can complete.",
       checksumsPresent: typeof tanguar.files_sha256 === "object" && tanguar.files_sha256 !== null,
+      integrity: "PUBLISHED_NOT_VERIFIED",
+      digests:
+        typeof tanguar.files_sha256 === "object" && tanguar.files_sha256 !== null
+          ? (tanguar.files_sha256 as Record<string, string>)
+          : null,
       publishedAt: typeof tanguar.exported_at === "string" ? tanguar.exported_at : null,
       runId: typeof tanguar.run_id === "string" ? tanguar.run_id : null,
     });
@@ -126,13 +140,20 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
   // recorded digests match the files on disk (see
   // docs/PHASE3_SCIENTIFIC_VERIFICATION.md §1). The two files outside
   // that map are evidence_card.json and publication.json itself.
+  // The digests below are the DECLARED map; integrity stays
+  // PUBLISHED_NOT_VERIFIED because this builder does not re-hash the files
+  // (the evidence-quality loader does, and reports the verified count).
   let hakalukiChecksums = false;
+  let hakalukiDigests: Record<string, string> | null = null;
   if (hakaluki?.path) {
     const publication = await readJson<{ artifacts?: Record<string, { sha256?: unknown; bytes?: unknown }> }>(
       publicPath("studies", hakaluki.path, "publication.json"),
     );
-    const artifacts = Object.values(publication?.artifacts ?? {});
-    hakalukiChecksums = artifacts.length > 0 && artifacts.every((a) => typeof a.sha256 === "string");
+    const entries = Object.entries(publication?.artifacts ?? {});
+    hakalukiChecksums = entries.length > 0 && entries.every(([, a]) => typeof a.sha256 === "string");
+    if (hakalukiChecksums) {
+      hakalukiDigests = Object.fromEntries(entries.map(([k, a]) => [k, a.sha256 as string]));
+    }
   }
   if (hakaluki) {
     wetland.push({
@@ -149,6 +170,8 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       validationNote: "27 Sep 2026 date check: weak agreement with the optical reference (precision 12.9%, recall 5.2%, F1 7.4%). The headline 23 Jun → 17 Jul pair is unassessable — only 9 cloud-free pixels overlap the wetland mask. Not a validated flood detector.",
       nextStep: "A stronger independent reference is needed before validation can complete.",
       checksumsPresent: hakalukiChecksums,
+      integrity: "PUBLISHED_NOT_VERIFIED",
+      digests: hakalukiDigests,
       publishedAt: hakaluki.published_at ?? null,
       runId: hakaluki.run_id ?? null,
     });
@@ -159,13 +182,17 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
   // 24/24 recorded digests match the files on disk.
   const chokwe = hakalukiCatalog?.studies?.find((s) => s.site_name === "Chokwe event study box");
   let chokweChecksums = false;
+  let chokweDigests: Record<string, string> | null = null;
   let chokweCase: Record<string, unknown> | null = null;
   if (chokwe?.path) {
     const publication = await readJson<{ artifacts?: Record<string, { sha256?: unknown; bytes?: unknown }> }>(
       publicPath("studies", chokwe.path, "publication.json"),
     );
-    const artifacts = Object.values(publication?.artifacts ?? {});
-    chokweChecksums = artifacts.length > 0 && artifacts.every((a) => typeof a.sha256 === "string");
+    const entries = Object.entries(publication?.artifacts ?? {});
+    chokweChecksums = entries.length > 0 && entries.every(([, a]) => typeof a.sha256 === "string");
+    if (chokweChecksums) {
+      chokweDigests = Object.fromEntries(entries.map(([k, a]) => [k, a.sha256 as string]));
+    }
     chokweCase = await readJson<Record<string, unknown>>(publicPath("studies", chokwe.path, "case_study.json"));
   }
   if (chokwe) {
@@ -183,6 +210,8 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       validationNote: "Completed real processing (127 patches, 29.872 km²). The reference comparison is inconclusive — processing completed does not mean validated.",
       nextStep: "A conclusive independent reference is needed before validation can complete.",
       checksumsPresent: chokweChecksums,
+      integrity: "PUBLISHED_NOT_VERIFIED",
+      digests: chokweDigests,
       publishedAt: null,
       runId: chokwe.run_id ?? null,
     });
@@ -193,7 +222,11 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
   const forest: StudyHealth[] = [];
   const rondoniaIndex = await readJson<Record<string, unknown>>(publicPath("forests", "rondonia", "index.json"));
   if (rondoniaIndex) {
-    const study = await readJson<{ observation_dates?: string[]; evidence_status?: string }>(publicPath("forests", "rondonia", "2026.10.08-v1", "study.json"));
+    const study = await readJson<{ observation_dates?: string[]; evidence_status?: string; run_id?: string }>(
+      publicPath("forests", "rondonia", "2026.10.08-v1", "study.json"),
+    );
+    const archiveDigest = typeof rondoniaIndex.archive_sha256 === "string" ? rondoniaIndex.archive_sha256 : null;
+    const nativeDigest = typeof rondoniaIndex.native_archive_sha256 === "string" ? rondoniaIndex.native_archive_sha256 : null;
     forest.push({
       id: "rondonia",
       domain: "forest",
@@ -207,9 +240,14 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       evidenceStatus: "EXPLORATORY",
       validationNote: "One 0.0128 km² radar candidate; an exploratory HLS index signal overlaps 71.1%. No labelled forest-loss reference or accuracy score exists.",
       nextStep: "A labelled forest-loss reference is needed before validation can complete.",
-      checksumsPresent: typeof rondoniaIndex.archive_sha256 === "string",
+      checksumsPresent: archiveDigest !== null && nativeDigest !== null,
+      integrity: "PUBLISHED_NOT_VERIFIED",
+      digests:
+        archiveDigest !== null && nativeDigest !== null
+          ? { archive_sha256: archiveDigest, native_archive_sha256: nativeDigest }
+          : null,
       publishedAt: null,
-      runId: null,
+      runId: typeof study?.run_id === "string" ? study.run_id : null,
     });
   } else missing.push("public/forests/rondonia/index.json");
   domains.push({ domain: "forest", label: "Forests", studies: forest });
@@ -225,14 +263,20 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       name: "Hayli Gubbi and Erta Ale",
       href: "/volcano/hayli-gubbi",
       state: "PUBLISHED_EXPLORATORY",
-      stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference", "reproducible"],
+      // No "reproducible" stage: the published study.json carries no run
+      // ID, and no per-artifact digest map is published (method_source_sha256
+      // and config_sha256 are provenance hashes of the method and config,
+      // not digests of the published artifacts).
+      stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference"],
       product: "NISAR_L2_GUNW_BETA",
       productMaturity: "BETA",
       observationDates: [],
       evidenceStatus: "EXPLORATORY",
       validationNote: "Screened apparent line-of-sight phase candidates. Sentinel-1 is a separate comparison; signals are not causally attributed to the eruption.",
       nextStep: "Independent geodetic observations and atmospheric corrections are needed before validation can complete.",
-      checksumsPresent: true,
+      checksumsPresent: false,
+      integrity: "NOT_PUBLISHED",
+      digests: null,
       publishedAt: null,
       runId: null,
     });
@@ -245,14 +289,18 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       name: "Kīlauea, Episode 36",
       href: "/volcano/kilauea",
       state: "PUBLISHED_EXPLORATORY",
-      stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference", "reproducible"],
+      // No "reproducible" stage: no run ID and no per-artifact digest map
+      // is published (see Hayli Gubbi above).
+      stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference"],
       product: "NISAR_L2_GUNW_BETA",
       productMaturity: "BETA",
       observationDates: [],
       evidenceStatus: "EXPLORATORY",
       validationNote: "Reference patch stability is assumed and must be inspected; it is not surveyed ground truth. Context only.",
       nextStep: "A surveyed reference and independent geodetic comparison are needed before validation can complete.",
-      checksumsPresent: true,
+      checksumsPresent: false,
+      integrity: "NOT_PUBLISHED",
+      digests: null,
       publishedAt: null,
       runId: null,
     });
@@ -261,9 +309,22 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
 
   // ── Agriculture ──
   const agriculture: StudyHealth[] = [];
-  const agri = await readJson<{ study_id: string; evidence_status: string; release: string; observations: { date: string }[] }>(publicPath("agriculture", "current", "study.json"));
+  const agri = await readJson<{
+    study_id: string;
+    run_id?: string;
+    evidence_status: string;
+    release: string;
+    observations: { date: string; source_sha256?: string }[];
+  }>(publicPath("agriculture", "current", "study.json"));
   const agriIndex = await readJson<{ published_at: string }>(publicPath("agriculture", "current", "index.json"));
   if (agri) {
+    // Digests are the per-observation source SHA-256 values declared in
+    // study.json — one per acquisition date, not a hardcoded true.
+    const agriDigests = Object.fromEntries(
+      agri.observations.filter((o) => typeof o.source_sha256 === "string").map((o) => [o.date, o.source_sha256 as string]),
+    );
+    const agriChecksums =
+      agri.observations.length > 0 && agri.observations.every((o) => typeof o.source_sha256 === "string");
     agriculture.push({
       id: agri.study_id,
       domain: "agriculture",
@@ -277,9 +338,11 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       evidenceStatus: agri.evidence_status ?? "EXPLORATORY",
       validationNote: "No independent reference: no crop mask, no IMERG rainfall context, no field validation. Four dates were excluded for zero valid pixels.",
       nextStep: "An independent reference (crop mask, rainfall context, or field measurements) is needed before validation can complete.",
-      checksumsPresent: true,
+      checksumsPresent: agriChecksums,
+      integrity: "PUBLISHED_NOT_VERIFIED",
+      digests: agriChecksums ? agriDigests : null,
       publishedAt: agriIndex?.published_at ?? null,
-      runId: agri.study_id,
+      runId: typeof agri.run_id === "string" ? agri.run_id : agri.study_id,
     });
   } else missing.push("public/agriculture/current/study.json");
   domains.push({ domain: "agriculture", label: "Agriculture", studies: agriculture });

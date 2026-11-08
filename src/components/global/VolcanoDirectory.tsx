@@ -155,48 +155,7 @@ export default function VolcanoDirectory() {
             <VolcanoGlobalMap volcanoes={volcanoes} selected={selected} coverage={coverage} onSelect={(volcano) => { setSelectedId(volcano.id); clearCoverage(); }} />
             {!volcanoes.length && <div className="volcano-map-empty" role="status">{catalog === null ? "Loading Smithsonian volcano locations…" : "Volcano locations are unavailable. Try again later or use the case link above."}</div>}
           </div>
-    </>} drawer={<div className="volcano-controls">
-          <label htmlFor="volcano-search">Find a volcano</label>
-          <input id="volcano-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name, country, or region" autoComplete="off" />
-          <div className="volcano-results" role="listbox" aria-label="Volcanoes">
-            {catalog === null ? <p className="volcano-empty-list" role="status">Loading the Smithsonian volcano directory…</p> : matching.length ? matching.map((volcano) => (
-              <button key={volcano.id} type="button" role="option" aria-selected={volcano.id === selected?.id} onClick={() => { setSelectedId(volcano.id); clearCoverage(); }}>
-                <span><strong>{volcano.name}</strong><small>{volcano.country} · {volcano.region}</small></span><span aria-hidden="true">›</span>
-              </button>
-            )) : <p className="volcano-empty-list">No matching volcanoes. Try another spelling or country.</p>}
-          </div>
-
-          {selected && <div className="volcano-selected">
-            <div className="volcano-selected__title"><span>Selected volcano</span><strong>{selected.name}</strong></div>
-            <dl>
-              <div><dt>Country / region</dt><dd>{selected.country} · {selected.region}</dd></div>
-              <div><dt>Coordinates</dt><dd>{selected.latitude.toFixed(4)}°, {selected.longitude.toFixed(4)}°</dd></div>
-              <div><dt>Elevation</dt><dd>{selected.elevationM === null ? "Not listed" : `${selected.elevationM.toLocaleString()} m`}</dd></div>
-            </dl>
-            {selected.gvpUrl && <a href={selected.gvpUrl} target="_blank" rel="noreferrer">Smithsonian profile ↗</a>}
-            {(selectedIsHayli || selectedIsKilauea) && <Link href={selectedCaseHref}>{selectedIsKilauea ? "Read the published Kīlauea study" : "Read the published Hayli Gubbi case"} ↗</Link>}
-          </div>}
-
-          <div className="volcano-date-range">
-            <label htmlFor="volcano-start">Search NISAR GUNW dates</label>
-            <div><input id="volcano-start" type="date" value={startDate} onChange={(event) => {setStartDate(event.target.value);clearCoverage();}} /><span>to</span><input aria-label="End date" type="date" value={endDate} onChange={(event) => {setEndDate(event.target.value);clearCoverage();}} /></div>
-            <p>Searches both BETA and PROVISIONAL L2 unwrapped interferograms near the selected volcano.</p>
-            <button type="button" onClick={findCoverage} disabled={!selected || coverageLoading || !startDate || !endDate || startDate > endDate}>
-              {coverageLoading ? "Searching NASA catalog…" : "Check NISAR coverage"}
-            </button>
-          </div>
-
-          {coverageError && <p className="volcano-api-message is-error" role="alert">{coverageError}</p>}
-          {coverageInfo && <div className="volcano-api-message" role="status">
-            {coverageInfo.status === "FOOTPRINTS_FOUND" ? <><strong>{coverage?.features?.length ?? 0} scene footprint(s) found</strong><span>BETA hits: {formatCount(coverageInfo.productHits["NISAR_L2_GUNW_BETA_V1"] ?? null)} · PROVISIONAL hits: {formatCount(coverageInfo.productHits["NISAR_L2_GUNW_PROVISIONAL_V1"] ?? null)}</span>{coverageInfo.truncated && <span>Results are capped; narrow the date range.</span>}</> : <><strong>No interferogram result available for this place and time.</strong><span>This does not mean the volcano had no deformation.</span></>}
-          </div>}
-        <section className="volcano-explainer">
-        <div><span>01</span><h2>Catalog points</h2><p>Locations come from the Smithsonian’s Holocene volcano inventory. The inventory records geological history; it is not a live eruption-alert feed.</p></div>
-        <div><span>02</span><h2>Radar coverage</h2><p>Footprints show NISAR GUNW interferogram products returned by NASA’s catalog near the selected volcano and date range.</p></div>
-        <div><span>03</span><h2>Deformation evidence</h2><p>Cyan rectangles mark published regional NISAR phase studies near Hayli Gubbi and Kīlauea. Open a case to inspect its actual measurements, quality screens, provenance, and limitations. Other volcanoes have no processed result available.</p></div>
-        </section>
-        <footer className="volcano-footer"><a href="https://volcano.si.edu/database/webservices.cfm" target="_blank" rel="noreferrer">Smithsonian GVP data source ↗</a><a href="https://nisar-docs.asf.alaska.edu/earthdata-search/" target="_blank" rel="noreferrer">NISAR product guide ↗</a></footer>
-    </div>} drawerTabs={volcanoDrawerTabs} drawerTabsPlacement="drawer" footer={<>
+    </>} drawerTabs={volcanoDrawerTabs} drawerTabsPlacement="drawer" footer={<>
       <div className="volcano-map-legend"><span><i className="volcano-legend-pin" />Smithsonian catalog location</span><span><i className="volcano-legend-footprint" />NISAR GUNW footprint</span><span><i className="volcano-legend-processed" />Published study area</span></div>
       <span className="iw-footer-note">Coverage map · no global eruption classification</span>
     </>} />

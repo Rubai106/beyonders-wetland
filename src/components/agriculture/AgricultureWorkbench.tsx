@@ -1499,7 +1499,6 @@ export default function AgricultureWorkbench() {
       drawerTabs={drawerTabs}
       drawerTabsPlacement="drawer"
       drawerPersistent={<div className={"agri-drawer-status " + (loadState === "error" ? "is-error" : "")}><i aria-hidden="true" /><span>{loadState === "error" ? loadError + " The release is withheld; this page will not display unverified measurements." : loadState === "ready" ? "SHA-256 checked · " + (study?.evidence_status ?? "") : noStudy ? "No real Agriculture publication is bundled." : "No synthetic study is substituted."}</span></div>}
-      drawer={<div className="agri-drawer-panel"><p>Choose Explore, Operator, Evidence, Check it or Learn.</p></div>}
       footer={<div className="agri-footer">
         <div className="agri-footer-head">
           <span className="agri-eyebrow">OBSERVATION TIMELINE</span>

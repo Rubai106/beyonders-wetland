@@ -1,6 +1,6 @@
-# Beyonders — Earth in Motion
+# GeoNexSAR — Earth in Motion
 
-A NISAR Earth-change explorer with separate **Wetlands**, **Forests**, **Volcanoes** and **Agriculture** workspaces. Each module has its own product, method and evidence limits. Published candidates are not automatically validated environmental events; worldwide imagery and acquisition footprints show observations and coverage, not global detections.
+Built by team **Beyonders** for the NASA Space Apps Challenge. GeoNexSAR is a NISAR Earth-change explorer with separate **Wetlands**, **Forests**, **Volcanoes** and **Agriculture** workspaces. Each module has its own product, method and evidence limits. Published candidates are not automatically validated environmental events; worldwide imagery and acquisition footprints show observations and coverage, not global detections.
 
 ## Run locally
 

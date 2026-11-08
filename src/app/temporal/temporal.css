@@ -73,3 +73,8 @@
   .temporal-big strong { font-size: 32px; }
   .temporal-track__label { font-size: 10px; }
 }
+
+.temporal-series { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 4px 0 12px; }
+.temporal-series button { padding: 7px 12px; border: 1px solid #2d4048; border-radius: 8px; background: #142026; color: #d6e2e5; font: inherit; font-size: 13px; cursor: pointer; }
+.temporal-series button[aria-pressed="true"] { border-color: #6fd3c0; background: rgba(111, 211, 192, 0.16); color: #6fd3c0; font-weight: 600; }
+.temporal-series .temporal-note { flex: 1 1 100%; margin: 2px 0 0; }

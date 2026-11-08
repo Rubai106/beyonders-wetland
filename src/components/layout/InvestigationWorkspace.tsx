@@ -64,7 +64,7 @@ export default function InvestigationWorkspace({
   rail: ReactNode;
   map: ReactNode;
   mapToolbar?: ReactNode;
-  drawer: ReactNode;
+  drawer?: ReactNode;
   drawerTabs?: InvestigationDrawerTab[];
   initialAnchorId?: string;
   drawerTabsPlacement?: "map" | "drawer";
@@ -201,9 +201,6 @@ export default function InvestigationWorkspace({
       onClickCapture={handleFragmentLink}
     >
       <header className="wx-mast">
-        <Link href="/" className="wx-brand" aria-label="GeoNexSAR home">
-          GeoNexSAR
-        </Link>
         <span className="wx-case">
           <span className="wx-micro">Case</span>
           {caseControl ?? <span className="wx-case__title">{caseName}</span>}

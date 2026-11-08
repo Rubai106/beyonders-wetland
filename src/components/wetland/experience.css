@@ -4,7 +4,14 @@
    Tokens come from src/styles/atlas.css. Everything scoped to .wx-root.
    Test hooks preserved: .wx-obs .wx-play .wx-now .wx-modes .wx-rail
    ═══════════════════════════════════════════════════════════════════ */
-.wx-root { position: fixed; inset: 0; z-index: 1; background: #070A0D; color: var(--ws-text); font-family: var(--font-sans); font-size: var(--fs-small); line-height: var(--lh-body); overflow: hidden;
+/* The workspace shell is a fixed full-viewport grid. It starts BELOW the
+   sticky primary nav (52px + 1px border = 53px): with inset: 0 the shell's
+   masthead sat at viewport top underneath the nav, so its controls —
+   "Return to overview", Basemap, the domain links — were visible but
+   unclickable, the nav intercepting every pointer event. At <=1100px the
+   shell becomes position: relative in normal flow (hazard-workspace.css),
+   so this offset only applies where the shell is fixed. */
+.wx-root { position: fixed; top: 53px; right: 0; bottom: 0; left: 0; z-index: 1; background: #070A0D; color: var(--ws-text); font-family: var(--font-sans); font-size: var(--fs-small); line-height: var(--lh-body); overflow: hidden;
   display: grid; grid-template-rows: 52px auto minmax(0, 1fr) auto; grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) 0; grid-template-areas: "mast mast mast" "quest quest quest" "rail map drawer" "time time time"; }
 .wx-root[data-drawer="open"] { grid-template-columns: clamp(248px, 18.5vw, 284px) minmax(0, 1fr) clamp(320px, 23.5vw, 360px); }
 .wx-root *, .wx-root *::before, .wx-root *::after { box-sizing: border-box; }

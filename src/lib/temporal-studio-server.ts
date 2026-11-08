@@ -8,6 +8,7 @@ import {
   asNumber,
   asString,
   asStringArray,
+  forestReferenceText,
   formatMetric,
   hlsAttemptDates,
   sumPatchAreas,
@@ -77,7 +78,10 @@ async function loadHakaluki(): Promise<TemporalStudy | null> {
     publicPath("studies", hakaluki.path, "observations.json"),
   );
   if (!observations?.length) return null;
-  const evidence = await readJson<{ comparison?: { precision?: number; recall?: number; f1?: number }; coverage?: { common_clear_fraction?: number } }>(
+  const evidence = await readJson<{
+    optical_support?: { precision?: number; recall?: number; f1?: number; common_clear_fraction?: number };
+    coverage?: { common_clear_fraction?: number };
+  }>(
     publicPath("studies", hakaluki.path, "date_checks", "2026-09-27", "evidence.json"),
   );
   const entries: TemporalEntry[] = [];
@@ -86,19 +90,26 @@ async function loadHakaluki(): Promise<TemporalStudy | null> {
     const patches = await readJson<unknown>(
       publicPath("studies", hakaluki.path, `patches_0${i}_final.geojson`),
     );
+    // A missing patches file is missing data (null). A present file with no
+    // candidate area is a recorded zero (0) — never convert one into the other.
+    const fileMissing = patches === null;
     const { areaKm2, count } = sumPatchAreas(patches);
     const isCheckDate = obs.date === "2026-09-27";
-    const precision = asNumber(evidence?.comparison?.precision);
-    const recall = asNumber(evidence?.comparison?.recall);
-    const f1 = asNumber(evidence?.comparison?.f1);
+    // The 27 Sep metrics live under optical_support (area-weighted on native
+    // HLS cells), not under comparison (which holds the HLS scene dates).
+    // Values: precision 12.9%, recall 5.2%, F1 7.4%, common clear 50.7%.
+    const precision = asNumber(evidence?.optical_support?.precision);
+    const recall = asNumber(evidence?.optical_support?.recall);
+    const f1 = asNumber(evidence?.optical_support?.f1);
+    const clear = asNumber(evidence?.optical_support?.common_clear_fraction);
     entries.push({
       date: obs.date,
-      metricValue: areaKm2 > 0 ? areaKm2 : null,
-      metricLabel: areaKm2 > 0 ? formatMetric(areaKm2, "km²") : "Not published",
-      patches: count > 0 ? count : undefined,
-      secondary: count > 0 ? `${count} patches` : undefined,
+      metricValue: fileMissing ? null : areaKm2,
+      metricLabel: fileMissing ? "Not published" : formatMetric(areaKm2, "km²"),
+      patches: fileMissing ? undefined : count,
+      secondary: fileMissing ? undefined : `${count} patch${count === 1 ? "" : "es"}`,
       reference: isCheckDate && precision !== null && recall !== null && f1 !== null
-        ? `HLS cross-sensor check: precision ${(precision * 100).toFixed(1)}%, recall ${(recall * 100).toFixed(1)}%, F1 ${(f1 * 100).toFixed(1)}% — weak agreement, not validation.`
+        ? `HLS cross-sensor check: precision ${(precision * 100).toFixed(1)}%, recall ${(recall * 100).toFixed(1)}%, F1 ${(f1 * 100).toFixed(1)}%${clear !== null ? ` over ${(clear * 100).toFixed(1)}% common clear coverage` : ""} — weak agreement, not validation.`
         : undefined,
     });
   }
@@ -160,7 +171,6 @@ async function loadRondonia(): Promise<TemporalStudy | null> {
     const patches = asNumber(f.stats?.patch_count);
     const hv = asNumber(f.stats?.median_hv_db);
     const ref = f.reference;
-    const overlap = asNumber(ref?.support_overlap_fraction);
     return {
       date: f.date,
       metricValue: area,
@@ -170,9 +180,7 @@ async function loadRondonia(): Promise<TemporalStudy | null> {
         patches !== null ? `${patches} patch${patches === 1 ? "" : "es"}` : null,
         hv !== null ? `median HV ${hv.toFixed(1)} dB` : null,
       ].filter(Boolean).join(" · ") || undefined,
-      reference: ref
-        ? `Optical check: ${ref.status === "CROSS_SENSOR_CHECK" ? "cross-sensor check" : ref.status ?? "unknown"} · ${(asNumber(ref.common_clear_fraction) ?? 0) * 100}% common clear${overlap !== null ? ` · ${(overlap * 100).toFixed(1)}% candidate overlap with index decreases` : ""}.`
-        : undefined,
+      reference: forestReferenceText(ref),
       image: f.layers?.candidates?.image
         ? `/forests/rondonia/2026.10.08-v1/${f.layers.candidates.image}`
         : undefined,
@@ -195,25 +203,34 @@ async function loadRondonia(): Promise<TemporalStudy | null> {
 
 async function loadVolcano(id: string, dir: string, name: string, href: string): Promise<TemporalStudy | null> {
   const study = await readJson<{
-    pairs?: { id: string; label?: string; start: string; end: string; sensor?: string; statistics?: { assessed_area_km2?: number; valid_fraction?: number; median_coherence?: number }; los_image?: string }[];
+    pairs?: { id: string; label?: string; start: string; end: string; sensor?: string; statistics?: { assessed_area_km2?: number; valid_fraction?: number; median_coherence?: number; p05_cm?: number; p95_cm?: number }[] | { assessed_area_km2?: number; valid_fraction?: number; median_coherence?: number; p05_cm?: number; p95_cm?: number }; los_image?: string }[];
     coherence_floor?: number;
     event_date?: string;
   }>(publicPath("volcanoes", dir, "2026.10.30-v3", "study.json"));
   if (!study?.pairs?.length) return null;
   const floor = asNumber(study.coherence_floor);
   const entries: TemporalEntry[] = study.pairs.map((p) => {
-    const area = asNumber(p.statistics?.assessed_area_km2);
-    const valid = asNumber(p.statistics?.valid_fraction);
-    const coh = asNumber(p.statistics?.median_coherence);
+    const stats = Array.isArray(p.statistics) ? p.statistics[0] : p.statistics;
+    const area = asNumber(stats?.assessed_area_km2);
+    const valid = asNumber(stats?.valid_fraction);
+    const coh = asNumber(stats?.median_coherence);
+    const p05 = asNumber(stats?.p05_cm);
+    const p95 = asNumber(stats?.p95_cm);
+    // Headline metric is apparent LOS, not area: area is coverage, not the
+    // amount of deformation. p95 is the recorded upper tail of the central
+    // 90% LOS range for the pair. No pair-level median LOS is published
+    // (region medians live in the volcano workspace); none is invented here.
     return {
       date: p.end,
       intervalLabel: `${fmtDate(p.start)} → ${fmtDate(p.end)}`,
-      metricValue: area,
-      metricLabel: formatMetric(area, "km²"),
+      metricValue: p95,
+      metricLabel: formatMetric(p95, "cm"),
       secondary: [
         p.label ?? null,
-        valid !== null ? `${(valid * 100).toFixed(1)}% screened` : null,
+        p05 !== null && p95 !== null ? `LOS p05 ${p05.toFixed(2)} cm · p95 ${p95.toFixed(2)} cm` : null,
+        valid !== null ? `${(valid * 100).toFixed(1)}% valid` : null,
         coh !== null ? `median coherence ${coh.toFixed(3)}` : null,
+        area !== null ? `${formatMetric(area, "km²")} assessed` : null,
       ].filter(Boolean).join(" · ") || undefined,
       image: p.los_image ? `/volcanoes/${dir}/2026.10.30-v3/${p.los_image}` : undefined,
     };
@@ -223,14 +240,14 @@ async function loadVolcano(id: string, dir: string, name: string, href: string):
     name,
     domain: "volcano",
     href,
-    metricName: "Screened area",
-    metricUnit: "km²",
+    metricName: "Apparent LOS, p95",
+    metricUnit: "cm",
     screeningRule: floor !== null
-      ? `Coherence floor ${floor.toFixed(2)}; only the connected phase component containing the reference patch is retained. Atmospheric, ionospheric, and tide corrections are not applied.`
-      : "Coherence-screened phase; only the connected phase component containing the reference patch is retained.",
+      ? `Coherence floor ${floor.toFixed(2)}; only the connected phase component containing the reference patch is retained. Atmospheric, ionospheric, and tide corrections are not applied. Pairs are independent intervals — do not read them as a cumulative deformation series.`
+      : "Coherence-screened phase; only the connected phase component containing the reference patch is retained. Pairs are independent intervals — do not read them as a cumulative deformation series.",
     referenceNote: id === "hayli-gubbi"
-      ? "Screened apparent line-of-sight phase candidates. Sentinel-1 is a separate comparison; signals are not causally attributed to the eruption."
-      : "Reference patch stability is assumed and must be inspected; it is not surveyed ground truth. Context only.",
+      ? "Apparent line-of-sight change, never confirmed vertical displacement. Sentinel-1 is a separate comparison; signals are not causally attributed to the eruption. Pair-level median LOS is not published — region medians are shown in the volcano workspace."
+      : "Reference patch stability is assumed and must be inspected; it is not surveyed ground truth. Context only. Pair-level median LOS is not published — region medians are shown in the volcano workspace.",
     referenceStatus: "EXPLORATORY",
     entries,
     opticalDates: [],
@@ -240,6 +257,7 @@ async function loadVolcano(id: string, dir: string, name: string, href: string):
 async function loadNaogaon(): Promise<TemporalStudy | null> {
   const study = await readJson<{
     observations?: { date: string; median?: number; valid_pixels?: number; quality_exclusions?: unknown }[];
+    matched_support?: { method?: string; observations?: { date: string; median?: number; p05?: number; p95?: number; valid_pixels?: number; total_pixels?: number }[] };
     quality_exclusions?: { excluded_dates?: string[] };
   }>(publicPath("agriculture", "current", "study.json"));
   if (!study?.observations?.length) return null;
@@ -250,7 +268,26 @@ async function loadNaogaon(): Promise<TemporalStudy | null> {
       date: o.date,
       metricValue: median,
       metricLabel: formatMetric(median, "m³/m³"),
-      secondary: valid !== null ? `${valid.toLocaleString()} valid pixels` : undefined,
+      secondary: valid !== null ? `${valid.toLocaleString()} valid pixels (per-date)` : undefined,
+    };
+  });
+  // Same-pixel cohort: ALL_DATE_VALID_PIXEL_INTERSECTION — the fixed set of
+  // pixels valid on every date, so date-to-date change is not confounded by
+  // changing coverage. Same dates, different (usually lower) medians.
+  const matched = study.matched_support?.observations ?? [];
+  const matchedEntries: TemporalEntry[] = matched.map((o) => {
+    const median = asNumber(o.median);
+    const valid = asNumber(o.valid_pixels);
+    const p05 = asNumber(o.p05);
+    const p95 = asNumber(o.p95);
+    return {
+      date: o.date,
+      metricValue: median,
+      metricLabel: formatMetric(median, "m³/m³"),
+      secondary: [
+        valid !== null ? `${valid.toLocaleString()} pixels · same set every date` : null,
+        p05 !== null && p95 !== null ? `p05 ${p05.toFixed(3)} · p95 ${p95.toFixed(3)} m³/m³` : null,
+      ].filter(Boolean).join(" · ") || undefined,
     };
   });
   const excluded = asStringArray(study.quality_exclusions?.excluded_dates);
@@ -266,6 +303,10 @@ async function loadNaogaon(): Promise<TemporalStudy | null> {
     referenceStatus: "NONE",
     entries,
     opticalDates: [],
+    matchedEntries: matchedEntries.length > 0 ? matchedEntries : undefined,
+    matchedNote: matchedEntries.length > 0
+      ? "Same-pixel cohort (ALL_DATE_VALID_PIXEL_INTERSECTION): 1,336 pixels valid on all 6 dates. Per-date medians use every valid pixel on that date, so their coverage changes; the cohort holds the pixel set fixed, so its change is comparable across dates."
+      : undefined,
     excludedNote: excluded.length > 0
       ? `${excluded.length} further date${excluded.length === 1 ? "" : "s"} excluded before publication (zero valid pixels).`
       : undefined,

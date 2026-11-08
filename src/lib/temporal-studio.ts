@@ -51,6 +51,11 @@ export interface TemporalStudy {
   opticalDates: TemporalOpticalDate[];
   /** Dates excluded before publication (e.g. zero valid pixels). */
   excludedNote?: string;
+  /** Same-pixel cohort series (Naogaon): the same fixed pixel set on every
+      date, for fair temporal comparison against the per-date entries. */
+  matchedEntries?: TemporalEntry[];
+  /** What the matched cohort is and why it differs from per-date values. */
+  matchedNote?: string;
   missing?: string;
 }
 
@@ -104,6 +109,19 @@ export function timelinePositions(entries: readonly TemporalEntry[]): number[] {
     return entries.map(() => 0.5);
   }
   return times.map((t) => (t - min) / (max - min));
+}
+
+/** Reference line for one forest frame. A missing common-clear fraction is
+    "not recorded", never zero — a zero would claim no coverage was measured. */
+export function forestReferenceText(ref: {
+  status?: string | null;
+  common_clear_fraction?: number | null;
+  support_overlap_fraction?: number | null;
+} | null | undefined): string | undefined {
+  if (!ref) return undefined;
+  const clear = asNumber(ref.common_clear_fraction);
+  const overlap = asNumber(ref.support_overlap_fraction);
+  return `Optical check: ${ref.status === "CROSS_SENSOR_CHECK" ? "cross-sensor check" : ref.status ?? "unknown"} · ${clear !== null ? `${(clear * 100).toFixed(1)}% common clear` : "common clear coverage not recorded"}${overlap !== null ? ` · ${(overlap * 100).toFixed(1)}% candidate overlap with index decreases` : ""}.`;
 }
 
 /** Human metric, e.g. 24.4765 -> "24.48 km²", 0.3604 -> "0.3604 m³/m³". */
