@@ -145,6 +145,23 @@ with sync_playwright() as p:
     rendered_vals = page.eval_on_selector_all(".hydro-val", "els => els.map(e => e.textContent.trim())")
     check("hydrograph matches saved pulse", rendered_vals == expected_vals, f"rendered={rendered_vals} saved={expected_vals}")
     check("hydrograph label is honest", "radar-change candidate area" in page.inner_text(".hydro-meta"))
+    page.locator(".hydro").scroll_into_view_if_needed()
+    live_values_match = True
+    live_samples = []
+    for _ in range(8):
+        page.wait_for_timeout(220)
+        current_text = page.locator("[data-testid='hydro-current-value']").inner_text().strip()
+        active_text = page.locator(".hydro-bar.is-active .hydro-val").inner_text().strip()
+        live_samples.append(current_text)
+        try:
+            live_values_match = live_values_match and current_text == active_text and float(current_text) >= 0
+        except ValueError:
+            live_values_match = False
+    check(
+        "hydrograph live value matches the active published date and is non-negative",
+        live_values_match,
+        f"samples={live_samples}",
+    )
     page.get_by_role("button", name="Drop a pin anywhere").click(); page.wait_for_timeout(400)
     check("pin mode arms", "Choose a study location" in page.inner_text(".g3-pinbar"))
     page.mouse.click(900, 420); page.wait_for_timeout(800)  # click the globe, right of the title block

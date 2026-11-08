@@ -305,7 +305,7 @@ def main() -> int:
         page.wait_for_url("**/forest/rondonia", timeout=20_000)
         page.locator(".forest-comparison").wait_for(state="visible", timeout=30_000)
         require(
-            page.locator(".wx-nav a[href='/forest/rondonia']").get_attribute("aria-current") == "page",
+            page.locator(".hazard-nav__links a[href='/forest/rondonia']").get_attribute("aria-current") == "page",
             "Forests is identified as the current workspace in shared navigation",
         )
         forest_tabs = page.locator(".wx-drawer__tabs button[role='tab']")
@@ -342,7 +342,7 @@ def main() -> int:
         page.wait_for_url("**/volcano/hayli-gubbi", timeout=20_000)
         page.locator(".deformation-map-hint").wait_for(state="visible", timeout=30_000)
         require(
-            page.locator(".wx-nav a[href='/volcano/hayli-gubbi']").get_attribute("aria-current") == "page",
+            page.locator(".hazard-nav__links a[href='/volcano/hayli-gubbi']").get_attribute("aria-current") == "page",
             "Volcanoes is identified as the current workspace in shared navigation",
         )
         require(
@@ -398,7 +398,7 @@ def main() -> int:
         agriculture_map = page.locator(".agri-map")
         agriculture_map.wait_for(state="visible", timeout=30_000)
         require(
-            page.locator(".wx-nav a[href='/agriculture']").get_attribute("aria-current") == "page",
+            page.locator(".hazard-nav__links a[href='/agriculture']").get_attribute("aria-current") == "page",
             "Agriculture is identified as the current workspace in shared navigation",
         )
         require(

@@ -124,7 +124,7 @@ function Hydrograph() {
   const entries = pulse?.dates ?? [];
   useEffect(() => {
     if (!playing || !entries.length) return;
-    const id = setInterval(() => setActive((a) => (a + 1) % entries.length), 700);
+    const id = setInterval(() => setActive((a) => (a + 1) % entries.length), 1400);
     return () => clearInterval(id);
   }, [playing, entries.length]);
   if (failed || (pulse && !entries.length)) {
@@ -159,7 +159,7 @@ function Hydrograph() {
       </div>
       <div className="hydro-meta">
         <div><strong>{shortDate(cur.date)} 2026</strong><span>radar-change candidate area</span></div>
-        <div className="hydro-num"><CountUp to={cur.area_km2} decimals={1} /><em> km²</em></div>
+        <div className="hydro-num"><span data-testid="hydro-current-value">{cur.area_km2.toFixed(1)}</span><em> km²</em></div>
         <button type="button" className="g3-btn g3-btn--ghost" onClick={() => setPlaying((p) => !p)}>{playing ? "Pause the pulse" : "Play the pulse"}</button>
       </div>
       <p className="hydro-note">Real NISAR-derived values from the Tanguar Haor showcase. A candidate region is not a confirmed flood — <Link href="/wetland">challenge it</Link>.</p>

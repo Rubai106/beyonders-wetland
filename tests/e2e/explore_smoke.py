@@ -21,15 +21,51 @@ with sync_playwright() as p:
 
     # ── 3D landing ──
     pg.goto(BASE + "/"); pg.wait_for_timeout(9000); t = pg.inner_text("body")
-    check("landing: clear first action", "Open the Tanguar Haor case" in t and "Drop a pin anywhere" in t)
+    tanguar_card = pg.locator(".g3-domain-card[data-domain='wetland']")
+    check(
+        "landing: clear first action and Tanguar case entry",
+        pg.get_by_role("link", name="Explore observations").count() == 1
+        and pg.get_by_role("button", name="Drop a pin anywhere").count() == 1
+        and tanguar_card.locator("a[href='/wetland']").count() == 1,
+    )
     check("landing: 3D globe canvas renders", pg.locator(".globe-mount canvas").count() == 1)
     check("landing: real-case marker on the globe", pg.locator(".globe-tag--case").count() >= 1)
-    check("landing: forest/volcano cards link to briefings", pg.locator(".g3-phen-card a[href='/forest/global']").count() == 1 and pg.locator(".g3-phen-card a[href='/volcano/global']").count() == 1)
-    check("landing: agriculture card links to the SME2 workspace", pg.locator(".g3-phen-card a[href='/agriculture']").count() >= 1)
+    check(
+        "landing: forest/volcano cards link to global briefings",
+        pg.locator(".g3-domain-card[data-domain='forest'] a[href='/forest/global']").count() == 1
+        and pg.locator(".g3-domain-card[data-domain='volcano'] a[href='/volcano/global']").count() == 1,
+    )
+    check(
+        "landing: agriculture card links to the SME2 workspace",
+        pg.locator(".g3-domain-card[data-domain='agriculture'] a[href='/agriculture']").count() == 1,
+    )
     check("landing: brand is GeoNexSAR", "geonexsar" in pg.inner_text("body").lower())
-    check("landing: telemetry ticker shows real stats", "featured-case comparison dates" in pg.inner_text(".g3-ticker").lower() and pg.inner_text(".g3-ticker").strip()[0] != "0")
-    pg.get_by_role("link", name="Open the Tanguar Haor case").click(); pg.wait_for_url("**/wetland", timeout=20000)
-    check("landing -> case navigation", pg.url.rstrip("/").endswith("/wetland"))
+    ticker = pg.inner_text(".g3-ticker").lower()
+    check(
+        "landing: ticker reports the real Tanguar comparison series",
+        "tanguar comparison dates" in ticker
+        and "km² peak radar-change candidate area" in ticker
+        and ticker.strip()[0] != "0",
+    )
+    pg.locator(".hydro").scroll_into_view_if_needed()
+    hydro_values_match = True
+    hydro_samples = []
+    for _ in range(8):
+        pg.wait_for_timeout(220)
+        current_value = pg.locator("[data-testid='hydro-current-value']").inner_text().strip()
+        active_value = pg.locator(".hydro-bar.is-active .hydro-val").inner_text().strip()
+        hydro_samples.append(current_value)
+        try:
+            hydro_values_match = hydro_values_match and current_value == active_value and float(current_value) >= 0
+        except ValueError:
+            hydro_values_match = False
+    check(
+        "landing: animated hydrograph value matches its active date and never becomes negative",
+        hydro_values_match,
+        f"samples={hydro_samples}",
+    )
+    tanguar_card.locator("a[href='/wetland']").click(); pg.wait_for_url("**/wetland", timeout=20000)
+    check("landing -> Tanguar case navigation", pg.url.rstrip("/").endswith("/wetland"))
 
     # ── global mission control (live UI: FIELD ASSIGNMENT explorer) ──
     pg.goto(BASE + "/wetland/global"); pg.wait_for_selector(".global-map-wrap", timeout=25000); pg.wait_for_timeout(5000); t = pg.inner_text("body")
@@ -43,9 +79,11 @@ with sync_playwright() as p:
     check("explore: process-another-place entry exists", "Process another place" in t)
     check("explore: case walkthrough entry exists", "Start case walkthrough" in t)
     check("explore: map renders", pg.locator("#global-nisar-map").count() == 1)
-    # master has no /wetland -> /wetland/global link on the case page itself;
-    # the same journey runs from the homepage's "NISAR worldwide" nav link.
-    pg.goto(BASE + "/"); pg.wait_for_timeout(3000); pg.get_by_role("link", name="NISAR worldwide").first.click(); pg.wait_for_url("**/wetland/global"); check("case -> explore navigation", True)
+    # The homepage's primary CTA opens the global observation explorer.
+    pg.goto(BASE + "/"); pg.wait_for_timeout(3000)
+    pg.get_by_role("link", name="Explore observations").click()
+    pg.wait_for_url("**/wetland/global")
+    check("homepage -> global observation explorer navigation", True)
     for w in (1100, 820, 390):
         pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(600)
         check(f"explore: no horizontal overflow at {w}px", not pg.evaluate("document.documentElement.scrollWidth > innerWidth"))

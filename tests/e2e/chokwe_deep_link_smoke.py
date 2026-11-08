@@ -78,14 +78,14 @@ def main() -> int:
         response = page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30_000)
         require(response is not None and response.ok, "the production homepage responds successfully")
 
-        primary = page.get_by_role("link", name="Inspect the Chókwè event case")
+        primary = page.get_by_role("link", name="Chókwè, Mozambique — inspect the evidence")
         primary.wait_for(state="visible", timeout=20_000)
         require(
             primary.get_attribute("href") == "/wetland/global?story=chokwe",
             "the homepage exposes the expected Chókwè deep link",
         )
-        preserved = page.get_by_role("link", name="Open the Tanguar Haor case")
-        require(preserved.count() == 1, "the existing Tanguar Haor entry remains available")
+        preserved = page.locator(".g3-domain-card[data-domain='wetland'] a[href='/wetland']")
+        require(preserved.count() == 1, "the Tanguar Haor investigation remains available from the Wetlands card")
 
         primary.click()
         page.wait_for_url("**/wetland/global?story=chokwe", timeout=20_000)
