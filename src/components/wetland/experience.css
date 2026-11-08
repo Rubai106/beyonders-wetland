@@ -235,7 +235,7 @@
 
 /* evidence overview */
 .wx-evidence-overview { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; }
-.wx-evidence-overview__counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.wx-evidence-overview__counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .wx-evidence-overview__count { display: flex; flex-direction: column; gap: 4px; min-width: 0; padding: 9px 7px; border: 1px solid #26343d; border-radius: var(--r-1); background: #0b1117; }
 .wx-evidence-overview__count strong { color: var(--ws-text); font: 650 1.35rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .wx-evidence-overview__count span { color: var(--ws-text-2); font-size: .63rem; line-height: 1.25; overflow-wrap: anywhere; }
