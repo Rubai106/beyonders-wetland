@@ -112,6 +112,25 @@ with sync_playwright() as p:
         and "not detection confidence" in region_context_data["text"].lower(),
         str(region_context_data),
     )
+    with page.expect_download() as evidence_download:
+        page.get_by_role("button", name="Download this region's evidence brief").click()
+    download = evidence_download.value
+    brief_path = download.path()
+    with open(brief_path, encoding="utf-8") as brief_file:
+        region_brief = json.load(brief_file)
+    check(
+        "selected-region evidence export preserves provenance, checks and scientific caveats",
+        download.suggested_filename.endswith("-evidence.json")
+        and region_brief.get("record_type") == "beyonders.wetland.region-evidence"
+        and region_brief.get("source", {}).get("data_source") == "NISAR"
+        and region_brief.get("candidate_region", {}).get("id") == region_context_data["regionId"]
+        and region_brief.get("observation", {}).get("date") == "2026-08-29"
+        and len(region_brief.get("evidence_checks", [])) == 8
+        and any("not a confirmed flood" in item for item in region_brief.get("limitations", []))
+        and any("not field validation" in item for item in region_brief.get("limitations", []))
+        and "confidence_score" not in region_brief,
+        str(brief_path),
+    )
     evidence_overview = page.locator(".wx-evidence-overview")
     evidence_counts = evidence_overview.evaluate("""el => ({
         passed: Number(el.dataset.passed),
