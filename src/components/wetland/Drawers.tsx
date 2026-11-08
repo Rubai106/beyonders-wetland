@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWetlandStore } from "@/lib/store";
 import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/showcase";
 import { downloadFile, patchesCSV } from "@/lib/real-export";
-import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, regionNavigationContext, regionDistributionContext, type StackStatus } from "@/lib/story";
+import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, regionNavigationContext, regionDistributionContext, buildRegionEvidenceBrief, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
@@ -132,6 +132,14 @@ export function InvestigationDrawer() {
   const ev = showcase?.reference.evidence;
   const ch = challenge(p, optical, { baselineMad: p.baseline_hh_temporal_mad_db, baselineCount: p.baseline_observation_count, referenceLimitations: ev?.limitations,
     opticalReason: showcase?.reference.validation ? String((showcase.reference.validation as { reason?: string }).reason ?? "") || undefined : undefined });
+  function exportRegionBrief() {
+    const brief = buildRegionEvidenceBrief(p, pulseData, dataTier, optical, regionDistribution, vegFilter);
+    downloadFile(
+      `beyonders-${p.date}-${p.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-evidence.json`,
+      JSON.stringify(brief, null, 2),
+      "application/json;charset=utf-8",
+    );
+  }
   return (
     <ToolFrame title="Why this region?" lede={`${regionLabel(p.id)} was flagged on ${fmtDateLong(p.date)}. Here is the evidence behind it, and what it cannot tell us.`}
       limitation="Radar change does not by itself prove flooding. The same signal can come from other changes at the surface."
@@ -168,6 +176,10 @@ export function InvestigationDrawer() {
           </div>
         ) : <p className="wx-region-context__note">This candidate is outside the active class filter, so no cohort position is shown.</p>}
         <p className="wx-region-context__note">Positions and medians describe only the currently loaded acquisition and class filter. They are descriptive comparisons, not detection confidence, flood severity, or validation.</p>
+        <div className="wx-region-context__export">
+          <button type="button" className="wx-btn" onClick={exportRegionBrief}>Download this region&apos;s evidence brief</button>
+          <span>JSON · selected candidate and recorded checks</span>
+        </div>
       </section>
       <div className="wx-interp"><span className="wx-micro">Interpretation</span><strong>{it.headline}</strong><p>{it.note}</p></div>
       <Section eyebrow="Evidence" title="What do we actually know?">
