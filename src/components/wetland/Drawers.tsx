@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWetlandStore } from "@/lib/store";
 import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/showcase";
 import { downloadFile, patchesCSV } from "@/lib/real-export";
-import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, type StackStatus } from "@/lib/story";
+import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, temporalOverlapContext, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
@@ -29,6 +29,47 @@ export function EvidenceStack() {
       ))}
       <li className="wx-stack__note">Radar bars show the size of the measured change on a ±10 dB scale. The other bars show whether a test passed. None of them is a probability.</li>
     </ul>
+  );
+}
+
+/* ── Dated temporal-overlap evidence ── */
+function RegionTemporalEvidence({ patch, pulse }: { patch: NonNullable<ReturnType<typeof useWetlandStore.getState>["selectedPatch"]>; pulse: ReturnType<typeof useWetlandStore.getState>["pulseData"] }) {
+  const context = temporalOverlapContext(patch, pulse);
+  const overlap = context.overlapFraction;
+  const statusLabel = context.status === "PASS" ? "Meets 50% criterion"
+    : context.status === "PARTIAL" ? "Below 50% criterion"
+      : context.status === "FAIL" ? "Temporal check failed" : "Not assessed";
+  const classLabel = patch.classification === "OPEN_WATER" ? "open-water" : patch.classification === "VEGETATED_INUNDATION" ? "vegetated-inundation" : "uncertain";
+  return (
+    <div className="wx-temporal-evidence" data-status={context.status}
+      data-current-date={patch.date} data-previous-date={context.previousDate ?? ""}
+      data-overlap-fraction={overlap == null ? "" : String(overlap)}
+      data-threshold-percent={context.thresholdFraction * 100}>
+      {context.previousDate && overlap != null ? <>
+        <div className="wx-temporal-evidence__head">
+          <div><span className="wx-micro">PRECEDING ACQUISITION</span><strong>{fmtDateLong(context.previousDate)}</strong></div>
+          <span className="wx-temporal-evidence__status" data-status={context.status}>{statusLabel}</span>
+        </div>
+        <div className="wx-temporal-evidence__summary">
+          <strong>{pct1(overlap)}</strong>
+          <span>same-class pixel overlap</span>
+        </div>
+        <div className="wx-temporal-evidence__meter" role="meter"
+          aria-label="Share of this region also flagged with the same class on the preceding acquisition"
+          aria-valuemin={0} aria-valuemax={100} aria-valuenow={overlap * 100}
+          aria-valuetext={`${pct1(overlap)} same-class pixel overlap`}>
+          <span style={{ width: `${overlap * 100}%` }} />
+          <i aria-hidden="true" />
+        </div>
+        <div className="wx-temporal-evidence__scale"><span>0%</span><span>50% pipeline threshold</span><span>100%</span></div>
+        <p>{pct1(overlap)} of the pixels inside this {classLabel} candidate on {fmtDateLong(patch.date)} were also assigned the same class on the previous processed acquisition{context.intervalDays != null ? ` (${context.intervalDays} days earlier)` : ""}.</p>
+        <p className="wx-temporal-evidence__note">This is directional pixel overlap, not a persistent region match. Candidate IDs include the acquisition date, so regions are regenerated per observation. No values are interpolated between acquisition dates.</p>
+      </> : <>
+        <span className="wx-micro">{context.dateInSeries ? "FIRST PROCESSED ACQUISITION" : "DATE NOT IN LOADED SERIES"}</span>
+        <strong>{context.previousDate ? "Previous-date overlap was not recorded" : "No preceding acquisition to compare"}</strong>
+        <p>{context.dateInSeries ? "This is the earliest observation in the loaded series. The detector has no earlier class grid for a same-class overlap check." : "This candidate date is not present in the loaded acquisition timeline, so a previous-date comparison cannot be resolved."}</p>
+      </>}
+    </div>
   );
 }
 
@@ -60,6 +101,7 @@ export function InvestigationDrawer() {
       </dl>
       <div className="wx-interp"><span className="wx-micro">Interpretation</span><strong>{it.headline}</strong><p>{it.note}</p></div>
       <Section eyebrow="Evidence" title="What do we actually know?"><EvidenceStack /></Section>
+      <Section eyebrow="Across acquisitions" title="Preceding-observation overlap"><RegionTemporalEvidence patch={p} pulse={pulseData} /></Section>
       <Section eyebrow="Provenance" title="How this result was built">
         <ol className="wx-flow">
           <li><KindTag kind="observed" /><span>NISAR L2 GCOV HH and HV power, acquired {p.date}</span><span className="wx-mono">HH {p.hh_before.toFixed(1)} → {p.hh_after.toFixed(1)} dB · HV {p.hv_before.toFixed(1)} → {p.hv_after.toFixed(1)} dB</span></li>
