@@ -593,6 +593,19 @@ function RegionRegister() {
             <td><button type="button" onClick={() => { setSelectedPatch(p); setDrawer("EXPLORE"); }} aria-pressed={selectedPatch?.id === p.id}>{regionLabel(p.id)}</button></td>
             <td className="wx-mono">{p.area_km2.toFixed(3)}</td><td className="wx-mono">{p.delta_hh > 0 ? "+" : ""}{p.delta_hh.toFixed(1)} dB</td><td>{p.classification === "OPEN_WATER" ? "HH-darkening" : p.classification === "VEGETATED_INUNDATION" ? "Vegetation" : "Uncertain"}</td>
           </tr>)}</tbody></table></div>
+        <ul className="wx-region-cards" aria-label="Candidate regions">
+          {visibleRows.map((p) => (
+            <li key={p.id} className={selectedPatch?.id === p.id ? "wx-region-card is-selected" : "wx-region-card"}>
+              <button type="button" className="wx-region-card__select" onClick={() => { setSelectedPatch(p); setDrawer("EXPLORE"); }} aria-pressed={selectedPatch?.id === p.id}>
+                <span>{regionLabel(p.id)}</span><strong>{p.area_km2.toFixed(3)} km²</strong>
+              </button>
+              <div className="wx-region-card__meta">
+                <div><span>ΔHH</span><strong>{p.delta_hh > 0 ? "+" : ""}{p.delta_hh.toFixed(1)} dB</strong></div>
+                <div><span>Class</span><strong>{p.classification === "OPEN_WATER" ? "HH-darkening" : p.classification === "VEGETATED_INUNDATION" ? "Vegetation" : "Uncertain"}</strong></div>
+              </div>
+            </li>
+          ))}
+        </ul>
         {visibleRows.length < rows.length && <div className="wx-region-pagination">
           <span>{rows.length - visibleRows.length} more regions in this result</span>
           <button type="button" className="wx-btn" onClick={() => setVisibleLimit((current) => Math.min(current + 100, rows.length))}>
