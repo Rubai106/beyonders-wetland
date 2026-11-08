@@ -74,6 +74,35 @@ with sync_playwright() as p:
     drawer = page.inner_text(".wx-drawer").lower()
     check("Why this region? opens with evidence", "why this region?" in drawer and "what do we actually know?" in drawer and "limitation" in drawer)
     check("evidence uses pipeline semantics", "previous date" in drawer and "compact footprint" in drawer)
+    evidence_overview = page.locator(".wx-evidence-overview")
+    evidence_counts = evidence_overview.evaluate("""el => ({
+        passed: Number(el.dataset.passed),
+        partial: Number(el.dataset.partial),
+        failed: Number(el.dataset.failed),
+        unavailable: Number(el.dataset.unavailable),
+        grouped: [...el.querySelectorAll('.wx-evidence-overview__groups li')].length,
+        cards: el.querySelectorAll('.wx-evidence-overview__count').length,
+        note: el.querySelector('.wx-evidence-overview__note')?.innerText ?? ''
+    })""")
+    check(
+        "evidence overview accounts for every recorded status group",
+        evidence_counts["cards"] == 4
+        and evidence_counts["grouped"] == sum(evidence_counts[k] for k in ("passed", "partial", "failed", "unavailable"))
+        and evidence_counts["grouped"] == 8
+        and "not a probability" in evidence_counts["note"].lower()
+        and "confidence score" in evidence_counts["note"].lower(),
+        str(evidence_counts),
+    )
+    evidence_details = page.locator(".wx-evidence-details")
+    evidence_details.locator("summary").click()
+    detailed_rows = evidence_details.locator(".wx-stack > li:not(.wx-stack__note)")
+    check(
+        "individual evidence measurements remain available on demand",
+        evidence_details.get_attribute("open") is not None
+        and detailed_rows.count() == 8
+        and "radar bars show the size" in evidence_details.inner_text().lower(),
+        str(detailed_rows.count()),
+    )
     temporal_panel = page.locator(".wx-temporal-evidence")
     temporal_text = temporal_panel.inner_text()
     temporal_metrics = temporal_panel.evaluate("""el => {
