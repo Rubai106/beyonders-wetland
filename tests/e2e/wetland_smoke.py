@@ -79,6 +79,22 @@ with sync_playwright() as p:
         "selected-region evidence appears before the temporal chart",
         inspector_box is not None and chart_box is not None and inspector_box["y"] < chart_box["y"],
     )
+    check("all seven real acquisition dates remain selectable in the chart", page.locator(".wx-pulse-chart__hit[role='button']").count() == 7)
+    original_viewport = page.viewport_size
+    for width, height in ((1440, 900), (1100, 760), (820, 900), (390, 800)):
+        page.set_viewport_size({"width": width, "height": height})
+        page.locator(".wx-pulse-chart").scroll_into_view_if_needed()
+        page.wait_for_timeout(180)
+        chart_dimensions = page.locator(".wx-pulse-chart__scroll").evaluate(
+            "(el) => ({client: el.clientWidth, scroll: el.scrollWidth})"
+        )
+        check(
+            f"temporal chart fits without horizontal scrolling at {width}px",
+            chart_dimensions["scroll"] <= chart_dimensions["client"] + 1,
+            str(chart_dimensions),
+        )
+    page.set_viewport_size(original_viewport)
+    page.wait_for_timeout(250)
     page.evaluate("document.querySelector('.wx-drawer__body').scrollTop = 99999"); page.click("text=Challenge this detection"); page.wait_for_timeout(400)
     d2 = page.inner_text(".wx-drawer")
     check("challenge lists real checks + no field truth", "Can we trust this change?" in d2 and "No field truth" in d2 and "threshold" in d2.lower())

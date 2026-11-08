@@ -124,7 +124,8 @@ function WetlandPulseChart() {
     const first = Date.parse(`${dates[0].date}T00:00:00Z`);
     const last = Date.parse(`${dates[dates.length - 1].date}T00:00:00Z`);
     const maxArea = Math.max(0.01, ...dates.filter((item) => !available || available.has(item.date)).map((item) => item.area_km2));
-    const left = 54; const right = 606; const top = 26; const bottom = 168;
+    // A compact viewBox keeps all seven dates legible inside the narrow desktop drawer.
+    const left = 48; const right = 364; const top = 38; const bottom = 168;
     const span = Math.max(last - first, 1);
     return dates.map((item, index) => {
       const time = Date.parse(`${item.date}T00:00:00Z`);
@@ -180,7 +181,7 @@ function WetlandPulseChart() {
           <span className="wx-mono">{active.hasResult ? `${fmtArea(active.area_km2)} · ${active.patches} regions` : "Acquired · result not exported"}</span>
         </div>
         <div className="wx-pulse-chart__scroll">
-          <svg className="wx-pulse-chart__svg" viewBox="0 0 620 218" role="group" aria-label={`Discrete wetland candidate-area chart for ${points.length} NISAR acquisition dates`}>
+          <svg className="wx-pulse-chart__svg" viewBox="0 0 390 218" role="group" aria-label={`Discrete wetland candidate-area chart for ${points.length} NISAR acquisition dates`}>
             <text className="wx-pulse-chart__axis-label" x="12" y="16">Candidate area · km²</text>
             {[0, 0.5, 1].map((fraction) => {
               const y = bottom - fraction * (bottom - top);
@@ -189,9 +190,9 @@ function WetlandPulseChart() {
                 <text className="wx-pulse-chart__tick" x="46" y={y + 4} textAnchor="end">{(maxArea * fraction).toFixed(maxArea >= 10 ? 0 : 1)}</text>
               </g>;
             })}
-            {markers.map((marker) => <g key={marker.label} className={`wx-pulse-chart__marker ${marker.className}`}>
+            {markers.map((marker, markerIndex) => <g key={marker.label} className={`wx-pulse-chart__marker ${marker.className}`}>
               <line x1={marker.x} x2={marker.x} y1={top} y2={bottom} />
-              <text x={marker.x} y="18" textAnchor="middle">{marker.label}</text>
+              <text x={marker.x} y={markerIndex % 2 === 0 ? 16 : 28} textAnchor="middle">{marker.label}</text>
             </g>)}
             <line className="wx-pulse-chart__baseline" x1="54" x2="606" y1={bottom} y2={bottom} />
             {points.map((point) => {

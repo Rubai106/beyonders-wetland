@@ -240,12 +240,12 @@
 .wx-pulse-chart__summary .wx-micro { grid-column: 1 / -1; }
 .wx-pulse-chart__summary strong { font: 600 1.05rem var(--font-display); color: var(--ws-text); }
 .wx-pulse-chart__summary > span:last-child { justify-self: end; color: var(--c-derived); text-align: right; }
-.wx-pulse-chart__scroll { width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
-.wx-pulse-chart__svg { display: block; width: 100%; min-width: 500px; height: auto; overflow: visible; }
-.wx-pulse-chart__axis-label { fill: var(--ws-text-2); font: 10px var(--font-sans); }
+.wx-pulse-chart__scroll { width: 100%; overflow: hidden; }
+.wx-pulse-chart__svg { display: block; width: 100%; max-width: 520px; min-width: 0; height: auto; margin-inline: auto; overflow: visible; }
+.wx-pulse-chart__axis-label { fill: var(--ws-text-2); font: 11px var(--font-sans); }
 .wx-pulse-chart__grid { stroke: #24313a; stroke-width: 1; stroke-dasharray: 3 4; }
 .wx-pulse-chart__baseline { stroke: #52616a; stroke-width: 1; }
-.wx-pulse-chart__tick, .wx-pulse-chart__date { fill: var(--ws-text-2); font: 10px var(--font-mono); }
+.wx-pulse-chart__tick, .wx-pulse-chart__date { fill: var(--ws-text-2); font: 12px var(--font-mono); }
 .wx-pulse-chart__date.is-selected { fill: var(--ws-text); font-weight: 700; }
 .wx-pulse-chart__bar { outline: none; }
 .wx-pulse-chart__hit { fill: transparent; cursor: pointer; outline: none; }
@@ -256,7 +256,7 @@
 .wx-pulse-chart__bar.is-unassessed .wx-pulse-chart__column { fill: none; stroke: var(--c-unassessed); stroke-width: 1.5; stroke-dasharray: 2 2; }
 .wx-pulse-chart__selection { fill: none; stroke: var(--ws-text); stroke-width: 1.5; pointer-events: none; }
 .wx-pulse-chart__marker line { stroke-width: 1; stroke-dasharray: 3 4; opacity: .75; }
-.wx-pulse-chart__marker text { font: 9px var(--font-sans); }
+.wx-pulse-chart__marker text { font: 11px var(--font-sans); }
 .wx-pulse-chart__marker.is-onset line, .wx-pulse-chart__legend .is-onset { stroke: #6ed1a5; background: #6ed1a5; }
 .wx-pulse-chart__marker.is-onset text { fill: #6ed1a5; }
 .wx-pulse-chart__marker.is-peak line, .wx-pulse-chart__legend .is-peak { stroke: #ffbd70; background: #ffbd70; }
