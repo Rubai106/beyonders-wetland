@@ -152,7 +152,7 @@ function WetlandPulseChart() {
 
   if (!pulseData || !points.length) return null;
 
-  const top = 26; const bottom = 168;
+  const top = 38; const bottom = 168;
   const maxArea = Math.max(0.01, ...points.filter((point) => point.hasResult).map((point) => point.area_km2));
   const markers = [
     { date: pulseData.onset, label: "Onset", className: "is-onset" },
@@ -182,19 +182,19 @@ function WetlandPulseChart() {
         </div>
         <div className="wx-pulse-chart__scroll">
           <svg className="wx-pulse-chart__svg" viewBox="0 0 390 218" role="group" aria-label={`Discrete wetland candidate-area chart for ${points.length} NISAR acquisition dates`}>
-            <text className="wx-pulse-chart__axis-label" x="12" y="16">Candidate area · km²</text>
+            <text className="wx-pulse-chart__axis-label" x="8" y="16">km²</text>
             {[0, 0.5, 1].map((fraction) => {
               const y = bottom - fraction * (bottom - top);
               return <g key={fraction}>
-                <line className="wx-pulse-chart__grid" x1="54" x2="606" y1={y} y2={y} />
-                <text className="wx-pulse-chart__tick" x="46" y={y + 4} textAnchor="end">{(maxArea * fraction).toFixed(maxArea >= 10 ? 0 : 1)}</text>
+                <line className="wx-pulse-chart__grid" x1="48" x2="364" y1={y} y2={y} />
+                <text className="wx-pulse-chart__tick" x="42" y={y + 4} textAnchor="end">{(maxArea * fraction).toFixed(maxArea >= 10 ? 0 : 1)}</text>
               </g>;
             })}
             {markers.map((marker, markerIndex) => <g key={marker.label} className={`wx-pulse-chart__marker ${marker.className}`}>
               <line x1={marker.x} x2={marker.x} y1={top} y2={bottom} />
               <text x={marker.x} y={markerIndex % 2 === 0 ? 16 : 28} textAnchor="middle">{marker.label}</text>
             </g>)}
-            <line className="wx-pulse-chart__baseline" x1="54" x2="606" y1={bottom} y2={bottom} />
+            <line className="wx-pulse-chart__baseline" x1="48" x2="364" y1={bottom} y2={bottom} />
             {points.map((point) => {
               const selected = point.index === selectedDateIndex;
               const barTop = point.hasResult ? point.y : bottom - 5;
