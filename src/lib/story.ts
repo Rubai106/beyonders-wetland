@@ -11,6 +11,40 @@ export const fmtDate = (iso: string, opts: Intl.DateTimeFormatOptions = { month:
 export const fmtDateLong = (iso: string) => fmtDate(iso, { month: "long", day: "numeric", year: "numeric" });
 export const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 
+/** Detector rule: at least half of a current region's pixels must share its class
+ * in the immediately preceding processed acquisition to receive temporal PASS. */
+export const TEMPORAL_OVERLAP_THRESHOLD = 0.5;
+
+export interface TemporalOverlapContext {
+  dateInSeries: boolean;
+  previousDate: string | null;
+  intervalDays: number | null;
+  overlapFraction: number | null;
+  thresholdFraction: number;
+  status: WetlandPatch["temporal_status"] | "UNAVAILABLE";
+}
+
+/** Resolve only the adjacent date and stored same-class overlap; never match region IDs. */
+export function temporalOverlapContext(
+  patch: Pick<WetlandPatch, "date" | "temporal_overlap_fraction" | "temporal_status">,
+  pulse: Pick<WetlandPulseData, "dates"> | null | undefined,
+): TemporalOverlapContext {
+  const dates = pulse?.dates ?? [];
+  const index = dates.findIndex((observation) => observation.date === patch.date);
+  const previousDate = index > 0 ? dates[index - 1].date : null;
+  const raw = patch.temporal_overlap_fraction;
+  const overlapFraction = typeof raw === "number" && Number.isFinite(raw) && raw >= 0 && raw <= 1 ? raw : null;
+  const comparable = previousDate !== null && overlapFraction !== null;
+  return {
+    dateInSeries: index >= 0,
+    previousDate,
+    intervalDays: previousDate ? daysBetween(previousDate, patch.date) : null,
+    overlapFraction,
+    thresholdFraction: TEMPORAL_OVERLAP_THRESHOLD,
+    status: comparable ? patch.temporal_status : "UNAVAILABLE",
+  };
+}
+
 export type OpticalState = "SUPPORT_LIMITED" | "INCONCLUSIVE" | "NOT_RUN";
 
 /** Optical (HLS) context level for the whole run, from recorded status only. */
