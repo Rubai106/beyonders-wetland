@@ -192,7 +192,7 @@ def main() -> int:
         case_picker = page.locator(".wx-casepick")
         case_picker.wait_for(state="visible", timeout=30_000)
         require(
-            page.locator(".wx-nav a[href='/wetland']").get_attribute("aria-current") == "page",
+            page.locator(".hazard-nav__links a[href='/wetland']").get_attribute("aria-current") == "page",
             "Wetlands is identified as the current workspace in shared navigation",
         )
         require(
