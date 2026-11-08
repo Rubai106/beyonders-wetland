@@ -161,6 +161,35 @@ with sync_playwright() as p:
         "copy the link below" in page.inner_text(".wx-region-context__share-message").lower()
         and page.locator(".wx-share-fallback input").count() == 1,
     )
+    # A share URL must survive a fresh page load, not merely contain the right
+    # parameters. The selected acquisition loads asynchronously before its region.
+    expected_region = region_context_data["regionId"]
+    expected_date = region_brief.get("observation", {}).get("date")
+    page.goto(fallback_link)
+    page.wait_for_function(
+        """({region, date}) => {
+            const nav = document.querySelector('.wx-region-nav');
+            return nav?.dataset.regionId === region && nav?.dataset.acquisitionDate === date;
+        }""",
+        arg={"region": expected_region, "date": expected_date},
+        timeout=30000,
+    )
+    restored_state = page.locator(".wx-region-nav").evaluate("""el => ({
+        region: el.dataset.regionId,
+        date: el.dataset.acquisitionDate,
+        filter: el.dataset.classFilter,
+        mode: el.dataset.viewMode,
+        mapMode: el.dataset.mapMode
+    })""")
+    check(
+        "direct region link restores the same acquisition, candidate and view after reload",
+        restored_state["region"] == expected_region
+        and restored_state["date"] == expected_date
+        and restored_state["filter"] == link_parts["filter"]
+        and restored_state["mode"] == link_parts["mode"]
+        and restored_state["mapMode"] == link_parts["mapMode"],
+        str(restored_state),
+    )
     evidence_overview = page.locator(".wx-evidence-overview")
     evidence_counts = evidence_overview.evaluate("""el => ({
         passed: Number(el.dataset.passed),
