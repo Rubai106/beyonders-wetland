@@ -74,6 +74,44 @@ with sync_playwright() as p:
     drawer = page.inner_text(".wx-drawer").lower()
     check("Why this region? opens with evidence", "why this region?" in drawer and "what do we actually know?" in drawer and "limitation" in drawer)
     check("evidence uses pipeline semantics", "previous date" in drawer and "compact footprint" in drawer)
+    temporal_panel = page.locator(".wx-temporal-evidence")
+    temporal_text = temporal_panel.inner_text()
+    temporal_metrics = temporal_panel.evaluate("""el => {
+        const meter = el.querySelector('[role="meter"]');
+        return {
+            currentDate: el.dataset.currentDate,
+            previousDate: el.dataset.previousDate,
+            overlap: el.dataset.overlapFraction === "" ? null : Number(el.dataset.overlapFraction),
+            threshold: Number(el.dataset.thresholdPercent),
+            status: el.dataset.status,
+            meterValue: meter ? Number(meter.getAttribute("aria-valuenow")) : null
+        };
+    }""")
+    check(
+        "selected region names the actual preceding acquisition and elapsed interval",
+        temporal_metrics["currentDate"] == "2026-08-29"
+        and temporal_metrics["previousDate"] == "2026-08-17"
+        and "August 17, 2026" in temporal_text
+        and "August 29, 2026" in temporal_text
+        and "12 days earlier" in temporal_text,
+        str(temporal_metrics),
+    )
+    check(
+        "same-class overlap gauge matches its stored fraction and 50% pipeline threshold",
+        temporal_metrics["overlap"] is not None
+        and 0 <= temporal_metrics["overlap"] <= 1
+        and temporal_metrics["threshold"] == 50
+        and temporal_metrics["meterValue"] is not None
+        and abs(temporal_metrics["meterValue"] - temporal_metrics["overlap"] * 100) < 0.01
+        and temporal_metrics["status"] == ("PASS" if temporal_metrics["overlap"] >= 0.5 else "PARTIAL"),
+        str(temporal_metrics),
+    )
+    check(
+        "temporal panel discloses pixel-overlap limits and does not imply persistent region identity",
+        "directional pixel overlap" in temporal_text
+        and "not a persistent region match" in temporal_text
+        and "No values are interpolated" in temporal_text,
+    )
     inspector_box = page.get_by_role("heading", name="Why this region?").bounding_box()
     chart_box = page.locator(".wx-pulse-chart").bounding_box()
     check(
