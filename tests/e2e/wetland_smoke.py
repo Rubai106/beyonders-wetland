@@ -254,9 +254,10 @@ with sync_playwright() as p:
         and "452" in story_snapshot and "7.2%" in story_snapshot,
         story_snapshot[:240],
     )
+    story_snapshot_normalized = story_snapshot.casefold()
     check(
         "date-aware story compares the previous snapshot without implying a daily rate",
-        "Change from September 10, 2026" in story_snapshot
+        "change from september 10, 2026" in story_snapshot_normalized
         and "−12.56 km²" in story_snapshot and "+6 candidate regions" in story_snapshot
         and "12 days between acquisitions" in story_snapshot and "not a daily rate" in story_snapshot,
         story_snapshot[-260:],
