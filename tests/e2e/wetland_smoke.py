@@ -239,6 +239,14 @@ with sync_playwright() as p:
         check(f"no horizontal overflow at {w}px", not over)
         page.screenshot(path=f"/tmp/e2e_wetland_{w}.png")
     page.set_viewport_size({"width": 1440, "height": 900})
+    # Escape closes the keyboard-inspection drawer; reopen Explore before testing
+    # the optional 3D disclosure, which lives inside that panel.
+    if page.locator(".wx-drawer").count() == 0:
+        page.locator(".wx-drawer-reopen").click()
+        page.wait_for_timeout(300)
+    page.get_by_role("tab", name="Explore").click()
+    page.wait_for_selector(".wx-pulse-chart", timeout=10000)
+    check("Explore panel is available again after keyboard dismissal", page.locator(".wx-pulse-chart").count() == 1)
     page.locator(".wx-pulse-chart").scroll_into_view_if_needed()
     page.wait_for_timeout(250)
     page.screenshot(path="/tmp/e2e_wetland_chart_1440.png")
