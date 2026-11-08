@@ -131,6 +131,36 @@ with sync_playwright() as p:
         and "confidence_score" not in region_brief,
         str(brief_path),
     )
+    page.evaluate("""() => Object.defineProperty(navigator, 'clipboard', {
+        configurable: true, value: { writeText: async () => { throw new Error('Clipboard unavailable in test'); } }
+    })""")
+    page.get_by_role("button", name="Copy direct region link").click()
+    fallback_link = page.locator(".wx-share-fallback input").input_value()
+    link_parts = page.evaluate("""(value) => {
+        const url = new URL(value);
+        return {
+            path: url.pathname, date: url.searchParams.get('date'),
+            filter: url.searchParams.get('filter'), mode: url.searchParams.get('mode'),
+            mapMode: url.searchParams.get('mapMode'), region: url.searchParams.get('region'),
+            caseId: url.searchParams.get('case')
+        };
+    }""", fallback_link)
+    check(
+        "direct region link preserves acquisition, candidate and view state",
+        link_parts["path"] == "/wetland"
+        and link_parts["date"].isdigit()
+        and link_parts["filter"] == "ALL"
+        and link_parts["mode"] in ("MOTION", "RADAR", "DETECTION")
+        and link_parts["mapMode"] in ("BEFORE", "AFTER", "DIFFERENCE", "SPLIT")
+        and link_parts["region"] == region_context_data["regionId"]
+        and bool(link_parts["caseId"]),
+        str(link_parts),
+    )
+    check(
+        "direct-link clipboard fallback is visible and selectable",
+        "copy the link below" in page.inner_text(".wx-region-context__share-message").lower()
+        and page.locator(".wx-share-fallback input").count() == 1,
+    )
     evidence_overview = page.locator(".wx-evidence-overview")
     evidence_counts = evidence_overview.evaluate("""el => ({
         passed: Number(el.dataset.passed),
