@@ -93,6 +93,25 @@ with sync_playwright() as p:
         and int(region_nav.get_attribute("data-total") or "0") > 1,
         f"initial={initial_region_id}, current={region_nav.get_attribute('data-region-id')}",
     )
+    region_context = page.locator(".wx-region-context")
+    region_context_data = region_context.evaluate("""el => ({
+        regionId: el.dataset.regionId,
+        total: Number(el.dataset.total),
+        areaRank: Number(el.dataset.areaRank),
+        deltaRank: Number(el.dataset.deltaRank),
+        text: el.innerText
+    })""")
+    check(
+        "candidate context is scoped to the selected acquisition and not a confidence score",
+        region_context_data["regionId"] == region_nav.get_attribute("data-region-id")
+        and region_context_data["total"] == int(region_nav.get_attribute("data-total") or "0")
+        and region_context_data["areaRank"] == int(region_nav.get_attribute("data-position") or "0")
+        and 1 <= region_context_data["deltaRank"] <= region_context_data["total"]
+        and "Median candidate area" in region_context_data["text"]
+        and "Median |ΔHH|" in region_context_data["text"]
+        and "not detection confidence" in region_context_data["text"].lower(),
+        str(region_context_data),
+    )
     evidence_overview = page.locator(".wx-evidence-overview")
     evidence_counts = evidence_overview.evaluate("""el => ({
         passed: Number(el.dataset.passed),
