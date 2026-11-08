@@ -115,7 +115,10 @@ function RegionTemporalEvidence({ patch, pulse }: { patch: NonNullable<ReturnTyp
 
 /* ── Why this region? ── */
 export function InvestigationDrawer() {
-  const { selectedPatch: p, dataTier, pulseData, challengeOpen, setChallengeOpen, showcase, patches, setSelectedPatch, vegFilter } = useWetlandStore();
+  const { selectedPatch: p, dataTier, pulseData, challengeOpen, setChallengeOpen, showcase, patches, setSelectedPatch, vegFilter,
+    selectedDateIndex, viewMode, mapMode, showcaseId } = useWetlandStore();
+  const [shareMessage, setShareMessage] = useState("");
+  const [shareFallback, setShareFallback] = useState("");
   const largest = useMemo(() => [...patches].sort((a, b) => b.area_km2 - a.area_km2).slice(0, 8), [patches]);
   if (!p) return (
     <ToolFrame title="Why this region?" lede="Click a candidate region on the map to see what the radar measured there and which checks it passed."
@@ -141,6 +144,26 @@ export function InvestigationDrawer() {
       JSON.stringify(brief, null, 2),
       "application/json;charset=utf-8",
     );
+  }
+  async function copyRegionLink() {
+    const params = new URLSearchParams({
+      date: String(selectedDateIndex),
+      filter: vegFilter,
+      mode: viewMode,
+      mapMode,
+      region: selectedRegion.id,
+    });
+    if (dataTier === "SHOWCASE") params.set("case", showcaseId);
+    if (dataTier === "LOCAL_RUN") params.set("source", "raster");
+    const url = `${window.location.origin}/wetland?${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareFallback("");
+      setShareMessage("Direct link copied. It restores this acquisition and candidate when the same data are available.");
+    } catch {
+      setShareFallback(url);
+      setShareMessage("Clipboard access is unavailable. Copy the link below.");
+    }
   }
   return (
     <ToolFrame title="Why this region?" lede={`${regionLabel(p.id)} was flagged on ${fmtDateLong(p.date)}. Here is the evidence behind it, and what it cannot tell us.`}
@@ -180,8 +203,11 @@ export function InvestigationDrawer() {
         <p className="wx-region-context__note">Positions and medians describe only the currently loaded acquisition and class filter. They are descriptive comparisons, not detection confidence, flood severity, or validation.</p>
         <div className="wx-region-context__export">
           <button type="button" className="wx-btn" onClick={exportRegionBrief}>Download this region&apos;s evidence brief</button>
-          <span>JSON · selected candidate and recorded checks</span>
+          <button type="button" className="wx-btn" onClick={() => void copyRegionLink()}>Copy direct region link</button>
+          <span>JSON export · or share the selected view</span>
         </div>
+        {shareMessage && <p className="wx-region-context__share-message" role="status">{shareMessage}</p>}
+        {shareFallback && <label className="wx-share-fallback">Direct region link<input readOnly value={shareFallback} onFocus={(event) => event.currentTarget.select()} /></label>}
       </section>
       <div className="wx-interp"><span className="wx-micro">Interpretation</span><strong>{it.headline}</strong><p>{it.note}</p></div>
       <Section eyebrow="Evidence" title="What do we actually know?">
