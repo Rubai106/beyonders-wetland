@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWetlandStore } from "@/lib/store";
 import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/showcase";
 import { downloadFile, patchesCSV } from "@/lib/real-export";
-import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, type StackStatus } from "@/lib/story";
+import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, regionNavigationContext, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
@@ -115,7 +115,7 @@ function RegionTemporalEvidence({ patch, pulse }: { patch: NonNullable<ReturnTyp
 
 /* ── Why this region? ── */
 export function InvestigationDrawer() {
-  const { selectedPatch: p, dataTier, pulseData, challengeOpen, setChallengeOpen, showcase, patches, setSelectedPatch } = useWetlandStore();
+  const { selectedPatch: p, dataTier, pulseData, challengeOpen, setChallengeOpen, showcase, patches, setSelectedPatch, vegFilter } = useWetlandStore();
   const largest = useMemo(() => [...patches].sort((a, b) => b.area_km2 - a.area_km2).slice(0, 8), [patches]);
   if (!p) return (
     <ToolFrame title="Why this region?" lede="Click a candidate region on the map to see what the radar measured there and which checks it passed."
@@ -125,6 +125,7 @@ export function InvestigationDrawer() {
         <ul className="wx-regions">{largest.map((r) => <li key={r.id}><button type="button" onClick={() => setSelectedPatch(r)}><span>{regionLabel(r.id)}</span><span className="wx-mono">{r.area_km2.toFixed(3)} km²</span></button></li>)}</ul></div>}
     </ToolFrame>
   );
+  const regionNav = regionNavigationContext(patches, p.id, vegFilter);
   const optical = opticalState(dataTier, pulseData);
   const it = interpret(p, optical);
   const ev = showcase?.reference.evidence;
@@ -134,6 +135,16 @@ export function InvestigationDrawer() {
     <ToolFrame title="Why this region?" lede={`${regionLabel(p.id)} was flagged on ${fmtDateLong(p.date)}. Here is the evidence behind it, and what it cannot tell us.`}
       limitation="Radar change does not by itself prove flooding. The same signal can come from other changes at the surface."
       action={<button className="wx-btn wx-btn--primary" onClick={() => setChallengeOpen(!challengeOpen)} aria-expanded={challengeOpen}>{challengeOpen ? "Hide the challenge" : "Challenge this detection"}</button>}>
+      <nav className="wx-region-nav" aria-label="Candidate region navigation"
+        data-region-id={p.id} data-position={regionNav.currentIndex >= 0 ? regionNav.currentIndex + 1 : 0} data-total={regionNav.total}>
+        <button type="button" disabled={!regionNav.previous}
+          aria-label={regionNav.previous ? `Previous region: ${regionLabel(regionNav.previous.id)}` : "Previous region"}
+          onClick={() => { if (regionNav.previous) setSelectedPatch(regionNav.previous); }}>Previous</button>
+        <p aria-live="polite"><strong>{regionNav.currentIndex >= 0 ? `${regionNav.currentIndex + 1} of ${regionNav.total}` : "Not in this filter"}</strong><span>Largest area first</span></p>
+        <button type="button" disabled={!regionNav.next}
+          aria-label={regionNav.next ? `Next region: ${regionLabel(regionNav.next.id)}` : "Next region"}
+          onClick={() => { if (regionNav.next) setSelectedPatch(regionNav.next); }}>Next</button>
+      </nav>
       <dl className="wx-facts">
         <div><dt>Area</dt><dd>{p.area_km2.toFixed(4)} km²</dd></div>
         <div><dt>Class</dt><dd>{p.interpretation_label ?? interpretationOfClass(p.classification)}</dd></div>
