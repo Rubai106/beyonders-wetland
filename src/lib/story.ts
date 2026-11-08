@@ -131,6 +131,36 @@ export function summarizeEvidence(rows: StackRow[]): EvidenceSummary {
   return summary;
 }
 
+export interface RegionNavigationResult<T> {
+  currentIndex: number;
+  total: number;
+  previous: T | null;
+  next: T | null;
+}
+
+/** Navigate the currently loaded acquisition by descending area, with an ID tie-breaker. */
+export function regionNavigationContext<T extends {
+  id: string;
+  area_km2: number;
+  classification: WetlandPatch["classification"];
+}>(
+  regions: readonly T[],
+  selectedId: string,
+  classFilter: "ALL" | WetlandPatch["classification"] = "ALL",
+): RegionNavigationResult<T> {
+  const ordered = regions
+    .filter((region) => classFilter === "ALL" || region.classification === classFilter)
+    .slice()
+    .sort((a, b) => b.area_km2 - a.area_km2 || a.id.localeCompare(b.id));
+  const currentIndex = ordered.findIndex((region) => region.id === selectedId);
+  return {
+    currentIndex,
+    total: ordered.length,
+    previous: currentIndex > 0 ? ordered[currentIndex - 1] : null,
+    next: currentIndex >= 0 && currentIndex < ordered.length - 1 ? ordered[currentIndex + 1] : null,
+  };
+}
+
 export interface ChallengeItem { tone: "ok" | "warn" | "note"; text: string; detail?: string }
 export interface ChallengeResult { items: ChallengeItem[]; passes: string[]; warnings: string[]; status: string; interpretation: string; independent: string; validation: string; recommendation: string; alternatives: string[] }
 
