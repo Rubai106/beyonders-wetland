@@ -167,12 +167,6 @@ function Hydrograph() {
   );
 }
 
-const PRESET_PINS: Array<{ name: string; blurb: string; lat: number; lng: number }> = [
-  { name: "Amazon floodplain", blurb: "The largest wetland system on Earth.", lat: -2.6, lng: -62.1 },
-  { name: "Mekong Delta", blurb: "Nine dragons, one restless delta.", lat: 10.2, lng: 105.4 },
-  { name: "Okavango Delta", blurb: "A river that never reaches the sea.", lat: -19.3, lng: 23.1 },
-];
-
 function centerOfStudyLocations(markers: GlobeCaseMarker[]): GlobePin | null {
   if (!markers.length) return null;
   const latitudes = markers.map((marker) => marker.lat);
@@ -335,15 +329,16 @@ export default function Home() {
             </details>
           )}
           <p className="g3-map-filter__note">Use the location list to center a case. Rotate the globe by dragging or with the arrow keys. Markers show study sites, not detections.</p>
+          <Link href="/agriculture" className="g3-map-filter__agriculture-link">Agriculture has its own soil-moisture workspace →</Link>
         </section>
 
         <div className="g3-title">
-          <p className="g3-eyebrow">NISAR · L-band radar · surface-change candidates</p>
-          <h1>Watch Earth<br /><span>breathe.</span></h1>
-          <p className="g3-lede">NISAR is a NASA–ISRO radar satellite that watches Earth&rsquo;s surface breathe — through cloud, through darkness. Spin the planet. Open a case measured for real, or drop a pin to check NISAR observation coverage and start a real study.</p>
+          <p className="g3-eyebrow">BEYONDERS · EARTH OBSERVATION INVESTIGATIONS</p>
+          <h1>Earth change,<br /><span>under scrutiny.</span></h1>
+          <p className="g3-lede">Explore real NISAR observations across wetlands, forests, volcanoes and soil moisture. Inspect what the satellite recorded, challenge candidate changes, and trace every claim to its source.</p>
           <div className="g3-ctas">
-            <Link href="/wetland/global" className="g3-btn g3-btn--primary">Explore Earth</Link>
-            <Link href="/investigations" className="g3-btn g3-btn--ghost">View investigations</Link>
+            <Link href="/wetland/global" className="g3-btn g3-btn--primary">Explore observations</Link>
+            <Link href="/investigations" className="g3-btn g3-btn--ghost">Published investigations</Link>
             {!pinMode && (
               <button
                 type="button"
@@ -361,7 +356,7 @@ export default function Home() {
             )}
           </div>
           <p className="g3-featured-case">
-            Featured case — <Link href="/wetland/global?story=chokwe">Inspect the Chókwè event case</Link>
+            START WITH A REAL CASE · <Link href="/wetland/global?story=chokwe">Chókwè, Mozambique — inspect the evidence</Link>
           </p>
         </div>
 
@@ -422,105 +417,64 @@ export default function Home() {
 
         <div className="g3-coord" aria-hidden="true"><span>CURSOR</span><strong>{fmt(hover)}</strong></div>
 
-        <div className="g3-ticker" aria-label="Mission telemetry">
-          <div><strong>{observationCount == null ? "—" : <CountUp to={observationCount} />}</strong><span>featured-case comparison dates</span></div>
+        <div className="g3-ticker" aria-label="Tanguar Haor observation summary">
+          <div><strong>{observationCount == null ? "—" : <CountUp to={observationCount} />}</strong><span>Tanguar comparison dates</span></div>
           <div><strong>{peakCandidateArea == null ? "—" : <CountUp to={peakCandidateArea} decimals={1} />}</strong><span>km² peak radar-change candidate area</span></div>
-          <div><strong>HH·HV</strong><span>dual polarization</span></div>
-          <div><strong>{caseMarkersLoaded ? <CountUp to={selectedCaseMarkers.length} /> : "—"}</strong><span>published {selectedHazard} locations</span></div>
-          <div className="g3-scrollcue"><span />scroll</div>
+          <div className="g3-scrollcue"><span />Explore the evidence</div>
         </div>
       </section>
 
-      {/* ══════════ CHAPTERS ══════════ */}
-      <section className="g3-chapters" aria-label="How it works">
-        <Reveal className="g3-chapter">
-          <p className="g3-eyebrow">01 · The satellite</p>
-          <h2>A radar that never blinks.</h2>
-          <p>NISAR sweeps the planet with L-band and S-band synthetic aperture radar. Clouds mean nothing to it; night means nothing to it. Every 12 days it re-draws the map of Earth&rsquo;s surface — and we turn those echoes into moving water you can watch.</p>
-          <div className="g3-facts">
-            <div><strong><CountUp to={12} /></strong><span>day revisit</span></div>
-            <div><strong>L+S</strong><span>radar bands</span></div>
-            <div><strong><CountUp to={242} /></strong><span>km swath</span></div>
-          </div>
+      {/* One real temporal example, followed by the four actual workspaces. */}
+      <section className="g3-featured" aria-labelledby="g3-featured-title">
+        <Reveal className="g3-featured__copy g3-chapter">
+          <p className="g3-eyebrow">A REAL RADAR SERIES · BANGLADESH</p>
+          <h2 id="g3-featured-title">Follow one signal through time.</h2>
+          <p>
+            Tanguar Haor has a seven-date NISAR L2 GCOV comparison series. Explore how the
+            radar-change candidate area varies between observations, then open the case to inspect
+            the map, thresholds, optical coverage and limitations.
+          </p>
+          <Link href="/wetland" className="g3-btn g3-btn--primary">Open the Tanguar investigation</Link>
+          <p className="g3-featured__caveat">Candidate area is a screening measurement, not a confirmed flood extent.</p>
         </Reveal>
-
-        <Reveal className="g3-chapter">
-          <p className="g3-eyebrow">02 · The signal</p>
-          <h2>Water has a fingerprint.</h2>
-          <p>Radar returns can change as surface conditions change, but a change signal alone does not establish flooding. This chart shows the radar-derived candidate-area series for the featured Tanguar Haor observations in 2026. Press play to inspect each date.</p>
+        <div className="g3-featured__chart" aria-label="Tanguar Haor radar candidate-area time series">
           <Hydrograph />
-        </Reveal>
-
-        <Reveal className="g3-chapter">
-          <p className="g3-eyebrow">03 · The evidence</p>
-          <h2>A candidate is not a confirmed flood.</h2>
-          <p>Every glowing region on our map passed a rule — and every rule can be wrong. So the case file is built for doubt: change the cutoff and watch regions vanish, cross-check against an independent optical satellite, read exactly what was measured versus calculated.</p>
-          <div className="g3-cards3">
-            <div><strong>Observed</strong><p>What the radar actually recorded.</p></div>
-            <div><strong>Derived</strong><p>What our rules calculated from it.</p></div>
-            <div><strong>Uncertain</strong><p>What nobody can claim — stated plainly.</p></div>
-          </div>
-          <Link href="/wetland" className="g3-btn g3-btn--primary">Open the Tanguar Haor case</Link>
-        </Reveal>
-      </section>
-
-      {/* ══════════ ANYWHERE ══════════ */}
-      <section className="g3-anywhere" aria-labelledby="g3-anywhere-t">
-        <Reveal>
-          <p className="g3-eyebrow">Anywhere on Earth</p>
-          <h2 id="g3-anywhere-t">One planet. Infinite wetlands.</h2>
-          <p className="g3-lede2">The published Wetlands collection includes seven-date NISAR PROVISIONAL series for Tanguar Haor and Hakaluki Haor, plus a separate January 2026 two-scene BETA event study for Chókwè. These are different releases and are not combined into one timeline. Choose another location to inspect real NISAR coverage; a map pin is a proposed study area, not a detection or a claim that data exist there.</p>
-        </Reveal>
-        <div className="g3-presets">
-          {PRESET_PINS.map((p, i) => (
-            <Reveal key={p.name} delay={i * 90}>
-              <div className="g3-preset">
-                <p className="g3-eyebrow">{fmt(p).replace(" ", " · ")}</p>
-                <h3>{p.name}</h3>
-                <p>{p.blurb}</p>
-                <Link href={`/wetland/global?latitude=${p.lat}&longitude=${p.lng}&analyze=1&site=${encodeURIComponent(p.name)}`}>Check real NISAR coverage →</Link>
-              </div>
-            </Reveal>
-          ))}
         </div>
-        <Reveal><p className="g3-fine">Only observed acquisitions and processed real-data results are shown. A location without valid processed outputs has no detection overlay. <Link href="/wetland/global">NISAR worldwide →</Link></p></Reveal>
       </section>
 
-      {/* ══════════ PHENOMENA ══════════ */}
-      <section id="g3-phen" className="g3-phen" aria-labelledby="g3-phen-t">
-        <Reveal>
-          <p className="g3-eyebrow">Earth Change · phenomena</p>
-          <h2 id="g3-phen-t">Choose a study. Explore the evidence.</h2>
-          <p className="g3-phen-intro">Each module keeps its map, study tools, and evidence together. Browse global observation context or open the featured case.</p>
-        </Reveal>
-        <div className="g3-phen-grid">
+      <section id="g3-domains" className="g3-domains" aria-labelledby="g3-domains-title">
+        <div className="g3-domains__heading">
+          <div>
+            <p className="g3-eyebrow">FOUR SCIENTIFIC WORKSPACES</p>
+            <h2 id="g3-domains-title">Different signals. One evidence-first approach.</h2>
+          </div>
+          <Link href="/investigations" className="g3-domains__all">All published investigations →</Link>
+        </div>
+        <div className="g3-domain-grid">
           {PHENOMENA.map((p, i) => (
-            <Reveal key={p.id} delay={i * 90}>
-              <div className={`g3-phen-card${p.status === "AVAILABLE" ? " is-live" : ""}`}>
-                <p className="g3-eyebrow">{p.status === "AVAILABLE" ? "Workspace available" : "In development"}</p>
-                <h3>{p.name}</h3>
-                <p className="g3-tagline">{p.tagline}</p>
-                <ul className="g3-phen-features" aria-label={`${p.name} features`}>
-                  {p.featureHighlights.map((feature) => <li key={feature}>{feature}</li>)}
-                </ul>
-                <p className="g3-phen-evidence">
-                  <strong>Current evidence state</strong>
-                  {p.evidenceSummary}
-                </p>
-                <div className="g3-phen-actions">
-                  <Link className="g3-btn g3-btn--primary g3-btn--sm" href={p.caseHref}>{p.caseLabel} →</Link>
-                  {p.href && <Link className="g3-phen-browse" href={p.href}>Browse global map</Link>}
+            <Reveal key={p.id} delay={i * 60}>
+              <article className="g3-domain-card" data-domain={p.id}>
+                <p className="g3-domain-card__eyebrow">0{i + 1} · {p.name.toUpperCase()}</p>
+                <h3>{p.tagline}</h3>
+                <p className="g3-domain-card__evidence">{p.evidenceSummary}</p>
+                <div className="g3-domain-card__actions">
+                  <Link href={p.caseHref}>{p.caseLabel} ↗</Link>
+                  {p.href && p.href !== p.caseHref && <Link href={p.href} className="g3-domain-card__secondary">Global coverage</Link>}
                 </div>
-              </div>
+              </article>
             </Reveal>
           ))}
         </div>
       </section>
 
       <footer className="g3-foot">
-        <p><strong>GeoNexSAR</strong></p>
-        <p>GeoNexSAR shows observed data and derived results with provenance. A radar-change candidate is never presented as a confirmed flood.</p>
-        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link><Link href="/">Explore</Link><Link href="/investigations">Investigations</Link><Link href="/observability">Evidence</Link><Link href="/operator-guide">Method</Link><Link href="/lineage">Evidence lineage</Link><Link href="/temporal">Temporal Studio</Link><Link href="/hypotheses">Hypothesis &amp; Falsification Lab</Link><Link href="/compare">Compare studies</Link></nav>
+        <p><strong>GeoNexSAR · built by BEYONDERS</strong></p>
+        <p>Observed data, derived measurements and uncertainty remain distinct. Every candidate is open to challenge.</p>
+        <nav aria-label="Footer">
+          <Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link>
+          <Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link>
+          <Link href="/investigations">Investigations</Link><Link href="/lineage">Evidence lineage</Link>
+        </nav>
       </footer>
     </main>
   );

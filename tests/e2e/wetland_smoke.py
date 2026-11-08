@@ -136,8 +136,8 @@ with sync_playwright() as p:
     norm = lambda s: " ".join(s.split()).lower()
     page.goto(BASE + "/"); page.wait_for_selector(".globe-mount canvas", timeout=25000); page.wait_for_timeout(4500)
     check("landing globe renders", page.locator(".globe-mount canvas").count() == 1)
-    check("landing title", "watch earth breathe" in norm(page.inner_text(".g3-title")))
-    check("telemetry ticker", "featured-case comparison dates" in norm(page.inner_text(".g3-ticker")) and norm(page.inner_text(".g3-ticker"))[0] != "0")
+    check("landing title states the evidence-first proposition", "earth change" in norm(page.inner_text(".g3-title")) and "under scrutiny" in norm(page.inner_text(".g3-title")))
+    check("telemetry ticker reports the real Tanguar series", "tanguar comparison dates" in norm(page.inner_text(".g3-ticker")) and norm(page.inner_text(".g3-ticker"))[0] != "0")
     page.wait_for_selector(".hydro-val", timeout=15000)
     pulse_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "public", "showcase", "featured", "pulse.json")
     saved = json.load(open(pulse_path))
@@ -151,7 +151,12 @@ with sync_playwright() as p:
     check("globe click drops a pin", "Check real observations at" in page.inner_text("body"))
     href = page.get_attribute(".g3-pinbar a", "href") or ""
     check("pin links to the global investigator", href.startswith("/wetland/global?latitude=") and "longitude=" in href and "analyze=1" in href, href)
-    check("preset pins exist", page.locator(".g3-preset").count() == 3)
+    domain_cards = page.locator(".g3-domain-card")
+    check("four concise scientific workspace entries exist", domain_cards.count() == 4)
+    check("all four domain entries have a working primary route", all(
+        domain_cards.nth(i).locator(".g3-domain-card__actions a").count() >= 1
+        for i in range(4)
+    ))
     page.screenshot(path="/tmp/e2e_landing.png")
 
     # ── pin link follow-through: the pinned area opens in the global investigator ──
