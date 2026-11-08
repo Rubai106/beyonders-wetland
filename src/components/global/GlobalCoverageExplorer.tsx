@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Feature, FeatureCollection, MultiPolygon } from "geojson";
 import InvestigationWorkspace from "@/components/layout/InvestigationWorkspace";
 
@@ -75,6 +75,12 @@ function downloadInventory(date: string, scenes: SceneFeature[]) {
 
 export default function GlobalCoverageExplorer() {
   const [date, setDate] = useState(recentArchiveDate);
+  // The date the user (or the default) asked for. When the default lands on a
+  // date with no ingested scenes yet, the page steps back day by day until it
+  // finds scenes — and says so, instead of opening on an empty map.
+  const [requestedDate, setRequestedDate] = useState(recentArchiveDate);
+  const userChoseDate = useRef(false);
+  const stepBacks = useRef(0);
   const [data, setData] = useState<CoverageResponse | null>(null);
   const [selected, setSelected] = useState<GlobalScene | null>(null);
   const [sceneQuery, setSceneQuery] = useState("");
@@ -101,6 +107,17 @@ export default function GlobalCoverageExplorer() {
       .then((result) => {
         setData(result);
         setSelected(result.features[0]?.properties ?? null);
+        // Empty default date (archive ingest lags acquisition): step back one
+        // day at a time until scenes exist, up to 30 days. A date the user
+        // picked themselves is never overridden — it shows its honest empty state.
+        if (result.features.length === 0 && !result.snapshotFallback && !userChoseDate.current &&
+            stepBacks.current < 30 && date > FIRST_PROVISIONAL_DATE) {
+          stepBacks.current += 1;
+          const stepped = new Date(`${date}T00:00:00.000Z`);
+          stepped.setUTCDate(stepped.getUTCDate() - 1);
+          setLoading(true);
+          setDate(stepped.toISOString().slice(0, 10));
+        }
       })
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
@@ -135,14 +152,19 @@ export default function GlobalCoverageExplorer() {
   function shiftDate(days: number) {
     const shifted = new Date(`${date}T00:00:00.000Z`);
     shifted.setUTCDate(shifted.getUTCDate() + days);
+    const next = shifted.toISOString().slice(0, 10);
+    userChoseDate.current = true;
+    stepBacks.current = 0;
+    setRequestedDate(next);
     beginQuery();
-    setDate(shifted.toISOString().slice(0, 10));
+    setDate(next);
   }
 
   return <InvestigationWorkspace hazard="wetland" className="global-coverage-page global-scene-workspace" caseName="GLOBAL NISAR SCENE COVERAGE" title="See where NISAR has observed" subtitle="Every outline is an acquired satellite scene, not a wetland or flood detection. Choose a footprint to inspect the record and data links." rail={<>
     <section className="global-scene-rail" aria-labelledby="global-title">
       <p className="global-eyebrow">REAL NASA NISAR SATELLITE SCENES</p>
       <div className="global-scene-count"><strong>{loading ? "…" : (data?.totalHits ?? 0).toLocaleString()}</strong><span>{loading ? "Searching NASA catalog" : "scenes listed for this date"}</span></div>
+      {requestedDate !== date && data && data.features.length > 0 && <p className="global-scene-stepback" role="status">No scenes ingested for {requestedDate} yet — showing {date}, the most recent date with scenes.</p>}
       <span className={`global-source-pill ${loading ? "global-source-pill--loading" : error ? "global-source-pill--error" : data?.snapshotFallback ? "global-source-pill--snapshot" : "global-source-pill--live"}`} aria-live="polite"><i aria-hidden="true" />{loading ? "Checking NASA catalog…" : error ? "NASA catalog unavailable" : data?.snapshotFallback ? "Saved snapshot · Oct 1, 2026" : "NASA catalog · live"}</span>
       <div className="global-scene-links"><Link href="/wetland/global">Global detections ↗</Link><Link href="/wetland?source=raster">Haor analysis ↗</Link></div>
     </section>
@@ -155,7 +177,7 @@ export default function GlobalCoverageExplorer() {
         {error && <div className="global-map-overlay global-map-overlay--empty" role="alert"><strong>Catalog request failed</strong><span>{error}</span></div>}
       </div>
   </div>} drawer={<aside className="global-scene-panel" aria-label="Selected scene details">
-          <div className="global-scene-control-block"><div className="global-date-control"><label htmlFor="coverage-date">Observation date (UTC)</label><div className="global-date-inputs"><button type="button" aria-label="Previous day" onClick={() => shiftDate(-1)} disabled={date <= FIRST_PROVISIONAL_DATE}>‹</button><input id="coverage-date" type="date" value={date} min={FIRST_PROVISIONAL_DATE} max={today} onChange={(event) => { beginQuery(); setDate(event.target.value); }} /><button type="button" aria-label="Next day" onClick={() => shiftDate(1)} disabled={dateIsToday}>›</button></div></div><div className="global-scene-actions"><button className="global-refresh" type="button" onClick={() => { beginQuery(); setRefreshKey((value) => value + 1); }} disabled={loading}>Refresh catalog</button><button className="global-refresh" type="button" onClick={() => data && downloadInventory(date, data.features)} disabled={loading || !data?.features.length}>Download scene CSV</button></div></div>
+          <div className="global-scene-control-block"><div className="global-date-control"><label htmlFor="coverage-date">Observation date (UTC)</label><div className="global-date-inputs"><button type="button" aria-label="Previous day" onClick={() => shiftDate(-1)} disabled={date <= FIRST_PROVISIONAL_DATE}>‹</button><input id="coverage-date" type="date" value={date} min={FIRST_PROVISIONAL_DATE} max={today} onChange={(event) => { userChoseDate.current = true; stepBacks.current = 0; setRequestedDate(event.target.value); beginQuery(); setDate(event.target.value); }} /><button type="button" aria-label="Next day" onClick={() => shiftDate(1)} disabled={dateIsToday}>›</button></div></div><div className="global-scene-actions"><button className="global-refresh" type="button" onClick={() => { beginQuery(); setRefreshKey((value) => value + 1); }} disabled={loading}>Refresh catalog</button><button className="global-refresh" type="button" onClick={() => data && downloadInventory(date, data.features)} disabled={loading || !data?.features.length}>Download scene CSV</button></div></div>
           <div className="global-scene-panel__heading">
             <div><p className="global-eyebrow">SELECTED SCENE</p><h2>{chosenScene ? "Scene details" : "Choose a footprint"}</h2></div>
             <span className="global-live-mark" title="NASA scene catalog record"><i />NASA record</span>

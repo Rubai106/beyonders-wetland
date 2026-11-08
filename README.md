@@ -42,6 +42,7 @@ Catalog availability can change, so verify NASA CMR before each new study. Chók
 ## Regression checks
 
 - Use Node.js 20.9.0 or newer for the Next.js application (`npm run dev`, `npm run build`, and `npm run start`).
+- The public viewer serves the published studies in `public/studies/` — start it with `npm run start:public` (sets `BEYONDERS_MODE=public`). Plain `npm run start` is the local/operator mode and serves only a completed local pipeline run from `pipeline/output/`; the global explorer will show "No real case loaded" there.
 - Run the deterministic unit/regression suite with `npm test` (alias: `npm run test:unit`).
 - Run `npm run lint` before publishing changes.
 - Run the production-browser checks against a built public viewer at `http://127.0.0.1:3140`:

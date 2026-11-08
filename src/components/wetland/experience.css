@@ -70,6 +70,7 @@
 .wx-hint { display: flex; flex-direction: column; gap: 4px; margin-top: var(--s2); padding: var(--s2) var(--s2) var(--s2) var(--s3); border-left: 2px solid var(--c-derived); background: rgba(242,164,90,.05); color: var(--ws-text-2); }
 .wx-hint b { color: var(--ws-text); font-weight: 600; }
 .wx-src { margin-top: auto; padding-top: var(--s3); color: var(--ws-text-2); font-size: 0.75rem; }
+.wx-rail-link { display: inline-block; margin-top: 10px; color: var(--c-derived); font-size: 0.8rem; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 
 /* ── map region: grain, vignette, scanlines ── */
 .wx-map { grid-area: map; position: relative; min-width: 0; min-height: 0; background: #05070A; }
@@ -315,7 +316,8 @@
   .wx-nav::-webkit-scrollbar { display: none; }
   .wx-nav a, .wx-nav button { flex: 0 0 auto; padding: 5px 7px; font-size: .64rem; }
   .wx-nav__long, .wx-nav a span, .wx-nav button span { display: none; }
-  .wx-modes button span { display: none; } .wx-modecap { display: none; } .wx-legend { display: none; }
+  .wx-nav button .wx-nav__long { display: inline; }
+  .wx-modes button span { font-size: 10px; } .wx-modecap { display: none; } .wx-legend { display: none; }
   .wx-map-controls { left: 8px; right: 8px; transform: none; width: auto; max-width: none; }
   .wx-quest { flex-wrap: wrap; gap: var(--s1) var(--s2); } .wx-quest__chips { margin-left: 0; }
   .wx-tabs { top: auto; bottom: var(--s2); right: var(--s2); left: var(--s2); transform: none; flex-direction: row; border: 1px solid #1E2A33; border-radius: var(--r-1); }

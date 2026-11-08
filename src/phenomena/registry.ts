@@ -38,7 +38,7 @@ export const PHENOMENA: Phenomenon[] = [
   },
   {
     id: "agriculture", name: "Agriculture", tagline: "Soil moisture changes.",
-    evidenceSummary: "A genuine six-date NISAR SME2 PROVISIONAL series is published, with 57.9% valid target-date coverage and a 21.3% fixed all-date pixel cohort. It is exploratory soil-moisture evidence, not crop-stress validation.",
+    evidenceSummary: "One published Naogaon SME2 study (agri-41647231453, 6 dates, EXPLORATORY). This is a PROVISIONAL soil-moisture workspace, not a crop-stress or drought classifier.",
     status: "AVAILABLE", href: "/agriculture",
     caseHref: "/agriculture", caseLabel: "Open the SME2 soil-moisture workspace",
     featureHighlights: [

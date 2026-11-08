@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 const cache = new Map<string, {
     expires: number;
@@ -10,6 +11,8 @@ const cache = new Map<string, {
 }>();
 let lastRequest = 0;
 export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "external");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
     const query = request.nextUrl.searchParams.get("q")?.trim() ?? "";
     if (query.length < 3 || query.length > 120)
         return NextResponse.json({ error: "Enter a place name between 3 and 120 characters." }, { status: 400 });

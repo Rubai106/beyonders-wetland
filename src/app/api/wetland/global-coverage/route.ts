@@ -1,5 +1,6 @@
 import globalCoverageSnapshot from "../../../../../data/global-catalog/nisar-l2-gcov-2026-10-01.json";
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -113,6 +114,8 @@ function sceneFeature(raw: unknown) {
 }
 
 export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "external");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   const date = request.nextUrl.searchParams.get("date") ?? "";
   const forceRefresh = Number(request.nextUrl.searchParams.get("refresh") ?? 0) > 0;
   const parsedDate = new Date(`${date}T00:00:00.000Z`);

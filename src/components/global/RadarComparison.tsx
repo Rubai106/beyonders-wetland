@@ -38,11 +38,12 @@ export default function RadarComparison({ runId, date, refreshKey }: { runId: st
         </a>
         <div className={`nisar-radar-scale ${stage === "change" ? "nisar-radar-scale--change" : ""}`} aria-label={stage === "change" ? "Blue means lower return, red means higher return" : "Shared radar brightness scale"} />
         <div className="nisar-scale-labels"><span>{(stage === "change" ? layer.change_scale_db : layer.scale_db)[0]} dB</span><span>{stage === "change" ? "0" : "same scale"}</span><span>{(stage === "change" ? layer.change_scale_db : layer.scale_db)[1]} dB</span></div>
-        {stage !== "change" && <a className="nisar-download" href={artifact(layer.source_rasters[stage], true)}>Download {stage} {channel.toUpperCase()} GeoTIFF</a>}
+        {stage !== "change" && !publicClient && <a className="nisar-download" href={artifact(layer.source_rasters[stage], true)}>Download {stage} {channel.toUpperCase()} GeoTIFF</a>}
       </figure>)}</div>
       <p className="nisar-tool-hint">{current?.note} Blue change means a weaker return; red means a stronger return. These patterns alone do not prove flooding.</p>
+      {publicClient && <p className="nisar-tool-hint">GeoTIFF rasters are part of the local study package and are not included in this web release; the PNG previews above and the GeoJSON download below are the published versions.</p>}
       <details className="nisar-scene-details"><summary>Input scenes and geographic extent</summary><p>Baseline method: {current?.baseline_method?.baseline_method === "PER_PIXEL_MEDIAN" ? "Per-pixel median of all earlier acquisitions" : "Single preceding acquisition"}.</p><p>Baseline dates: {baselineDates.join(", ")}</p><p>Baseline scenes: {(current?.baseline_method?.baseline_scene_names ?? [current?.baseline_scene]).filter(Boolean).join(", ") || "Not recorded"}</p><p>After scene: {current?.event_scene}</p><p>Extent: {layer.bounds.map((point) => point.map((n) => n.toFixed(5)).join(", ")).join(" → ")} (latitude, longitude)</p></details>
-      <div className="nisar-tool-actions">{current?.patches_file && <a className="nisar-download" href={artifact(current.patches_file, true)}>Download candidate GeoJSON</a>}{current?.classification_file && <a className="nisar-download" href={artifact(current.classification_file, true)}>Download classification GeoTIFF</a>}<a className="nisar-download" href={artifact("case_study.json", true)}>Download case evidence</a></div>
+      <div className="nisar-tool-actions">{current?.patches_file && <a className="nisar-download" href={artifact(current.patches_file, true)}>Download candidate GeoJSON</a>}{current?.classification_file && !publicClient && <a className="nisar-download" href={artifact(current.classification_file, true)}>Download classification GeoTIFF</a>}<a className="nisar-download" href={artifact("case_study.json", true)}>Download case evidence</a></div>
     </>}
   </section>;
 }

@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const revalidate = 43_200;
@@ -66,7 +67,9 @@ function toVolcano(feature: PointFeature): VolcanoRecord | null {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "external");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   const url = new URL(GVP_WFS);
   url.searchParams.set("service", "WFS");
   url.searchParams.set("version", "1.0.0");

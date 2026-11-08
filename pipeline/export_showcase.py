@@ -15,6 +15,7 @@ Usage (from the repository root, inside the pipeline virtualenv):
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -42,6 +43,51 @@ LIMITATIONS = [
     "Areas with no candidate polygon were not classified as unchanged; they have no detector result.",
     "Acquisition gaps are real: no values are interpolated between NISAR observations.",
 ]
+
+
+def build_file_checksums(directory: Path) -> dict[str, str]:
+    """Return SHA-256 hashes for every regular payload file, excluding manifest.json.
+
+    Paths are relative POSIX paths so the manifest is portable across OSes. The
+    manifest cannot hash itself; the hashes detect accidental payload corruption,
+    not malicious edits to both a payload and its manifest.
+    """
+    root = directory.resolve()
+    checksums: dict[str, str] = {}
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path.is_symlink():
+            continue
+        relative = path.relative_to(root).as_posix()
+        if relative == "manifest.json":
+            continue
+        digest = hashlib.sha256()
+        with path.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        checksums[relative] = digest.hexdigest()
+    return checksums
+
+
+def verify_file_checksums(directory: Path, expected: dict[str, str]) -> dict[str, list[str]]:
+    """Compare a package against its manifest and report missing/extra/mismatched paths."""
+    actual = build_file_checksums(directory)
+    expected_paths = set(expected)
+    actual_paths = set(actual)
+    return {
+        "missing_from_manifest": sorted(actual_paths - expected_paths),
+        "missing_on_disk": sorted(expected_paths - actual_paths),
+        "mismatched": sorted(path for path in actual_paths & expected_paths if actual[path] != expected[path]),
+    }
+
+
+def add_payload_checksums(directory: Path, manifest: dict) -> dict:
+    """Populate integrity metadata for a completed published package."""
+    manifest["files_sha256"] = build_file_checksums(directory)
+    manifest["total_bytes"] = sum(
+        path.stat().st_size for path in directory.rglob("*")
+        if path.is_file() and not path.is_symlink() and path.relative_to(directory.resolve()).as_posix() != "manifest.json"
+    )
+    return manifest
 
 
 def update_case_index(case_id: str, manifest: dict) -> None:
@@ -133,6 +179,11 @@ def main() -> int:
             shutil.rmtree(out, ignore_errors=True)
             print(str(error), file=sys.stderr)
             return 2
+        legacy_manifest_path = out / "manifest.json"
+        if legacy_manifest_path.is_file():
+            legacy_manifest = add_payload_checksums(out, load(legacy_manifest_path))
+            write_json(legacy_manifest_path, legacy_manifest)
+            update_case_index(args.case_id, legacy_manifest)
         print(f"Legacy run {args.run_id}: {summary['completeness']} export of {summary['site']} "
               f"({summary['observations']} real acquisition dates, patches for {summary['patch_dates'] or 'no dates'}, "
               f"{summary['bytes'] / 1024:.0f} KB) -> {out.relative_to(ROOT)}")
@@ -224,6 +275,12 @@ def main() -> int:
             used += size + write_json(out / "radar" / f"preview_{observations[index]['date']}.json", preview)
             radar_dates.append(observations[index]["date"])
 
+    maturity = str(manifest.get("product_maturity") or "UNKNOWN").upper()
+    maturity_note = {
+        "BETA": "NISAR L2 GCOV input is a BETA pre-calibration product; interpret results cautiously and do not mix it with PROVISIONAL inputs.",
+        "PROVISIONAL": "NISAR L2 GCOV input is PROVISIONAL: calibrated and partially validated, but not fully validated.",
+        "SIMULATED": "This is a simulated test artifact and must never be presented as a real NISAR observation.",
+    }.get(maturity, "NISAR product maturity was not recorded; scientific interpretation must remain unverified.")
     clean = {key: manifest.get(key) for key in MANIFEST_KEYS if key in manifest}
     clean["reference_validated"] = False if not manifest.get("reference_validated") else True
     clean.update({
@@ -234,11 +291,12 @@ def main() -> int:
         "observation_dates": [o["date"] for o in exported_observations],
         "radar_dates": radar_dates,
         "has_reference": bool(reference.get("available")),
-        "limitations": LIMITATIONS,
+        "limitations": [maturity_note, *LIMITATIONS],
         "source": "NASA/JPL NISAR L2 GCOV via NASA CMR / ASF DAAC (processed locally; raw HDF5 not distributed)",
         "total_bytes": used,
     })
     write_json(out / "observations.json", exported_observations)
+    clean = add_payload_checksums(out, clean)
     write_json(out / "manifest.json", clean)
     update_case_index(args.case_id, clean)
 

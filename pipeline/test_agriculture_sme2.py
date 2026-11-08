@@ -771,5 +771,102 @@ class AgricultureSME2Tests(unittest.TestCase):
             self.assertFalse(_looks_like_sme2_hdf5(path))
 
 
+def _step6_bits_rule_pass(flag_value):
+    """Step 6 QA-bundle retrieval interpretation, kept ONLY as a comparator.
+
+    The bundle rule passed a pixel iff retrievalQualityFlag bits 0-3 were
+    set and bits 4-7 were clear (within a byte, that is exactly value 15).
+    It is NOT a supported retrieval-mode of quality_mask, and these tests
+    exist to show why it must never be adopted.
+    """
+    value = int(flag_value)
+    return (value & 0x0F) == 0x0F and (value & 0xF0) == 0
+
+
+class SME2FlagInterpretationTests(unittest.TestCase):
+    """Each SME2 flag interpretation, tested against the official definition
+    and against the real published Naogaon granule data.
+
+    Official source: NASA CMR UMM-Var for NISAR_L3_SME2_PROVISIONAL_V1,
+    variable /science/LSAR/SME2/grids/retrievalQualityFlag (retrieved
+    2026-11-08, collection C2854344945-ASF): "Soil moisture retrieval
+    quality flag while 0 means clear and non-zero means anomaly. Flag bits
+    0: Retrieval recommended flag; 1: Retrieval attempted flag; 2:
+    Retrieval success flag; 3: Soil moisture thresholds between (0.02 and
+    0.60); 4: NISAR sigma-hh anomaly flag; 5: NISAR sigma-hv anomaly flag;
+    6: NISAR sigma-vv anomaly flag; 7: NISAR sigma-vh anomaly flag."
+    """
+
+    def test_step6_bits_rule_contradicts_cmr_zero_clear_definition(self):
+        values = [0, 1, 7, 9, 15, 77, 255, -9999]
+        moisture = np.full((1, len(values)), 0.25)
+        uncertainty = np.full((1, len(values)), 0.03)
+        retrieval = np.array([values], dtype="int16")
+        surface = np.zeros((1, len(values)), dtype="int16")
+        valid = quality_mask(moisture, uncertainty, retrieval, surface)
+        # Zero-clear (live code, matches CMR): only flag 0 is clear.
+        np.testing.assert_array_equal(
+            valid, [[True, False, False, False, False, False, False, False]]
+        )
+        # Bundle rule: the ONLY value it accepts is 15 -- it rejects 0,
+        # the single value CMR calls clear, and accepts 15, which CMR
+        # calls an anomaly. The two rules are mutually exclusive.
+        self.assertEqual(
+            [_step6_bits_rule_pass(value) for value in values],
+            [False, False, False, False, True, False, False, False],
+        )
+
+    def test_real_naogaon_flag_counts_zero_clear_matches_published_study(self):
+        study_path = (
+            Path(__file__).resolve().parent.parent
+            / "public" / "agriculture" / "current" / "study.json"
+        )
+        study = json.loads(study_path.read_text(encoding="utf-8"))
+        self.assertEqual(study["study_id"], "agri-41647231453")
+        expected_zero_clear = [3636, 1338, 3636, 3636, 3634, 3636]
+        for observation, expected in zip(study["observations"], expected_zero_clear):
+            counts = {
+                int(key): int(value)
+                for key, value in observation["retrieval_flag_counts"].items()
+            }
+            zero_clear = counts.get(0, 0)
+            bits_rule = sum(
+                count for value, count in counts.items()
+                if _step6_bits_rule_pass(value)
+            )
+            self.assertEqual(
+                zero_clear, expected,
+                f"zero-clear count for {observation['date']}",
+            )
+            # No real granule pixel carries value 15: the bundle rule
+            # would leave the published study with zero valid pixels.
+            self.assertEqual(bits_rule, 0, f"bits-rule count for {observation['date']}")
+        # The published change summary's valid-pixel count equals the
+        # smallest per-observation zero-clear count (2026-08-24 baseline),
+        # which is only possible under zero-clear gating.
+        change = study["change_summary"]
+        self.assertEqual(change["valid_pixels"], 1338)
+        self.assertEqual(change["total_pixels"], 6278)
+        self.assertAlmostEqual(change["valid_fraction"], 1338 / 6278, places=6)
+
+    def test_surface_flag_unknown_high_bits_are_fail_closed(self):
+        # Real Naogaon granules set surfaceQualityFlag bits 8 and 9
+        # (values 256/512), which are outside the code's SURFACE_FLAG_BITS
+        # table (bits 0-7). JPL D-107677 Rev C Table 4.2.1 defines only
+        # bits 0-7 for surfaceQualityFlag (static water, urban,
+        # precipitation, snow/ice, permanent snow/ice, frozen ground,
+        # terrain, dense vegetation); bits 8-9 carry no defined meaning
+        # in the spec. The == 0 gate must exclude them anyway: an
+        # unknown encoding can never leak into a valid mask.
+        moisture = np.full((1, 8), 0.25)
+        uncertainty = np.full((1, 8), 0.03)
+        retrieval = np.zeros((1, 8), dtype="int16")
+        surface = np.array([[0, 1, 4, 8, 256, 512, 257, 513]], dtype="int16")
+        valid = quality_mask(moisture, uncertainty, retrieval, surface)
+        np.testing.assert_array_equal(
+            valid, [[True, False, False, False, False, False, False, False]]
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

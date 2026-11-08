@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CircleMarker, GeoJSON, ImageOverlay, MapContainer, Pane, Rectangle, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { CircleMarker, GeoJSON, ImageOverlay, MapContainer, Pane, Rectangle, TileLayer, Tooltip, useMap, useMapEvents, ZoomControl } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import GlobalWorldBounds, { WORLD_BOUNDS } from "@/components/global/GlobalWorldBounds";
@@ -68,7 +68,9 @@ export default function ForestMap({ focus, treeCover = false, imagery = false, m
     const error = (key: string) => () => setFailed(p => ({ ...p, [key]: true }));
     const recover = (key: string) => () => setFailed(p => p[key] ? { ...p, [key]: false } : p);
     return <div className="forest-map-surface">
-    <MapContainer center={bbox ? [(bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2] : [0, 0]} zoom={bbox ? 11 : 2} minZoom={0} maxZoom={17} zoomSnap={.25} maxBounds={WORLD_BOUNDS} maxBoundsViscosity={1} style={{ height: "100%", width: "100%" }}>
+    <MapContainer center={bbox ? [(bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2] : [0, 0]} zoom={bbox ? 11 : 2} minZoom={0} maxZoom={17} zoomSnap={.25} maxBounds={WORLD_BOUNDS} maxBoundsViscosity={1} zoomControl={false} style={{ height: "100%", width: "100%" }}>
+      {/* Zoom sits top-right: the title bar overlaps the top-left of the map frame. */}
+      <ZoomControl position="topright" />
       <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" attribution="Tiles © Esri, USGS, NOAA" bounds={WORLD_BOUNDS} noWrap eventHandlers={{ tileerror: error("background"), tileload: recover("background") }}/>
       {(!bbox || globalView) && <GlobalWorldBounds />}
       <Interactions focus={focus ?? null} reportZoom={setZoom} onPickPoint={onPickPoint}/>

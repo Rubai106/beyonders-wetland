@@ -7,6 +7,7 @@ import {
   Rectangle,
   ScaleControl,
   TileLayer,
+  ZoomControl,
   useMap,
 } from "react-leaflet";
 import type { LatLngBoundsExpression } from "leaflet";
@@ -112,8 +113,10 @@ export default function AgricultureMap({
         maxZoom={18}
         scrollWheelZoom
         worldCopyJump
+        zoomControl={false}
         style={{ width: "100%", height: "100%" }}
       >
+        <ZoomControl position="topright" />
         {satelliteBasemap ? (
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"

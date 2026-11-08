@@ -38,7 +38,7 @@ export default function DeformationMap({ bbox, referenceBbox, imageUrl, imageOpa
       load: () => setFailedImage((current) => current === imageUrl ? null : current),
     }} />}
     <Rectangle bounds={bounds(referenceBbox)} pathOptions={{color:"#36e1cb",fill:false,weight:2,dashArray:"5 5"}}><Tooltip>Assumed-stable reference patch</Tooltip></Rectangle>
-    {regions.map(region => <CircleMarker key={region.name} center={[region.lat,region.lon]} radius={4} pathOptions={{color:"white",fillColor:"#191e1c",fillOpacity:1,weight:1.5}}><Tooltip permanent direction={region.name.endsWith("south")?"right":"top"}>{region.name}</Tooltip></CircleMarker>)}
+    {regions.map((region, index) => <CircleMarker key={region.name} center={[region.lat,region.lon]} radius={4} pathOptions={{color:"white",fillColor:"#191e1c",fillOpacity:1,weight:1.5}}><Tooltip permanent direction={region.name.endsWith("south") ? "right" : index % 2 === 0 ? "top" : "bottom"}>{region.name}</Tooltip></CircleMarker>)}
     {point && <CircleMarker center={[point.lat,point.lon]} radius={6} pathOptions={{color:"#ffdf63",fill:false,weight:3}} />}
     <MapInteraction onProbe={onProbe} focus={focus} bbox={bbox} />
   </MapContainer>{(!imageUrl||failedImage===imageUrl||tileFailed)&&<p className="deformation-map-error" role="status">{!imageUrl?emptyMessage??"This radar layer is not available for the selected interval.":failedImage===imageUrl?"This published radar layer could not load. Choose another layer or reload the page.":"Satellite background tiles are unavailable. Published radar layers remain available."}</p>}</>;

@@ -4,6 +4,7 @@ import {
   buildDynamicWorldArtifactOptions,
   DYNAMIC_WORLD_WORKFLOW_PATH,
 } from "@/lib/agriculture-dynamic-world-artifact";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +48,8 @@ async function fetchArtifactList(runId: number): Promise<[string, unknown[]]> {
 }
 
 export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   const origin = request.headers.get("origin");
   if (origin) {
     try {

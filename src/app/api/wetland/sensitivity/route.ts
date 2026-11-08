@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { PipelineOutputError, pipelineRun, readPipelineOutput } from "@/lib/pipeline-output";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   try {
     const run = pipelineRun();
     const sensitivity = readPipelineOutput("sensitivity_results.json", run) as Record<string, unknown>;

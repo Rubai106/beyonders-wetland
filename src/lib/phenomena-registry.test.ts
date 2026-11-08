@@ -16,8 +16,10 @@ test("module summaries preserve the project's current evidence states and limita
   assert.match(byId.wetland, /inconclusive/i);
   assert.match(byId.wetland, /seven-date NISAR PROVISIONAL series/i);
   assert.match(byId.wetland, /two-scene BETA event study/i);
-  assert.match(byId.agriculture, /six-date NISAR SME2 PROVISIONAL series/i);
-  assert.match(byId.agriculture, /not crop-stress validation/i);
+  assert.match(byId.agriculture, /published Naogaon SME2 study/i);
+  assert.match(byId.agriculture, /EXPLORATORY/i);
+  assert.match(byId.agriculture, /PROVISIONAL/i);
+  assert.match(byId.agriculture, /not a crop-stress or drought classifier/i);
   assert.match(byId.forest, /no labelled forest-loss reference or accuracy score/i);
   assert.match(byId.volcano, /not causally attributed to the eruption/i);
 });

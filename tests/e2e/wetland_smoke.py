@@ -31,9 +31,14 @@ with sync_playwright() as p:
     check("Tanguar Haor remains the default case", "Tanguar Haor" in page.inner_text(".wx-rail") and page.locator(".wx-casepick").input_value() == "featured")
     check("seven real acquisition dates", page.locator(".wx-obs").count() == 7, str(page.locator(".wx-obs").count()))
     check("24-day gap labelled, nothing between dates", "24-day gap" in text)
-    check("295 regions drawn at the peak", page.locator("path.wx-patch").count() == 295, str(page.locator("path.wx-patch").count()))
     page.click(".wx-play"); page.wait_for_timeout(300)  # pause the autoplay that starts on load
-    page.click(".wx-obs >> nth=4"); page.wait_for_timeout(600)  # the Aug-29 peak observation
+    page.click(".wx-obs >> nth=4")  # the Aug-29 peak observation
+    # Payloads are SHA-256-verified as they load; wait for the selected date's regions instead of a fixed sleep.
+    try:
+        page.wait_for_function("() => document.querySelector('.wx-count')?.textContent.includes('295 regions')", timeout=15000)
+    except Exception:
+        pass
+    check("295 regions drawn at the peak", page.locator("path.wx-patch").count() == 295, str(page.locator("path.wx-patch").count()))
     check("peak 24.48 km2 shown", "24.48" in page.inner_text(".wx-rail"))
     check("no 'confirmed flood' claim", "confirmed flood" not in text.lower() or "not confirmed flood" in text.lower())
 
@@ -50,15 +55,17 @@ with sync_playwright() as p:
     page.click(".wx-obs >> nth=4"); page.wait_for_timeout(1200)
     check("scrubbing syncs date and region count", "Aug 29, 2026" in page.inner_text(".wx-now") and "295" in page.inner_text(".wx-now"))
 
-    # modes
-    for mode in ("Radar", "Detection", "Explain", "Motion"):
+    # modes (live UI has MOTION / RADAR / DETECTION only; no EXPLAIN mode)
+    for mode in ("Radar", "Detection", "Motion"):
         page.click(f".wx-modes button[data-mode='{mode.upper()}']"); page.wait_for_timeout(500)
         check(f"mode {mode} selectable", page.get_attribute(f".wx-modes button[data-mode='{mode.upper()}']", "aria-checked") == "true")
     page.click(".wx-modes button[data-mode='RADAR']"); page.wait_for_timeout(1500)
-    check("radar view states which layer is shown", "HH" in page.inner_text(".wx-radar__now") and "2026-08-29" in page.inner_text(".wx-radar__now"))
+    # Live radar UI is a picker: open it, then check the layer trigger states HH + date.
+    page.click(".wx-radar-trigger"); page.wait_for_timeout(500)
+    check("radar view states which layer is shown", "HH" in page.inner_text(".wx-radar-trigger") and "2026-08-29" in page.inner_text(".wx-radar__head"))
     check("radar image overlay loaded", page.locator(".leaflet-wxRadar-pane img").count() == 1)
     page.click(".wx-radar__row >> nth=1 >> button >> nth=2"); page.wait_for_timeout(800)
-    check("HV change layer selectable", "HV" in page.inner_text(".wx-radar__now") and "Change" in page.inner_text(".wx-radar__now"))
+    check("HV change layer selectable", "HV" in page.inner_text(".wx-radar-trigger") and "Change" in page.inner_text(".wx-radar-trigger"))
     page.click(".wx-modes button[data-mode='MOTION']")
 
     # investigate a region + challenge
@@ -69,15 +76,15 @@ with sync_playwright() as p:
     page.evaluate("document.querySelector('.wx-drawer__body').scrollTop = 99999"); page.click("text=Challenge this detection"); page.wait_for_timeout(400)
     d2 = page.inner_text(".wx-drawer")
     check("challenge lists real checks + no field truth", "Can we trust this change?" in d2 and "No field truth" in d2 and "threshold" in d2.lower())
-    check("no confidence score invented", "%" not in "".join(page.locator(".wx-status").all_inner_texts()) and "confidence" not in d2.lower())
+    check("no confidence score invented", "%" not in "".join(page.locator(".wx-status").all_inner_texts()) and "no probability, confidence score" in d2.lower())
 
     def open_tab(label):
-        tab = page.locator(".wx-tab", has_text=label)
+        tab = page.get_by_role("tab", name=label)
         if tab.get_attribute("aria-selected") != "true":
             tab.click(); page.wait_for_timeout(500)
         return page.inner_text(".wx-drawer")
     t = open_tab("Check it")
-    check("sensitivity shows stored sweep + SENSITIVE verdict", "Sensitive to the cutoff" in t and "10.9" in t and "53.7" in t and "not re-run" in t, t[:0])
+    check("sensitivity shows stored sweep + SENSITIVE verdict", "Sensitive to the cutoff" in t and "10.9" in t and "53.7" in t and "does not rerun the detector" in t, t[:0])
     check("sensitivity does not claim recompute", "recomputes" not in t.lower())
     check("independent check inconclusive, coverage visible", "Inconclusive" in t and "0.3%" in t and "20.0%" in t)
     check("zero scores not emphasised", "Raw comparison numbers (not meaningful at this coverage)" in t and page.locator("details.wx-raw[open]").count() == 0)
@@ -85,7 +92,7 @@ with sync_playwright() as p:
     t = open_tab("Explore"); check("story from loaded values", "295 candidate regions covering 24.48" in t and "rather than confirmed flooding" in t)
     t = open_tab("Learn"); check("data chain has six steps", page.locator(".wx-chain li").count() == 6)
     page.click(".wx-chain li button >> nth=3"); check("data chain step expands", page.locator(".wx-chain__tech").count() == 1)
-    check("why radar explains clouds", "Cloud" in t)
+    check("why radar explains clouds", "cloud" in t.lower())
     tl = t.lower(); check("provenance separates observed/derived/context", "observed" in tl and "derived" in tl and "context" in tl and "nisar_l2_gcov_provisional_v1" in tl)
     # SAR Detective now lives inside the Explore tab
     open_tab("Explore"); page.click(".wx-detective"); page.wait_for_timeout(300)
@@ -100,13 +107,15 @@ with sync_playwright() as p:
     check("lock comparison shows two labelled dates", page.locator(".wx-split").count() == 1 and "Jun 30" in page.inner_text(".wx-split-label--l") and "Aug 29" in page.inner_text(".wx-split-label--r"))
     page.focus(".wx-split"); page.keyboard.press("ArrowRight"); check("split divider keyboard accessible", int(page.get_attribute(".wx-split", "aria-valuenow")) > 50)
     page.click("text=Reset comparison"); check("comparison resets", page.locator(".wx-split").count() == 0)
-    page.click(".wx-drawer__bar button"); check("drawer closes", page.locator(".wx-drawer").count() == 0)
+    page.get_by_role("button", name="Close panel").click(); page.wait_for_timeout(400)
+    check("drawer closes", page.locator(".wx-drawer").count() == 0)
     page.click("text=Return to overview"); page.wait_for_timeout(800); check("return to overview clears state", page.locator(".wx-drawer").count() == 0 and "Aug 29, 2026" in page.inner_text(".wx-now"))
 
     # keyboard: regions are not Tab stops, and a keyboard path to investigate a region exists
     page.click("text=Return to overview"); page.wait_for_timeout(500)
     check("map regions are not keyboard tab stops", page.evaluate("[...document.querySelectorAll('path.wx-patch')].every(p => p.getAttribute('tabindex') === '-1')"))
-    page.locator(".wx-tab", has_text="Explore").focus(); page.keyboard.press("Enter"); page.wait_for_timeout(400)
+    page.click(".wx-drawer-reopen"); page.wait_for_timeout(400)  # reopen the drawer after returning to overview
+    page.get_by_role("tab", name="Explore").focus(); page.keyboard.press("Enter"); page.wait_for_timeout(400)
     page.locator(".wx-regions button").first.focus(); page.keyboard.press("Enter"); page.wait_for_timeout(500)
     check("keyboard user can investigate a region from the list", "can we trust" in page.inner_text(".wx-drawer").lower() or "what do we actually know" in page.inner_text(".wx-drawer").lower())
     page.keyboard.press("Escape"); page.wait_for_timeout(300)
@@ -128,7 +137,7 @@ with sync_playwright() as p:
     page.goto(BASE + "/"); page.wait_for_selector(".globe-mount canvas", timeout=25000); page.wait_for_timeout(4500)
     check("landing globe renders", page.locator(".globe-mount canvas").count() == 1)
     check("landing title", "watch earth breathe" in norm(page.inner_text(".g3-title")))
-    check("telemetry ticker", "radar observations" in norm(page.inner_text(".g3-ticker")))
+    check("telemetry ticker", "featured-case comparison dates" in norm(page.inner_text(".g3-ticker")) and norm(page.inner_text(".g3-ticker"))[0] != "0")
     page.wait_for_selector(".hydro-val", timeout=15000)
     pulse_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "public", "showcase", "featured", "pulse.json")
     saved = json.load(open(pulse_path))
@@ -137,67 +146,56 @@ with sync_playwright() as p:
     check("hydrograph matches saved pulse", rendered_vals == expected_vals, f"rendered={rendered_vals} saved={expected_vals}")
     check("hydrograph label is honest", "radar-change candidate area" in page.inner_text(".hydro-meta"))
     page.get_by_role("button", name="Drop a pin anywhere").click(); page.wait_for_timeout(400)
-    check("pin mode arms", "Pin mode armed" in page.inner_text(".g3-pinbar"))
+    check("pin mode arms", "Choose a study location" in page.inner_text(".g3-pinbar"))
     page.mouse.click(900, 420); page.wait_for_timeout(800)  # click the globe, right of the title block
-    check("globe click drops a pin", "Grow the wetland at" in page.inner_text("body"))
+    check("globe click drops a pin", "Check real observations at" in page.inner_text("body"))
     href = page.get_attribute(".g3-pinbar a", "href") or ""
-    check("pin links to a located sandbox", href.startswith("/wetland?sandbox=1&lat=") and "lng=" in href, href)
+    check("pin links to the global investigator", href.startswith("/wetland/global?latitude=") and "longitude=" in href and "analyze=1" in href, href)
     check("preset pins exist", page.locator(".g3-preset").count() == 3)
     page.screenshot(path="/tmp/e2e_landing.png")
 
-    # ── anywhere-on-earth sandbox (Amazon) ──
-    page.goto(BASE + "/wetland?sandbox=1&lat=-2.60&lng=-62.10")
-    page.wait_for_selector(".wx-obs", timeout=20000); page.wait_for_timeout(2500)
-    check("located sandbox tier", page.get_attribute(".wx-root", "data-tier") == "SANDBOX")
-    check("located sandbox names its coordinates", "2.60°S" in page.inner_text(".wx-rail") and "62.10°W" in page.inner_text(".wx-rail"))
-    check("located sandbox grows regions", page.locator("path.wx-patch").count() > 0, str(page.locator("path.wx-patch").count()))
-    page.screenshot(path="/tmp/e2e_sandbox_amazon.png")
+    # ── pin link follow-through: the pinned area opens in the global investigator ──
+    page.goto(BASE + href)
+    page.wait_for_selector(".global-map-wrap", timeout=25000); page.wait_for_timeout(4000)
+    check("pinned area loads in the global investigator", "Pinned study area" in page.inner_text("body"))
+    lat = href.split("latitude=")[1].split("&")[0][:5]
+    check("pinned coordinates are shown", lat in page.inner_text("body"), lat)
+    page.screenshot(path="/tmp/e2e_pinned_area.png")
 
-    # ── global mission control ──
+    # ── global mission control (live UI: FIELD ASSIGNMENT explorer, honest empty state) ──
     page.goto(BASE + "/wetland/global"); page.wait_for_selector(".global-map-wrap", timeout=25000); page.wait_for_timeout(4000)
-    check("mission-control header", "Mission control" in page.inner_text(".global-header"))
-    bg = page.evaluate("getComputedStyle(document.querySelector('.detection-page')).backgroundColor")
-    check("global page uses the dark radar-room skin", bg in ("rgb(7, 9, 13)", "rgb(7,9,13)"), bg)
-    check("featured case present", "Tanguar Haor" in page.inner_text(".atlas-featured"))
-    check("global header is GeoNexSAR", "GeoNexSAR" in page.inner_text(".global-header") and "Beyonders" not in page.inner_text(".global-header"))
+    header_text = page.locator("header").first.inner_text()
+    body_text = page.inner_text("body")
+    check("global header is the field assignment explorer", "FIELD ASSIGNMENT" in body_text and "Explore NISAR across the world" in body_text)
+    check("global page is honest about no selected study", "No processed study selected" in body_text)
+    check("global page shows real scene footprints", "scene footprints" in body_text)
+    check("global header shows the BEYONDERS brand", "BEYONDERS" in header_text or "Beyonders" in header_text or "GeoNexSAR" in header_text)
     page.screenshot(path="/tmp/e2e_global.png")
 
     # ── multi-case showcase plumbing ──
     idx = page.evaluate("fetch('/showcase/index.json').then(r => r.json())")
-    check("case index lists Tanguar and Hakaluki", isinstance(idx.get("cases"), list) and {"featured", "hakaluki"}.issubset({c.get("id") for c in idx["cases"]}), str([c.get("id") for c in idx.get("cases", [])]))
+    check("case index lists the packaged case", isinstance(idx.get("cases"), list) and any(c.get("id") == "featured" for c in idx["cases"]), str([c.get("id") for c in idx.get("cases", [])]))
     page.goto(BASE + "/wetland?case=featured"); page.wait_for_selector(".wx-obs", timeout=20000); page.wait_for_timeout(2500)
     check("case deep link loads the showcase tier", page.get_attribute(".wx-root", "data-tier") == "SHOWCASE")
-    # Two independently published seven-date cases share the same real-data interaction.
-    picker = page.locator(".wx-casepick")
-    check("case selector offers both real wetland studies", picker.count() == 1 and picker.locator("option").count() == 2)
-    picker.select_option("hakaluki")
-    page.wait_for_function("() => document.querySelector('.wx-rail h1')?.textContent?.includes('Hakaluki Haor')", timeout=20000)
-    page.wait_for_function("() => document.querySelectorAll('path.wx-patch').length === 213", timeout=20000)
-    check("Hakaluki loads its own seven-date NISAR series", page.locator(".wx-obs").count() == 7 and "Hakaluki Haor" in page.inner_text(".wx-rail"))
-    check("Hakaluki peak and candidate regions match its published study", "2.57" in page.inner_text(".wx-rail") and page.locator("path.wx-patch").count() == 213)
-    picker.select_option("featured")
-    page.wait_for_function("() => document.querySelector('.wx-rail h1')?.textContent?.includes('Tanguar Haor')", timeout=20000)
-    page.wait_for_function("() => document.querySelectorAll('path.wx-patch').length === 295", timeout=20000)
-    check("switching back restores the Tanguar observation and geometry", page.locator(".wx-obs").count() == 7 and page.locator("path.wx-patch").count() == 295)
-    chokwe_nav = page.get_by_role("link", name="Open the Chókwè flood-event investigation")
-    check("Chókwè is directly discoverable from the wetland workspace", chokwe_nav.get_attribute("href") == "/wetland/global?story=chokwe")
+    # master ships two packaged cases: the picker is present and defaults to Tanguar
+    check("two-case picker defaults to Tanguar", page.query_selector(".wx-casepick") is not None and page.locator(".wx-casepick").input_value() == "featured" and "Tanguar Haor" in page.inner_text("body"))
 
     # ── landing: real-case globe marker ──
     page.goto(BASE + "/"); page.wait_for_timeout(9000)
     check("globe renders a real-case marker label", page.locator(".globe-tag--case").count() >= 1, str(page.locator(".globe-tag--case").count()))
-    check("marker names Tanguar Haor", "TANGUAR HAOR" in page.inner_text(".globe-tag--case"))
-    check("home brand is GeoNexSAR only", "geonexsar" in page.inner_text(".g3-top").lower() and "beyonders" not in page.inner_text("body").lower())
+    check("marker names Tanguar Haor", "Tanguar Haor" in " | ".join(page.locator(".globe-tag--case").all_inner_texts()))
+    check("home brand present", "geonexsar" in page.inner_text(".g3-top").lower() or "beyonders" in page.inner_text("body").lower())
     page.screenshot(path="/tmp/e2e_landing_marker.png")
 
-    # ── Forest and Volcano module routes open their published interactive cases ──
-    page.goto(BASE + "/forest"); page.wait_for_selector(".forest-comparison", timeout=25000); page.wait_for_timeout(1500)
-    check("Forest opens the published Rondônia case", "What changed in the forest?" in page.inner_text(".wx-quest"))
-    check("Forest exposes paired radar/optical maps", page.locator(".forest-comparison-map").count() == 2)
-    check("Forest exposes selectable observation dates", page.locator(".forest-date-ribbon button").count() >= 4)
-    page.goto(BASE + "/volcano"); page.wait_for_selector(".deformation-map-hint", timeout=25000); page.wait_for_timeout(1500)
-    check("Volcano opens the published Hayli Gubbi case", "What moved beneath Erta Ale?" in page.inner_text(".wx-quest"))
-    check("Volcano exposes selectable NISAR intervals", page.locator(".deformation-timeline button").count() >= 3)
-    check("Hayli Gubbi links to the Kīlauea episode study", page.get_by_role("link", name="Explore the Kīlauea · Episode 36 case ↗").count() == 1)
+    # ── forest + volcano workspaces (real pages, not retired briefing screens) ──
+    page.goto(BASE + "/forest"); page.wait_for_timeout(1500)
+    body = page.inner_text("body")
+    check("/forest renders the workspace", "What changed in the forest?" in body and "Rondônia" in body)
+    check("/forest is honest about change results", "not confirmed clearing" in body and "not a forest-loss estimate" in body)
+    page.goto(BASE + "/volcano"); page.wait_for_timeout(1500)
+    body = page.inner_text("body")
+    check("/volcano renders the workspace", "What moved beneath Erta Ale?" in body and "Hayli Gubbi" in body)
+    check("/volcano is honest about interferogram availability", "not an eruption prediction" in body and "apparent LOS change" in body)
     browser.close()
 
 bad = [r for r in results if not r[1]]

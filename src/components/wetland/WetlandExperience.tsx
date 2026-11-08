@@ -111,6 +111,7 @@ function ContextRail() {
       {lock && <p className="wx-read wx-read--lock">Comparing {fmtDate(d[lock.beforeIndex].date)} against {fmtDate(d[lock.afterIndex].date)} — drag the divider.</p>}
       {!selectedPatch && <div className="wx-hint"><span className="wx-micro">Start here</span><p>Press <b>Play change</b> and watch the monsoon unfold — or click any glowing region to interrogate it.</p></div>}
       <p className="wx-src">{showcase ? <>Source: {showcase.manifest.product ?? "NISAR L2 GCOV"}, provisional.</> : `${pulseData.product ?? "NISAR L2 GCOV"}, provisional.`}</p>
+      <Link className="wx-rail-link" href="/wetland/global">See worldwide NISAR coverage →</Link>
     </aside>
   );
 }

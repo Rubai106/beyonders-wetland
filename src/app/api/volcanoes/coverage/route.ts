@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,6 +60,8 @@ function validDate(value: string | null): value is string {
 }
 
 export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "external");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   const params = request.nextUrl.searchParams;
   const lat = Number(params.get("lat"));
   const lon = Number(params.get("lon"));

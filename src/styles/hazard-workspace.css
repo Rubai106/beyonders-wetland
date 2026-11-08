@@ -220,8 +220,9 @@
 .wx-root.wx-hazard-shell.wx-root--drawer-tabs .forest-date-ribbon {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
-  min-width: max-content;
+  min-width: 0;
 }
 
 .wx-root.wx-hazard-shell.wx-root--drawer-tabs .forest-date-ribbon > span {
@@ -250,15 +251,16 @@
 }
 
 .wx-root.wx-hazard-shell.wx-root--drawer-tabs .wx-drawer__persistent .deformation-timeline {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
   margin: 0;
   overflow: visible;
 }
 
 .wx-root.wx-hazard-shell.wx-root--drawer-tabs .wx-drawer__persistent .deformation-timeline button {
-  flex: 0 0 auto;
-  min-width: 132px;
+  flex: none;
+  min-width: 0;
   padding: 7px 9px;
 }
 
@@ -1493,10 +1495,14 @@
 }
 
 .wx-root.wx-hazard-shell.wetland-global-workspace .wx-global-track {
-  width: 100%;
+  width: auto;
   min-width: 0;
   height: 72px;
-  margin: 21px 6px 0;
+  /* 26px side margins = half the 52px date button, so the first and last
+     observation nodes (centred on 0% / 100%) sit inside the viewport
+     instead of hanging 5px past it at 390px. width:100% + margins
+     overflowed the footer; width:auto lets the margins absorb the overhang. */
+  margin: 21px 26px 0;
 }
 
 .wx-root.wx-hazard-shell.wetland-global-workspace .wx-global-track .wx-obs {
@@ -1563,7 +1569,7 @@
 
   .wx-root.wx-hazard-shell.wetland-global-workspace .wx-global-track {
     height: 58px;
-    margin: 13px 4px 0;
+    margin: 13px 26px 0;
   }
 
   .wx-root.wx-hazard-shell.wetland-global-workspace .global-map-topline {
@@ -2015,3 +2021,34 @@
     transition-duration: .01ms !important;
   }
 }
+
+/* Global scene explorer rail + count (moved from the unloaded forest-volcano.css —
+   without these the scenes page renders its count unstyled: "0scenes"). */
+.iw-rail .global-scene-rail { display: grid; gap: 13px; }
+.iw-rail .global-scene-rail .global-eyebrow { margin: 0; color: var(--iw-accent); }
+.global-scene-count { display: grid; gap: 2px; padding: 12px; border: 1px solid var(--iw-line); background: #0e161c; }
+.global-scene-count strong { color: var(--iw-text); font-family: var(--font-display, Georgia, serif); font-size: 2rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.global-scene-count span { color: var(--iw-muted); font-size: .69rem; }
+.global-scene-actions,.global-scene-links { display: grid; gap: 7px; }
+.global-scene-links a { color: var(--iw-accent) !important; font-size: .7rem; }
+.global-scene-control-block { display: grid; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--iw-line); }
+.global-scene-stepback { margin: 0; color: #e4c28a; font-size: .68rem; line-height: 1.5; }
+
+/* Rail case links must wrap instead of overflowing the narrow rail
+   (the Kilauea case link is 272px wide in a 230px rail, nowrap). */
+.wx-rail .forest-button, .wx-rail .volcano-case-link { white-space: normal; text-align: center; line-height: 1.4; }
+
+/* Volcano status strip inside the dark workspace: the light-page ink
+   (#192020) is invisible on the dark rail — use the room palette. */
+.wx-rail .volcano-status-strip strong { color: #f3f6f5; }
+
+/* Rail case links live in a 230px rail: the topic + button row must wrap
+   instead of pushing the button past the rail edge (flex-shrink: 0 in
+   globals.css + nowrap on .volcano-case-link). */
+.forest-workspace .forest-context-heading, .forest-case .forest-context-heading { flex-wrap: wrap; }
+.forest-context-heading .forest-button { flex-shrink: 1; min-width: 0; white-space: normal; text-align: center; line-height: 1.4; }
+
+/* Kilauea granule filename is one long unbroken string; let it wrap
+   instead of forcing the page to 857px on mobile. */
+.deformation-heading p { overflow-wrap: anywhere; }
+.deformation-provenance code { overflow-wrap: anywhere; }

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 const DEFAULT_SITE_NAME = "Hakaluki Haor";
 const CONFIG_PATH = path.join(process.cwd(), "pipeline", "config.yaml");
@@ -49,7 +50,9 @@ async function readSavedSiteName(configuredName: string) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   if (publicViewer()) return NextResponse.json({ siteName: "Published study", configuredSiteName: "Published study", mode: "public" });
   const configuredSiteName = await readConfiguredSiteName();
   return NextResponse.json(
@@ -59,6 +62,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const limit = checkRateLimit(request, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   if (publicViewer()) return NextResponse.json({ error: "Public study settings are read-only." }, { status: 403 });
   if (!isLocalSameOrigin(request)) {
     return NextResponse.json({ error: "Save this setting from the local application page." }, { status: 403 });

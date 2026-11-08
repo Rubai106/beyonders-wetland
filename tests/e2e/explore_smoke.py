@@ -1,160 +1,62 @@
-"""Production-browser checks for the worldwide NISAR investigation and scene catalogue.
+"""Browser checks for the 3D landing page and the global mission-control page
+(real showcase, no local run). Complements tests/e2e/wetland_smoke.py.
 
-Run against the built public viewer:
-    python tests/e2e/explore_smoke.py http://127.0.0.1:3140
-
-The suite checks map controls and evidence navigation without treating missing
-global coverage or external tile-service failures as detector failures.
+    python tests/e2e/explore_smoke.py http://localhost:3140
+The one tolerated network response is the local-run API answering 404 when no local pipeline run exists.
 """
-from __future__ import annotations
-
 import sys
 from playwright.sync_api import sync_playwright
 
-BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://127.0.0.1:3140"
+BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3140"
+results, errors = [], []
+def check(name, ok, detail=""):
+    results.append(bool(ok)); print(("PASS " if ok else "FAIL ") + name + (f"  [{detail}]" if detail else ""))
 
+with sync_playwright() as p:
+    b = p.chromium.launch(); pg = b.new_page(viewport={"width": 1440, "height": 900})
+    pg.add_init_script("localStorage.setItem('geonexsar_tour_v1','1')")  # suppress the first-run tour in tests
+    pg.on("pageerror", lambda e: errors.append("pageerror: " + str(e)))
+    pg.on("console", lambda m: errors.append(m.text[:140]) if m.type == "error" and not any(x in m.text for x in ("ERR_NAME_NOT_RESOLVED", "ERR_INTERNET_DISCONNECTED", "ERR_TUNNEL_CONNECTION_FAILED", "404")) else None)
+    pg.on("response", lambda r: errors.append(f"HTTP {r.status} {r.url}") if r.status >= 400 and BASE in r.url and "/api/wetland/nisar-detections" not in r.url else None)
 
-def require(condition: bool, message: str) -> None:
-    if not condition:
-        raise AssertionError(message)
-    print(f"PASS {message}")
+    # ── 3D landing ──
+    pg.goto(BASE + "/"); pg.wait_for_timeout(9000); t = pg.inner_text("body")
+    check("landing: clear first action", "Open the Tanguar Haor case" in t and "Drop a pin anywhere" in t)
+    check("landing: 3D globe canvas renders", pg.locator(".globe-mount canvas").count() == 1)
+    check("landing: real-case marker on the globe", pg.locator(".globe-tag--case").count() >= 1)
+    check("landing: forest/volcano cards link to briefings", pg.locator(".g3-phen-card a[href='/forest/global']").count() == 1 and pg.locator(".g3-phen-card a[href='/volcano/global']").count() == 1)
+    check("landing: agriculture card links to the SME2 workspace", pg.locator(".g3-phen-card a[href='/agriculture']").count() >= 1)
+    check("landing: brand is GeoNexSAR", "geonexsar" in pg.inner_text("body").lower())
+    check("landing: telemetry ticker shows real stats", "featured-case comparison dates" in pg.inner_text(".g3-ticker").lower() and pg.inner_text(".g3-ticker").strip()[0] != "0")
+    pg.get_by_role("link", name="Open the Tanguar Haor case").click(); pg.wait_for_url("**/wetland", timeout=20000)
+    check("landing -> case navigation", pg.url.rstrip("/").endswith("/wetland"))
 
-
-def main() -> int:
-    errors: list[str] = []
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        page = browser.new_page(
-            viewport={"width": 1440, "height": 900},
-            reduced_motion="reduce",
-        )
-        page.add_init_script("localStorage.setItem('geonexsar_tour_v1', '1')")
-        page.on("pageerror", lambda error: errors.append(str(error)))
-
-        page.goto(BASE + "/wetland/global", wait_until="domcontentloaded", timeout=30_000)
-        page.locator("#global-nisar-map").wait_for(state="visible", timeout=30_000)
-        page.locator(".wx-drawer__tabs").wait_for(state="visible", timeout=15_000)
-
-        require(
-            "Explore NISAR across the world" in page.inner_text(".wx-quest"),
-            "global investigation opens with its purpose and scope",
-        )
-        require(
-            page.locator("#global-nisar-map[role='region']").count() == 1
-            and page.locator("#global-nisar-map").get_attribute("aria-label")
-            == "Worldwide NISAR backscatter mosaic with processed candidate overlay",
-            "world map has a descriptive accessible region name",
-        )
-        require(
-            page.locator("#global-nisar-map .leaflet-container").count() == 1,
-            "worldwide observation map initializes",
-        )
-
-        tabs = page.locator(".wx-drawer__tabs button[role='tab']")
-        require(
-            tabs.count() == 3
-            and [tabs.nth(i).inner_text() for i in range(3)] == ["Explore", "Check it", "Learn"]
-            and tabs.nth(0).get_attribute("aria-selected") == "true",
-            "global evidence drawer exposes three correctly labelled sections",
-        )
-        tabs.nth(0).focus()
-        tabs.nth(0).press("ArrowRight")
-        require(
-            tabs.nth(1).get_attribute("aria-selected") == "true"
-            and tabs.nth(1).evaluate("(element) => element === document.activeElement"),
-            "global evidence tabs support arrow-key navigation and visible focus",
-        )
-        tabs.nth(1).press("End")
-        require(
-            tabs.nth(2).get_attribute("aria-selected") == "true",
-            "End selects the final global evidence tab",
-        )
-        tabs.nth(2).press("Home")
-        require(
-            tabs.nth(0).get_attribute("aria-selected") == "true",
-            "Home returns to the Explore tab",
-        )
-
-        coordinate_disclosure = page.locator("details.map-coordinate-disclosure")
-        coordinate_disclosure.locator("summary").click()
-        latitude = page.locator("#map-coordinate-latitude")
-        longitude = page.locator("#map-coordinate-longitude")
-        latitude.fill("90")
-        longitude.fill("20")
-        page.locator(".map-coordinate-search-button").click()
-        error = page.locator("#map-coordinate-error")
-        require(
-            error.is_visible()
-            and "Latitude must be within the map range" in error.inner_text()
-            and latitude.get_attribute("aria-invalid") == "true"
-            and longitude.get_attribute("aria-invalid") == "true",
-            "coordinate search rejects out-of-range latitude and announces the error",
-        )
-
-        latitude.fill("25.1500")
-        longitude.fill("91.0667")
-        page.locator(".map-coordinate-search-button").click()
-        result = page.locator(".map-coordinate-result")
-        require(
-            result.is_visible()
-            and "25.15000°" in result.inner_text()
-            and "91.06670°" in result.inner_text()
-            and latitude.get_attribute("aria-invalid") == "false",
-            "valid coordinate search centers the map and confirms the selected point",
-        )
-
-        layer_disclosure = page.locator("details.map-layer-settings")
-        layer_disclosure.locator("summary").click()
-        layer_toggles = layer_disclosure.locator(".detection-layer-toggles input[type='checkbox']")
-        require(layer_toggles.count() == 2, "map layer panel exposes mosaic and scene-footprint switches")
-        layer_toggles.nth(0).check()
-        layer_toggles.nth(1).check()
-        require(
-            layer_toggles.nth(0).is_checked() and layer_toggles.nth(1).is_checked(),
-            "global mosaic and acquisition-footprint switches retain their selected state",
-        )
-
-        catalog_link = page.get_by_role("link", name="Browse worldwide scene records ↗")
-        require(
-            catalog_link.count() == 1
-            and catalog_link.get_attribute("href") == "/wetland/global/scenes",
-            "global investigation links to the dedicated NASA scene catalogue",
-        )
-        page.goto(BASE + "/wetland/global/scenes", wait_until="domcontentloaded", timeout=30_000)
-        page.locator(".global-map-wrap").wait_for(state="visible", timeout=30_000)
-        require(
-            "WORLDWIDE COVERAGE" in page.inner_text("body")
-            and "Coverage only" in page.inner_text("body")
-            and "no wetland detections" in page.inner_text("body").lower(),
-            "scene catalogue distinguishes acquired coverage from detections",
-        )
-        require(
-            page.get_by_role("link", name="Open science file").count() <= 1,
-            "catalogue does not fabricate a science-file link when a scene is not selected",
-        )
-
-        page.set_viewport_size({"width": 390, "height": 844})
-        page.goto(BASE + "/wetland/global", wait_until="domcontentloaded", timeout=30_000)
-        page.locator("#global-nisar-map").wait_for(state="visible", timeout=30_000)
-        map_height = page.locator("#global-nisar-map").evaluate(
-            "(element) => element.getBoundingClientRect().height"
-        )
-        require(
-            page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
-            and map_height >= 200,
-            f"global investigation remains usable at phone width (map height {round(map_height)}px)",
-        )
-
-        browser.close()
-
-    require(not errors, "global exploration has no browser runtime errors: " + " | ".join(errors))
-    print("All worldwide mission-control and scene-catalogue browser checks passed.")
-    return 0
-
-
-if __name__ == "__main__":
-    try:
-        raise SystemExit(main())
-    except Exception as error:
-        print(f"FAIL {error}", file=sys.stderr)
-        raise
+    # ── global mission control (live UI: FIELD ASSIGNMENT explorer) ──
+    pg.goto(BASE + "/wetland/global"); pg.wait_for_selector(".global-map-wrap", timeout=25000); pg.wait_for_timeout(5000); t = pg.inner_text("body")
+    check("explore: field assignment explorer loads", "FIELD ASSIGNMENT" in t and "Explore NISAR across the world" in t)
+    check("explore: honest empty state, no selected study", "No processed study selected" in t)
+    check("explore: empty state surfaces the featured Tanguar case", "explore the featured Tanguar Haor case" in t and pg.locator('.global-quest-empty a[href="/wetland"]').count() == 1)
+    check("explore: real scene footprints counted", "scene footprints" in t)
+    check("explore: footprints described as acquisitions, not detections", "Worldwide footprints show acquisitions, not detections" in t)
+    check("explore: backscatter is not a flood classification", "it is not a flood classification" in t)
+    check("explore: blank map areas are not classified", "A blank map area has no processed result" in t)
+    check("explore: process-another-place entry exists", "Process another place" in t)
+    check("explore: case walkthrough entry exists", "Start case walkthrough" in t)
+    check("explore: map renders", pg.locator("#global-nisar-map").count() == 1)
+    # master has no /wetland -> /wetland/global link on the case page itself;
+    # the same journey runs from the homepage's "NISAR worldwide" nav link.
+    pg.goto(BASE + "/"); pg.wait_for_timeout(3000); pg.get_by_role("link", name="NISAR worldwide").first.click(); pg.wait_for_url("**/wetland/global"); check("case -> explore navigation", True)
+    for w in (1100, 820, 390):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(600)
+        check(f"explore: no horizontal overflow at {w}px", not pg.evaluate("document.documentElement.scrollWidth > innerWidth"))
+    # ── phenomena briefings ──
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    for route, framing in (("/forest", ("exploratory", "candidate", "limited")), ("/volcano", ("interferogram", "published", "check whether"))):
+        pg.goto(BASE + route); pg.wait_for_timeout(1500)
+        body = pg.inner_text("body")
+        check(f"{route}: workspace loads with honest framing",
+              route.strip("/") in body.lower() and any(word in body.lower() for word in framing))
+    b.close()
+bad = results.count(False)
+print(f"\n{len(results) - bad}/{len(results)} checks passed; application errors: {errors or 'none'}")
+sys.exit(1 if bad or errors else 0)

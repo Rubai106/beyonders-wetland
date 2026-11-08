@@ -5,10 +5,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import { PipelineOutputError, pipelineRun, readPipelineOutput } from "@/lib/pipeline-output";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 const execFileAsync = promisify(execFile);
 
 export async function GET(req: NextRequest) {
+  const limit = checkRateLimit(req, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   if (publicViewer()) return NextResponse.json({ error: "Exact raster probing is available in the local operator application." }, { status: 403 });
   const latStr = req.nextUrl.searchParams.get("lat")?.trim();
   const lngStr = req.nextUrl.searchParams.get("lng")?.trim();

@@ -321,7 +321,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
   const [focusStudyArea, setFocusStudyArea] = useState(false);
   const [mapMode, setMapMode] = useState<ViewMode>("MOTION");
   const [satelliteBasemap, setSatelliteBasemap] = useState(true);
-  const [showFootprints, setShowFootprints] = useState(false);
+  const [showFootprints, setShowFootprints] = useState(true);
   const [showNisarMosaic, setShowNisarMosaic] = useState(false);
   const [showLocalRadar, setShowLocalRadar] = useState(false);
   const [mapComparisonOpen, setMapComparisonOpen] = useState(false);
@@ -594,7 +594,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
     {questCandidates.map((feature, index) => <button key={feature.properties.id} type="button" onClick={() => selectCandidate(feature.properties.id ?? null)} title="Select and inspect this candidate">
       <span>{index + 1}</span><span className="wx-mono">{(feature.properties.area_km2 ?? 0).toFixed(2)} km²</span>
     </button>)}
-  </div> : <span className="global-quest-empty">{isNisar ? "No candidates for this observation" : "No processed study selected"}</span>;
+  </div> : <span className="global-quest-empty">{isNisar ? "No candidates for this observation" : <>No processed study selected — <Link className="global-data-link" href="/wetland">explore the featured Tanguar Haor case</Link> (7 real NISAR dates, 30 Jun → 22 Sep 2026; 24.48 km² of radar-change candidates at peak)</>}</span>;
   const processingPanel = <>
 <NisarProcessingPanel bounds={areaBounds} boundary={areaBoundary} drawing={areaDrawing}
         onDraw={setAreaDrawing} onAreaChange={applyArea}
@@ -610,7 +610,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
         <span>{loading
           ? "Radar comparisons and independent-reference checks will appear when the selected study finishes loading."
           : "The Radar comparison, date-specific reference check, and optical evidence are still available here. Load a saved run from Explore to show its measured inputs."}</span>
-        {!loading && <Link className="global-data-link" href="#nisar-run-controls">Choose a saved study in Explore ↑</Link>}
+        {!loading && <><Link className="global-data-link" href="#nisar-run-controls">Choose a saved study in Explore ↑</Link> or <Link className="global-data-link" href="/wetland">explore the featured Tanguar Haor case →</Link></>}
       </div>}
 {isNisar && data?.selected_date && !loading && <RadarComparison runId={data.run_id} date={data.selected_date} refreshKey={refreshKey} />}
       {isNisar && data?.selected_date && !loading && <SavedDateCheck runId={data.run_id} date={data.selected_date} refreshKey={refreshKey} />}
@@ -666,7 +666,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
             {data.case_study.reference_validation?.selection?.catalog_searches && <p className="nisar-case-step__detail">Collections searched: {data.case_study.reference_validation.selection.catalog_searches.map((item) => `${item.collection}: ${item.status === "SEARCHED" ? `${item.records} records` : "unavailable"}`).join(" · ")}</p>}
             {data.case_study.reference_validation?.comparison && <p className="nisar-case-step__detail">Before reference: {data.case_study.reference_validation.comparison.baseline?.product || "S30"}, {data.case_study.reference_validation.comparison.baseline?.offset_days ?? "—"} days from radar. After reference: {data.case_study.reference_validation.comparison.event?.product || "S30"}, {data.case_study.reference_validation.comparison.event?.offset_days ?? "—"} days from radar.</p>}
             {data.case_study.reference_validation?.status !== "CROSS_SENSOR_CHECK" && data.case_study.reference_validation?.comparison && <p className="nisar-case-step__detail">Reference dates: {data.case_study.reference_validation.comparison.baseline?.hls_date} → {data.case_study.reference_validation.comparison.event?.hls_date}. Common clear coverage: {((data.case_study.reference_validation.coverage?.common_clear_fraction || 0)*100).toFixed(1)}%.</p>}
-            <a href="#nisar-process">Review the independent-reference workflow ↑</a>
+            <a href="#nisar-process">Retry the independent reference check ↑</a>
             <p><a href="#nisar-reference-evidence">Inspect optical images and the disagreement ↓</a></p>
             <p className="nisar-case-step__detail">Cross-sensor agreement is not field truth or a formal accuracy estimate; vegetated inundation is not checked.</p>
             <a className="detection-worldview-link" href={data.case_study.reference_validation?.source_url || "https://hls.gsfc.nasa.gov/data-products/"} target="_blank" rel="noreferrer">NASA HLS reference source ↗</a>

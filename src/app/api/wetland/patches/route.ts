@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PipelineOutputError, pipelineRun, readPipelineOutput } from "@/lib/pipeline-output";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
+  const limit = checkRateLimit(req, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   try {
     const run = pipelineRun();
     let filename = "patches_final.geojson";

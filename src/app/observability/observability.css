@@ -1,0 +1,90 @@
+/* Observation health page — calm, legible, no dashboard glitter. */
+.obs-page { max-width: 1080px; margin: 0 auto; padding: 48px 24px 80px; color: #1d2733; background: #f4f2ec; min-height: 100vh; font-family: var(--font-sans, system-ui, sans-serif); }
+.obs-hero { margin-bottom: 40px; }
+.obs-eyebrow { font-size: 12px; letter-spacing: 0.14em; font-weight: 700; color: #8a6d2b; margin: 0 0 8px; }
+.obs-hero h1 { font-size: 40px; line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; }
+.obs-lede { font-size: 17px; line-height: 1.6; max-width: 72ch; margin: 0 0 12px; color: #3c4754; }
+.obs-meta { font-size: 13px; color: #6b7684; margin: 0; }
+.obs-missing { border: 1px solid #c98a2b; background: #fff7e6; border-radius: 10px; padding: 16px 20px; margin-bottom: 32px; }
+.obs-missing h2 { margin: 0 0 6px; font-size: 18px; }
+.obs-missing p { margin: 0 0 8px; font-size: 14px; }
+.obs-missing code { font-size: 13px; }
+.obs-domain { margin-bottom: 40px; }
+.obs-domain > h2 { font-size: 24px; margin: 0 0 16px; padding-bottom: 8px; border-bottom: 2px solid #1d2733; }
+.obs-empty { color: #6b7684; font-style: italic; }
+.obs-studies { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+.obs-study { background: #fff; border: 1px solid #d8d3c4; border-radius: 12px; padding: 20px; }
+.obs-study header h3 { margin: 0 0 4px; font-size: 19px; }
+.obs-study header h3 a { color: #1d2733; text-decoration: none; }
+.obs-study header h3 a:hover { text-decoration: underline; }
+.obs-state { margin: 0 0 14px; font-size: 13px; color: #6b7684; }
+.obs-state strong { color: #8a6d2b; }
+.obs-facts { display: grid; gap: 6px; margin: 0 0 16px; font-size: 14px; }
+.obs-facts div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
+.obs-facts dt { color: #6b7684; }
+.obs-facts dd { margin: 0; }
+.obs-facts code { font-size: 12px; word-break: break-all; }
+.obs-ladder { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.obs-ladder li { display: flex; gap: 8px; align-items: baseline; }
+.obs-ladder .is-reached { color: #1d2733; }
+.obs-ladder .is-reached span:first-child { color: #2e7d32; }
+.obs-ladder .is-missing { color: #9aa3ad; }
+.obs-note { font-size: 14px; line-height: 1.55; margin: 0 0 8px; color: #3c4754; }
+.obs-states, .obs-services { margin-top: 48px; }
+.obs-states h2, .obs-services h2 { font-size: 22px; margin: 0 0 8px; }
+.obs-states p, .obs-services p { font-size: 15px; line-height: 1.6; color: #3c4754; max-width: 72ch; }
+.obs-states dl { display: grid; gap: 10px; margin: 16px 0 0; }
+.obs-states dl div { display: grid; grid-template-columns: 220px 1fr; gap: 12px; font-size: 14px; }
+.obs-states dt { font-weight: 700; }
+.obs-states dd { margin: 0; color: #3c4754; }
+@media (max-width: 640px) {
+  .obs-page { padding: 32px 16px 64px; }
+  .obs-hero h1 { font-size: 30px; }
+  .obs-states dl div { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* Maturity matrix — the visual summary of the same data the cards detail. */
+.obs-matrix-wrap { margin-bottom: 40px; min-width: 0; }
+.obs-matrix-wrap h2 { font-size: 24px; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 2px solid #1d2733; }
+.obs-matrix-wrap > p { font-size: 15px; line-height: 1.6; color: #3c4754; max-width: 72ch; margin: 0 0 16px; }
+.obs-matrix-scroll { overflow-x: auto; border: 1px solid #d8d3c4; border-radius: 12px; background: #fff; min-width: 0; max-width: 100%; contain: layout; }
+.obs-matrix { border-collapse: collapse; width: 100%; min-width: 860px; font-size: 13px; }
+.obs-matrix th, .obs-matrix td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #e8e4d6; }
+.obs-matrix thead th { font-size: 12px; color: #6b7684; vertical-align: bottom; min-width: 40px; }
+.obs-matrix thead th:first-child { text-align: left; }
+.obs-matrix tbody tr:last-child th, .obs-matrix tbody tr:last-child td { border-bottom: 0; }
+.obs-matrix tbody th { text-align: left; font-size: 14px; white-space: nowrap; }
+.obs-matrix tbody th a { color: #1d2733; text-decoration: none; }
+.obs-matrix tbody th a:hover { text-decoration: underline; }
+.obs-matrix tbody th span { display: block; font-size: 11px; font-weight: 400; color: #6b7684; }
+.obs-matrix td.is-reached { color: #2e7d32; font-size: 15px; }
+.obs-matrix td.is-missing { color: #c9c2ae; font-size: 15px; }
+.obs-matrix__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.obs-matrix__count { text-align: left !important; white-space: nowrap; }
+.obs-matrix__track { display: inline-block; width: 64px; vertical-align: middle; margin-right: 8px; }
+.obs-matrix__bar { display: block; height: 8px; border-radius: 4px; background: #8a6d2b; min-width: 6px; }
+.obs-matrix__reached { font-weight: 700; white-space: nowrap; }
+
+/* Evidence Quality Explorer — one honest number per fact. Status is always a
+   word, never colour alone. */
+.obs-quality { margin-bottom: 40px; }
+.obs-quality > h2 { font-size: 24px; margin: 0 0 8px; padding-bottom: 8px; border-bottom: 2px solid #1d2733; }
+.obs-quality > p { font-size: 15px; line-height: 1.6; color: #3c4754; max-width: 72ch; margin: 0 0 20px; }
+.obs-quality__study { background: #fff; border: 1px solid #d8d3c4; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.obs-quality__study > h3 { margin: 0 0 12px; font-size: 18px; }
+.obs-quality__study ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.obs-quality__head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 14px; }
+.obs-quality__status { font-size: 12px; font-weight: 700; color: #8a6d2b; white-space: nowrap; }
+.obs-quality__value { font-size: 15px; font-weight: 700; margin: 4px 0 6px; }
+.obs-quality__bar { height: 8px; border-radius: 4px; background: #e8e4d6; overflow: hidden; margin-bottom: 6px; }
+.obs-quality__bar span { display: block; height: 100%; border-radius: 4px; background: #8a6d2b; }
+.obs-quality__meaning { font-size: 14px; line-height: 1.55; color: #3c4754; margin: 0 0 4px; }
+.obs-quality__source { font-size: 12px; color: #6b7684; margin: 0; }
+.obs-quality__source code { font-size: 12px; word-break: break-all; }
+
+/* Investigation Capsule download link on each study card. */
+.obs-capsule { font-size: 13px; line-height: 1.55; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid #e8e4d6; color: #3c4754; }
+.obs-capsule a { color: #1d2733; font-weight: 700; }
+@media (max-width: 640px) {
+  .obs-quality__head { flex-direction: column; gap: 2px; }
+}

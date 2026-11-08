@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "npm run test:unit",
-    "test:unit": "node --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/*.test.ts"
+    "test:unit": "node --no-warnings=ExperimentalWarning --loader ./tests/strip-loader.mjs --test src/lib/*.test.ts",
+    "start:public": "BEYONDERS_MODE=public next start"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

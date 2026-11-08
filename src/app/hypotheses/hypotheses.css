@@ -1,0 +1,59 @@
+/* Hypothesis Workspace — dark exploration workspace. Scoped to .hypo-page. */
+.hypo-page { background: #0b1114; color: #e8f0ee; min-height: 100vh; padding: 0 0 64px; font-family: var(--font-sans); }
+.hypo-head { max-width: 1100px; margin: 0 auto; padding: 40px 24px 8px; }
+.hypo-eyebrow { margin: 0 0 10px; color: #6fd3c0; font: 650 0.68rem var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.hypo-head h1 { margin: 0 0 12px; font: 600 clamp(28px, 4vw, 44px)/1.15 var(--font-display); color: #f3f6f5; }
+.hypo-head > p { max-width: 72ch; margin: 0 0 12px; color: #b9c8cc; font-size: 15px; line-height: 1.65; }
+.hypo-micro { margin: 0; color: #8fa6ac; font: 650 0.66rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.hypo-note { color: #9aaeb4; font-size: 13px; line-height: 1.6; }
+
+.hypo-workspace { max-width: 1100px; margin: 0 auto; padding: 16px 24px 0; }
+.hypo-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.hypo-picker__card { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid #24343d; border-radius: 10px; background: #101a1f; color: #c6d4d8; font: inherit; text-align: left; cursor: pointer; }
+.hypo-picker__card:hover { border-color: #3c5a63; }
+.hypo-picker__card.is-active { border-color: #6fd3c0; background: #12262b; color: #f3f6f5; }
+.hypo-picker__domain { color: #6fd3c0; font: 650 0.62rem var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.hypo-picker__card strong { font-size: 15px; }
+.hypo-picker__card span:last-child { color: #8fa6ac; font-size: 12px; }
+
+.hypo-panel { border: 1px solid #24343d; border-radius: 14px; background: #0e161c; padding: 20px 22px 24px; }
+.hypo-panel__head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.hypo-panel__head h2 { margin: 6px 0 8px; font: 600 26px/1.2 var(--font-display); color: #f3f6f5; }
+.hypo-intro { max-width: 68ch; margin: 0; color: #b9c8cc; font-size: 13.5px; line-height: 1.6; }
+.hypo-case-link { flex: 0 0 auto; padding: 10px 14px; border: 1px solid #2d5940; border-radius: 8px; background: #264a35; color: #fffef5; font-size: 13px; font-weight: 600; text-decoration: none; }
+.hypo-case-link:hover { background: #2f5c42; }
+
+.hypo-ranking { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.hypo-rank { border: 1px solid #24343d; border-radius: 10px; background: #101a1f; padding: 14px 16px; }
+.hypo-rank.is-first { border-color: #6fd3c0; background: #12262b; }
+.hypo-rank__place { margin: 0 0 6px; color: #6fd3c0; font: 700 0.66rem var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.hypo-rank__statement { margin: 0 0 8px; color: #f3f6f5; font-size: 15px; font-weight: 600; line-height: 1.4; }
+.hypo-rank__score { margin: 0 0 10px; color: #8fa6ac; font-size: 12.5px; }
+.hypo-rank__claim, .hypo-rank__falsifier { margin: 0 0 6px; color: #b9c8cc; font-size: 13px; line-height: 1.55; }
+.hypo-rank__claim strong, .hypo-rank__falsifier strong { color: #e8f0ee; }
+
+.hypo-matrix-wrap { overflow-x: auto; border: 1px solid #24343d; border-radius: 10px; }
+.hypo-matrix { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13.5px; }
+.hypo-matrix th, .hypo-matrix td { padding: 10px 12px; border-bottom: 1px solid #1d2a30; text-align: left; vertical-align: top; }
+.hypo-matrix thead th { background: #122026; color: #e8f0ee; font-size: 12.5px; line-height: 1.4; }
+.hypo-matrix tbody th { font-weight: 500; color: #c6d4d8; line-height: 1.5; max-width: 340px; }
+.hypo-matrix tbody th small { display: block; margin-top: 4px; color: #7d9298; font-size: 11.5px; }
+.hypo-matrix tbody tr.is-diagnostic th { border-left: 3px solid #e4c28a; }
+.hypo-diagnostic { color: #e4c28a !important; font-weight: 600; }
+.hypo-cell { display: grid; gap: 2px; width: 100%; min-width: 110px; padding: 8px 10px; border: 1px solid #2d4048; border-radius: 8px; background: #142026; color: #d6e2e5; font: inherit; cursor: pointer; }
+.hypo-cell:hover { border-color: #3c5a63; }
+.hypo-cell.is-consistent { border-color: #2d6a4f; background: rgba(45, 106, 79, 0.22); color: #8fd6ae; }
+.hypo-cell.is-inconsistent { border-color: #7a2e2e; background: rgba(122, 46, 46, 0.25); color: #f0a8a8; }
+.hypo-cell.is-mine { outline: 2px solid #e4c28a; outline-offset: 1px; }
+.hypo-cell__label { font-size: 12px; font-weight: 600; }
+.hypo-cell__mine { color: #e4c28a; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.hypo-foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 16px; }
+.hypo-foot .hypo-note { flex: 1 1 100%; margin: 0; }
+.hypo-reset { padding: 8px 12px; border: 1px solid #2d4048; border-radius: 8px; background: #142026; color: #d6e2e5; font: inherit; font-size: 13px; cursor: pointer; }
+.hypo-temporal-link { color: #6fd3c0; font-size: 13.5px; font-weight: 600; text-decoration: none; }
+
+@media (max-width: 760px) {
+  .hypo-head { padding-top: 28px; }
+  .hypo-panel { padding: 16px 14px 20px; }
+}

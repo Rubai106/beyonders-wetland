@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PipelineOutputError, pipelineRun, readPipelineOutput } from "@/lib/pipeline-output";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 type PulseDate = { date: string; area_km2: number; patches: number };
 type Observation = { date: string; patches_file: string; scene_name?: string | null;
   baseline_method?: { baseline_observation_count?: number; baseline_observation_dates?: string[]; baseline_scene_names?: string[] } };
 
 export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "general");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   try {
     const run = pipelineRun(request.nextUrl.searchParams.get("run"));
     const dataSource = run.manifest.data_source === "NISAR" ? "NISAR"

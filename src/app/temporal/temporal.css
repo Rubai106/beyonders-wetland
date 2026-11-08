@@ -1,0 +1,75 @@
+/* Temporal Studio — dark exploration workspace. Scoped to .temporal-page. */
+.temporal-page { background: #0b1114; color: #e8f0ee; min-height: 100vh; padding: 0 0 64px; font-family: var(--font-sans); }
+.temporal-head { max-width: 1100px; margin: 0 auto; padding: 40px 24px 8px; }
+.temporal-eyebrow { margin: 0 0 10px; color: #6fd3c0; font: 650 0.68rem var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; }
+.temporal-head h1 { margin: 0 0 12px; font: 600 clamp(28px, 4vw, 44px)/1.15 var(--font-display); color: #f3f6f5; }
+.temporal-head > p { max-width: 72ch; margin: 0 0 12px; color: #b9c8cc; font-size: 15px; line-height: 1.65; }
+.temporal-missing { color: #e4c28a; font-size: 13px; }
+.temporal-micro { margin: 0; color: #8fa6ac; font: 650 0.66rem var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
+.temporal-note { color: #9aaeb4; font-size: 13px; line-height: 1.6; }
+
+.temporal-studio { max-width: 1100px; margin: 0 auto; padding: 16px 24px 0; }
+.temporal-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 20px; }
+.temporal-picker__card { display: grid; gap: 4px; padding: 12px 14px; border: 1px solid #24343d; border-radius: 10px; background: #101a1f; color: #c6d4d8; font: inherit; text-align: left; cursor: pointer; }
+.temporal-picker__card:hover { border-color: #3c5a63; }
+.temporal-picker__card.is-active { border-color: #6fd3c0; background: #12262b; color: #f3f6f5; }
+.temporal-picker__domain { color: #6fd3c0; font: 650 0.62rem var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; }
+.temporal-picker__card strong { font-size: 15px; }
+.temporal-picker__card span:last-child { color: #8fa6ac; font-size: 12px; }
+
+.temporal-panel { border: 1px solid #24343d; border-radius: 14px; background: #0e161c; padding: 20px 22px 24px; }
+.temporal-panel__head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.temporal-panel__head h2 { margin: 6px 0 8px; font: 600 26px/1.2 var(--font-display); color: #f3f6f5; }
+.temporal-rule { max-width: 68ch; margin: 0; color: #b9c8cc; font-size: 13.5px; line-height: 1.6; }
+.temporal-rule strong { color: #e8f0ee; }
+.temporal-case-link { flex: 0 0 auto; padding: 10px 14px; border: 1px solid #2d5940; border-radius: 8px; background: #264a35; color: #fffef5; font-size: 13px; font-weight: 600; text-decoration: none; }
+.temporal-case-link:hover { background: #2f5c42; }
+
+.temporal-chart { display: block; width: 100%; height: auto; margin: 8px 0 4px; }
+.temporal-chart__axis { stroke: #2a3d45; stroke-width: 1; }
+.temporal-chart__tick { fill: #7d9298; font: 11px var(--font-mono); }
+.temporal-chart__date { fill: #7d9298; font: 11px var(--font-mono); }
+.temporal-chart__area { fill: rgba(111, 211, 192, 0.14); }
+.temporal-chart__line { stroke: #6fd3c0; stroke-width: 2; }
+.temporal-chart__dot { fill: #0e161c; stroke: #6fd3c0; stroke-width: 1.5; }
+.temporal-chart__dot.is-selected { fill: #6fd3c0; }
+.temporal-chart__halo { fill: none; stroke: rgba(111, 211, 192, 0.4); stroke-width: 1.5; }
+
+.temporal-track { position: relative; height: 56px; margin: 10px 8px 0; }
+.temporal-track__line { position: absolute; left: 0; right: 0; top: 10px; height: 2px; background: #24343d; }
+.temporal-track__node { position: absolute; top: 0; transform: translateX(-50%); display: grid; justify-items: center; gap: 6px; padding: 4px 2px; border: 0; background: none; color: #8fa6ac; font: inherit; cursor: pointer; }
+.temporal-track__dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #6fd3c0; background: #0e161c; }
+.temporal-track__node.is-selected .temporal-track__dot { background: #6fd3c0; box-shadow: 0 0 0 4px rgba(111, 211, 192, 0.25); }
+.temporal-track__label { font: 11px var(--font-mono); white-space: nowrap; }
+.temporal-track__node.is-selected .temporal-track__label { color: #f3f6f5; }
+
+.temporal-scrub { display: flex; align-items: center; gap: 12px; margin: 6px 0 18px; }
+.temporal-scrub button { flex: 0 0 auto; padding: 8px 12px; border: 1px solid #2d4048; border-radius: 8px; background: #142026; color: #d6e2e5; font: inherit; font-size: 13px; cursor: pointer; }
+.temporal-scrub button:disabled { opacity: 0.4; cursor: default; }
+.temporal-scrub input[type="range"] { flex: 1 1 auto; accent-color: #6fd3c0; }
+
+.temporal-detail { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; border-top: 1px solid #24343d; padding-top: 18px; }
+.temporal-big { margin: 8px 0 2px; }
+.temporal-big strong { font: 600 40px/1 var(--font-display); color: #f3f6f5; }
+.temporal-metric-name { margin: 0 0 10px; color: #8fa6ac; font-size: 13px; }
+.temporal-secondary { margin: 4px 0; color: #b9c8cc; font-size: 13.5px; }
+.temporal-peak { display: inline-block; margin: 10px 0 0; padding: 4px 10px; border-radius: 20px; background: rgba(111, 211, 192, 0.16); color: #6fd3c0; font-size: 12px; font-weight: 700; }
+.temporal-detail__evidence p { margin: 0 0 10px; color: #c6d4d8; font-size: 14px; line-height: 1.65; }
+.temporal-detail__evidence strong { color: #f3f6f5; }
+.temporal-figure { margin: 12px 0 0; }
+.temporal-figure img { display: block; width: 100%; max-height: 320px; object-fit: contain; border: 1px solid #24343d; border-radius: 8px; background: #091217; }
+.temporal-figure figcaption { margin-top: 6px; color: #7d9298; font-size: 12px; }
+
+.temporal-optical { border-top: 1px solid #24343d; margin-top: 20px; padding-top: 16px; }
+.temporal-optical__track { position: relative; height: 40px; margin-top: 10px; }
+.temporal-optical__dot { position: absolute; top: 4px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; border: 2px solid #e4c28a; background: #0e161c; }
+.temporal-optical__label { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); color: #8fa6ac; font: 11px var(--font-mono); white-space: nowrap; }
+.temporal-empty { padding: 40px 24px; color: #9aaeb4; }
+
+@media (max-width: 760px) {
+  .temporal-head { padding-top: 28px; }
+  .temporal-panel { padding: 16px 14px 20px; }
+  .temporal-detail { grid-template-columns: minmax(0, 1fr); }
+  .temporal-big strong { font-size: 32px; }
+  .temporal-track__label { font-size: 10px; }
+}

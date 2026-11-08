@@ -66,7 +66,7 @@ export default function GlobalSceneMap({
         bounds={WORLD_BOUNDS}
         noWrap
       />
-      <ZoomControl position="bottomright" />
+      <ZoomControl position="topright" />
       <GlobalWorldBounds />
       {features.features.length > 0 && (
         <LeafletGeoJSON

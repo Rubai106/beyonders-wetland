@@ -111,6 +111,20 @@ function Hydrograph() {
   const [failed, setFailed] = useState(false);
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const hydroRef = useRef<HTMLDivElement | null>(null);
+  // Auto-play the pulse while the chart is on screen (paused otherwise), so
+  // every value cycles into view — previously only the peak value ever showed
+  // because playback started paused. Reduced-motion users keep the peak value.
+  useEffect(() => {
+    const el = hydroRef.current;
+    if (!el || !pulse) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) setPlaying(entry.isIntersecting);
+    }, { threshold: 0.4 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [pulse]);
   useEffect(() => {
     let live = true;
     fetch("/showcase/featured/pulse.json", { cache: "no-store" })
@@ -150,7 +164,7 @@ function Hydrograph() {
   const peakIdx = Math.max(0, entries.findIndex((d) => d.date === pulse.peak?.date));
   const cur = entries[Math.min(active, entries.length - 1)];
   return (
-    <div className="hydro">
+    <div className="hydro" ref={hydroRef}>
       <div className="hydro-bars" role="img" aria-label={`Radar-derived radar-change candidate area across ${entries.length} 2026 observations of Tanguar Haor, peaking ${shortDate(entries[peakIdx].date)}`}>
         {entries.map((d, i) => (
           <button key={d.date} type="button" className={`hydro-bar${i === active ? " is-active" : ""}${i === peakIdx ? " is-peak" : ""}`}
@@ -296,6 +310,7 @@ export default function Home() {
             <Link href="/forest/rondonia">Forests</Link>
             <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
             <Link href="/agriculture">Agriculture</Link>
+            <Link href="/observability">Observation health</Link>
             <Link href="/wetland/global">NISAR worldwide</Link>
           </nav>
           <details className="g3-mobile-nav">
@@ -305,6 +320,7 @@ export default function Home() {
               <Link href="/forest/rondonia">Forests</Link>
               <Link href="/volcano/hayli-gubbi">Volcanoes</Link>
               <Link href="/agriculture">Agriculture</Link>
+              <Link href="/observability">Observation health</Link>
               <Link href="/wetland/global">NISAR worldwide</Link>
             </nav>
           </details>
@@ -541,7 +557,7 @@ export default function Home() {
       <footer className="g3-foot">
         <p><strong>GeoNexSAR</strong></p>
         <p>GeoNexSAR shows observed data and derived results with provenance. A radar-change candidate is never presented as a confirmed flood.</p>
-        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
+        <nav aria-label="Footer"><Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link><Link href="/volcano/hayli-gubbi">Volcanoes</Link><Link href="/agriculture">Agriculture</Link><Link href="/observability">Observation health</Link><Link href="/wetland/global">NISAR worldwide</Link></nav>
       </footer>
     </main>
   );

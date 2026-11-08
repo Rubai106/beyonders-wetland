@@ -1,5 +1,12 @@
 # GeoNexSAR v11 — Global Change Investigator
 
+## Master migration — 2026-11-08 (Phase 1–4 work ported from Rubai-dev, file by file, no blind merge)
+
+- Master is the canonical branch. The verified Phase 1–4 improvements from `Rubai-dev` (HEAD `fb3d445`, 6 local commits + uncommitted work) were reconciled against latest remote `master` (`f2dbdd2`) using `docs/PHASE4_BASELINE.md` and the port manifest + migration workbook (`~/workspace/beyonders-master-port/`).
+- Ported: SHA-256 showcase integrity (fail-closed), `/observability` (7 studies, maturity ladder, Evidence Quality Explorer, Reproducible Investigation Capsule `GET /api/capsule/<id>`), `/lineage` (Evidence Lineage Explorer), security headers + enforcing CSP, API rate limiting (22 routes + geocode's own throttle), GeoTIFF download gating to operator mode, dead-component removal, and the Phase 2/3/4 docs.
+- Deliberately kept from master: the 847-byte 2-case showcase index (Tanguar + Hakaluki), the 3D Field Volume / visual-refresh work, the newer homepage (reduced-motion guards, pin form, mobile nav), the newer registry wording for Wetlands, the catalogue min-date validation, and master's Dynamic World crop-mask / publication-index tests. The one real merge was `src/lib/showcase.ts` (verification + master's external-asset fields).
+- `Rubai-dev` was kept intact as the recovery source until this master result is verified and pushed.
+
 ## Implemented
 
 - Added place-name lookup through OpenStreetMap Nominatim. Searches are user-submitted, throttled, validated, attributed, and return explicit error/no-result states. Place lookup never creates scientific candidates.

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 const CMR = "https://cmr.earthdata.nasa.gov/search/granules.umm_json";
@@ -67,6 +68,8 @@ function validDate(value: string | null): value is string {
     return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 export async function GET(request: NextRequest) {
+  const limit = checkRateLimit(request, "external");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
     const params = request.nextUrl.searchParams;
     const lat = Number(params.get("lat"));
     const lon = Number(params.get("lon"));

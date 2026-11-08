@@ -5,6 +5,7 @@ import {
   type AgricultureCatalogueResult,
 } from "@/lib/agriculture-catalogue";
 import { AGRICULTURE_SME2_MIN_DATE } from "@/lib/agriculture-catalogue-schema";
+import { checkRateLimit, rateLimitedResponse } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +48,8 @@ function validateBody(value: unknown): SearchBody | null {
 }
 
 export async function POST(request: NextRequest) {
+  const limit = checkRateLimit(request, "external");
+  if (!limit.allowed) return rateLimitedResponse(limit.retryAfterSeconds);
   const origin = request.headers.get("origin");
   if (origin) {
     try {
