@@ -359,6 +359,13 @@
 .wx-region-tools label:first-child { grid-column: 1 / -1; }
 .wx-region-tools input, .wx-region-tools select, .wx-region-export select { min-width: 0; width: 100%; padding: 8px 9px; border: 1px solid #293640; border-radius: var(--r-1); background: #0d141a; color: var(--ws-text); }
 .wx-region-tools input:focus-visible, .wx-region-tools select:focus-visible, .wx-region-export select:focus-visible { outline: 2px solid var(--c-derived); outline-offset: 2px; }
+.wx-region-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; color: var(--ws-text-2); font-size: .7rem; }
+.wx-region-summary button { color: var(--c-derived); font-size: .7rem; text-decoration: underline; text-underline-offset: 2px; }
+.wx-region-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px; border: 1px dashed #34434e; border-radius: var(--r-1); background: #0b1117; }
+.wx-region-empty strong { color: var(--ws-text); font-size: .8rem; }
+.wx-region-empty p { color: var(--ws-text-2); font-size: .72rem; line-height: 1.45; }
+.wx-region-pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--ws-text-2); font-size: .7rem; }
+.wx-region-pagination .wx-btn { min-height: 36px; font-size: .72rem; }
 .wx-region-table-wrap { max-height: 310px; overflow: auto; border: 1px solid #1e2a33; border-radius: var(--r-1); }
 .wx-region-table { width: 100%; min-width: 440px; border-collapse: collapse; font-size: .74rem; font-variant-numeric: tabular-nums; }
 .wx-region-table th, .wx-region-table td { padding: 8px 9px; border-bottom: 1px solid #1e2a33; text-align: left; vertical-align: middle; }
