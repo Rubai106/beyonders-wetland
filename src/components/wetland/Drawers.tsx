@@ -170,7 +170,9 @@ export function InvestigationDrawer() {
       limitation="Radar change does not by itself prove flooding. The same signal can come from other changes at the surface."
       action={<button className="wx-btn wx-btn--primary" onClick={() => setChallengeOpen(!challengeOpen)} aria-expanded={challengeOpen}>{challengeOpen ? "Hide the challenge" : "Challenge this detection"}</button>}>
       <nav className="wx-region-nav" aria-label="Candidate region navigation"
-        data-region-id={p.id} data-position={regionNav.currentIndex >= 0 ? regionNav.currentIndex + 1 : 0} data-total={regionNav.total}>
+        data-region-id={p.id} data-acquisition-date={p.date} data-class-filter={vegFilter}
+        data-view-mode={viewMode} data-map-mode={mapMode}
+        data-position={regionNav.currentIndex >= 0 ? regionNav.currentIndex + 1 : 0} data-total={regionNav.total}>
         <button type="button" disabled={!regionNav.previous}
           aria-label={regionNav.previous ? `Previous region: ${regionLabel(regionNav.previous.id)}` : "Previous region"}
           onClick={() => { if (regionNav.previous) setSelectedPatch(regionNav.previous); }}>Previous</button>
