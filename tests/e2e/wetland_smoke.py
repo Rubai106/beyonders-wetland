@@ -114,6 +114,21 @@ with sync_playwright() as p:
         and register_rows.count() == 100
         and page.locator(".wx-region-pagination button").count() == 1,
     )
+    register_width = page.locator(".wx-region-register").evaluate("(el) => el.clientWidth")
+    compact_cards = page.locator(".wx-region-cards")
+    table_wrap = page.locator(".wx-region-table-wrap")
+    check(
+        "narrow desktop drawer uses compact region cards instead of a wide table",
+        register_width <= 420 and compact_cards.is_visible() and not table_wrap.is_visible()
+        and compact_cards.locator("li").count() == 100,
+        f"register={register_width}px cards={compact_cards.locator('li').count()}",
+    )
+    compact_cards.locator("button").first.click()
+    check(
+        "compact region card opens the selected region inspector",
+        compact_cards.locator("button").first.get_attribute("aria-pressed") == "true"
+        and page.get_by_role("heading", name="Why this region?").count() == 1,
+    )
 
     # Audit the chart against the exact published pulse manifest, including its
     # date labels, candidate-area values, marker geometry and keyboard controls.
@@ -232,6 +247,20 @@ with sync_playwright() as p:
     check("zero scores not emphasised", "Raw comparison numbers (not meaningful at this coverage)" in t and page.locator("details.wx-raw[open]").count() == 0)
     check("optical evidence images present", page.locator(".wx-optical-imgs img").count() >= 4, str(page.locator(".wx-optical-imgs img").count()))
     t = open_tab("Explore"); check("story from loaded values", "295 candidate regions covering 24.48" in t and "rather than confirmed flooding" in t)
+    story_snapshot = page.inner_text(".wx-story-snapshot")
+    check(
+        "date-aware story follows the selected September 22 acquisition",
+        "September 22, 2026" in story_snapshot and "8.42 km²" in story_snapshot
+        and "452" in story_snapshot and "7.2%" in story_snapshot,
+        story_snapshot[:240],
+    )
+    check(
+        "date-aware story compares the previous snapshot without implying a daily rate",
+        "Change from September 10, 2026" in story_snapshot
+        and "−12.56 km²" in story_snapshot and "+6 candidate regions" in story_snapshot
+        and "12 days between acquisitions" in story_snapshot and "not a daily rate" in story_snapshot,
+        story_snapshot[-260:],
+    )
     t = open_tab("Learn"); check("data chain has six steps", page.locator(".wx-chain li").count() == 6)
     page.click(".wx-chain li button >> nth=3"); check("data chain step expands", page.locator(".wx-chain__tech").count() == 1)
     check("why radar explains clouds", "cloud" in t.lower())
