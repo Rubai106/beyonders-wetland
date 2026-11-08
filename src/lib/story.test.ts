@@ -1,7 +1,7 @@
 // Run: npm test   (node's built-in runner; no extra dependencies)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, regionNavigationContext, type StackRow } from "./story.ts";
+import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, regionNavigationContext, regionDistributionContext, type StackRow } from "./story.ts";
 
 const pulse = { site: "X", wetland_area_km2: 50, data_source: "NISAR" as const, reference_check_status: "INCONCLUSIVE",
   dates: [{ date: "2026-06-23", area_km2: 1, fraction: 0.1, mean_delta_db: 1, patches: 3 }, { date: "2026-08-29", area_km2: 24.48, fraction: 0.4, mean_delta_db: 2, patches: 295 }],
@@ -113,6 +113,42 @@ test("region navigation respects the class filter and disables unavailable bound
   assert.equal(missing.currentIndex, -1);
   assert.equal(missing.previous, null);
   assert.equal(missing.next, null);
+});
+
+test("region distribution reports deterministic ranks and medians for one acquisition", () => {
+  const regions = [
+    { id: "alpha", area_km2: 4, delta_hh: -2, classification: "OPEN_WATER" as const },
+    { id: "bravo", area_km2: 2, delta_hh: 5, classification: "OPEN_WATER" as const },
+    { id: "charlie", area_km2: 6, delta_hh: -1, classification: "VEGETATED_INUNDATION" as const },
+  ];
+  const context = regionDistributionContext(regions, "bravo");
+  assert.equal(context.total, 3);
+  assert.equal(context.areaRank, 3);
+  assert.equal(context.deltaHhRank, 1);
+  assert.equal(context.medianAreaKm2, 4);
+  assert.equal(context.medianAbsDeltaHhDb, 2);
+});
+
+test("region distribution respects class filters and leaves excluded candidates unranked", () => {
+  const regions = [
+    { id: "open-large", area_km2: 4, delta_hh: -2, classification: "OPEN_WATER" as const },
+    { id: "veg", area_km2: 3, delta_hh: 5, classification: "VEGETATED_INUNDATION" as const },
+    { id: "open-small", area_km2: 2, delta_hh: -1, classification: "OPEN_WATER" as const },
+  ];
+  const context = regionDistributionContext(regions, "veg", "OPEN_WATER");
+  assert.equal(context.total, 2);
+  assert.equal(context.areaRank, null);
+  assert.equal(context.deltaHhRank, null);
+  assert.equal(context.medianAreaKm2, 3);
+  assert.equal(context.medianAbsDeltaHhDb, 1.5);
+});
+
+test("region distribution excludes invalid measurements and handles an empty cohort", () => {
+  const context = regionDistributionContext([
+    { id: "bad", area_km2: Number.NaN, delta_hh: 3, classification: "OPEN_WATER" as const },
+    { id: "also-bad", area_km2: 2, delta_hh: Number.POSITIVE_INFINITY, classification: "OPEN_WATER" as const },
+  ], "bad");
+  assert.deepEqual(context, { total: 0, areaRank: null, deltaHhRank: null, medianAreaKm2: null, medianAbsDeltaHhDb: null });
 });
 
 test("challenge always lists missing field truth", () => {
