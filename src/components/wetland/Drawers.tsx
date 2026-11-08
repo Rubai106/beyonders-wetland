@@ -511,6 +511,7 @@ function RegionRegister() {
   const { patches, selectedPatch, setSelectedPatch, pulseData, selectedDateIndex, dataTier, showcaseId, vegFilter, setVegFilter, viewMode, mapMode, setDrawer, threshold, sensitivityData } = useWetlandStore();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<"area" | "delta" | "id">("area");
+  const [visibleLimit, setVisibleLimit] = useState(100);
   const [format, setFormat] = useState<"csv" | "geojson" | "json">("csv");
   const [message, setMessage] = useState("");
   const [shareFallback, setShareFallback] = useState("");
@@ -520,6 +521,15 @@ function RegionRegister() {
     .filter((p) => `${p.id} ${regionLabel(p.id)} ${p.classification} ${p.interpretation_label ?? ""}`.toLowerCase().includes(query.toLowerCase().trim()))
     .sort((a, b) => sort === "area" ? b.area_km2 - a.area_km2 : sort === "delta" ? Math.abs(b.delta_hh) - Math.abs(a.delta_hh) : a.id.localeCompare(b.id)),
   [patches, vegFilter, query, sort]);
+  const visibleRows = rows.slice(0, visibleLimit);
+  const hasActiveFilters = query.trim().length > 0 || vegFilter !== "ALL";
+
+  function resetRegister() {
+    setQuery("");
+    setVegFilter("ALL");
+    setSort("area");
+    setVisibleLimit(100);
+  }
 
   function exportRows() {
     const source = "NISAR";
@@ -568,16 +578,34 @@ function RegionRegister() {
     limitation="Exports preserve real-data provenance and scientific limitations. A candidate is not a confirmed flood.">
     <div className="wx-region-register">
     <div className="wx-region-tools">
-      <label>Search regions<input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Region ID or class…" aria-label="Search candidate regions" /></label>
-      <label>Sort by<select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label="Sort regions"><option value="area">Largest area</option><option value="delta">Strongest |ΔHH|</option><option value="id">Region ID</option></select></label>
-      <label>Class filter<select value={vegFilter} onChange={(e) => setVegFilter(e.target.value as typeof vegFilter)} aria-label="Filter candidate class"><option value="ALL">All classes</option><option value="OPEN_WATER">HH-darkening</option><option value="VEGETATED_INUNDATION">Vegetation-related</option><option value="UNCERTAIN">Uncertain</option></select></label>
+      <label>Search regions<input value={query} onChange={(e) => { setQuery(e.target.value); setVisibleLimit(100); }} placeholder="Region ID or class…" aria-label="Search candidate regions" /></label>
+      <label>Sort by<select value={sort} onChange={(e) => { setSort(e.target.value as typeof sort); setVisibleLimit(100); }} aria-label="Sort regions"><option value="area">Largest area</option><option value="delta">Strongest |ΔHH|</option><option value="id">Region ID</option></select></label>
+      <label>Class filter<select value={vegFilter} onChange={(e) => { setVegFilter(e.target.value as typeof vegFilter); setVisibleLimit(100); }} aria-label="Filter candidate class"><option value="ALL">All classes</option><option value="OPEN_WATER">HH-darkening</option><option value="VEGETATED_INUNDATION">Vegetation-related</option><option value="UNCERTAIN">Uncertain</option></select></label>
     </div>
-    <div className="wx-region-table-wrap"><table className="wx-region-table"><thead><tr><th scope="col">Region</th><th scope="col">Area</th><th scope="col">ΔHH</th><th scope="col">Class</th></tr></thead>
-      <tbody>{rows.slice(0, 100).map((p) => <tr key={p.id} className={selectedPatch?.id === p.id ? "is-selected" : ""}>
-        <td><button type="button" onClick={() => { setSelectedPatch(p); setDrawer("EXPLORE"); }} aria-pressed={selectedPatch?.id === p.id}>{regionLabel(p.id)}</button></td>
-        <td className="wx-mono">{p.area_km2.toFixed(3)}</td><td className="wx-mono">{p.delta_hh > 0 ? "+" : ""}{p.delta_hh.toFixed(1)} dB</td><td>{p.classification === "OPEN_WATER" ? "HH-darkening" : p.classification === "VEGETATED_INUNDATION" ? "Vegetation" : "Uncertain"}</td>
-      </tr>)}</tbody></table></div>
-    {rows.length > 100 && <p className="wx-caption">Showing the first 100 of {rows.length}. Narrow your search or export to include every filtered region.</p>}
+    <div className="wx-region-summary">
+      <span role="status" aria-live="polite">Showing {visibleRows.length} of {rows.length} matching regions</span>
+      {hasActiveFilters && <button type="button" onClick={resetRegister}>Clear search and filters</button>}
+    </div>
+    {rows.length > 0 ? (
+      <>
+        <div className="wx-region-table-wrap"><table className="wx-region-table"><thead><tr><th scope="col">Region</th><th scope="col">Area</th><th scope="col">ΔHH</th><th scope="col">Class</th></tr></thead>
+          <tbody>{visibleRows.map((p) => <tr key={p.id} className={selectedPatch?.id === p.id ? "is-selected" : ""}>
+            <td><button type="button" onClick={() => { setSelectedPatch(p); setDrawer("EXPLORE"); }} aria-pressed={selectedPatch?.id === p.id}>{regionLabel(p.id)}</button></td>
+            <td className="wx-mono">{p.area_km2.toFixed(3)}</td><td className="wx-mono">{p.delta_hh > 0 ? "+" : ""}{p.delta_hh.toFixed(1)} dB</td><td>{p.classification === "OPEN_WATER" ? "HH-darkening" : p.classification === "VEGETATED_INUNDATION" ? "Vegetation" : "Uncertain"}</td>
+          </tr>)}</tbody></table></div>
+        {visibleRows.length < rows.length && <div className="wx-region-pagination">
+          <span>{rows.length - visibleRows.length} more regions in this result</span>
+          <button type="button" className="wx-btn" onClick={() => setVisibleLimit((current) => Math.min(current + 100, rows.length))}>
+            Show next {Math.min(100, rows.length - visibleRows.length)} regions
+          </button>
+        </div>}
+      </>
+    ) : (
+      <div className="wx-region-empty" role="status">
+        <strong>No candidate regions match those criteria.</strong>
+        <p>Try a different region ID or class, or clear the current search and filters.</p>
+      </div>
+    )}
     <div className="wx-region-export"><label>Export format<select value={format} onChange={(e) => setFormat(e.target.value as typeof format)}><option value="csv">CSV · spreadsheet</option><option value="geojson">GeoJSON · map data</option><option value="json">JSON · reproducible snapshot</option></select></label>
       <button type="button" className="wx-btn wx-btn--primary" onClick={exportRows}>Export {rows.length} regions</button><button type="button" className="wx-btn" onClick={() => void shareView()}>Copy share link</button>
     </div>
