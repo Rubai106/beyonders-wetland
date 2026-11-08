@@ -176,7 +176,13 @@ with sync_playwright() as p:
         page.screenshot(path=f"/tmp/e2e_wetland_chart_{width}.png")
     page.set_viewport_size(original_viewport)
     page.wait_for_timeout(250)
-    page.evaluate("document.querySelector('.wx-drawer__body').scrollTop = 99999"); page.click("text=Challenge this detection"); page.wait_for_timeout(400)
+    # Selecting a different date intentionally clears the prior region selection.
+    # Re-select a region on the final date before opening its challenge controls.
+    page.locator("path.wx-patch").nth(40).click(force=True)
+    challenge_button = page.get_by_role("button", name="Challenge this detection")
+    challenge_button.scroll_into_view_if_needed()
+    challenge_button.click()
+    page.wait_for_timeout(400)
     d2 = page.inner_text(".wx-drawer")
     check("challenge lists real checks + no field truth", "Can we trust this change?" in d2 and "No field truth" in d2 and "threshold" in d2.lower())
     check("no confidence score invented", "%" not in "".join(page.locator(".wx-status").all_inner_texts()) and "no probability, confidence score" in d2.lower())
