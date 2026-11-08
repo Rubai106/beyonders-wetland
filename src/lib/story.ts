@@ -204,6 +204,156 @@ export function regionDistributionContext<T extends {
   };
 }
 
+export interface RegionEvidenceBrief {
+  schema_version: 1;
+  record_type: "beyonders.wetland.region-evidence";
+  source: {
+    data_tier: DataTier;
+    data_source: WetlandPatch["data_source"] | WetlandPulseData["data_source"] | null;
+    run_id: string | null;
+    product: string | null;
+    product_maturity: string | null;
+    quality_mask_method: string | null;
+  };
+  observation: {
+    site: string | null;
+    date: string;
+    preceding_acquisition: string | null;
+    interval_days: number | null;
+  };
+  candidate_region: {
+    id: string;
+    classification: WetlandPatch["classification"];
+    interpretation_label: string;
+    area_km2: number;
+    pixel_count: number | null;
+    centroid_lat_lng: [number, number];
+    geometry: WetlandPatch["geometry"] | null;
+    radar_db: {
+      hh_before: number;
+      hh_after: number;
+      delta_hh: number;
+      hv_before: number;
+      hv_after: number;
+      delta_hv: number;
+    };
+    quality: {
+      valid_fraction: number;
+      vegetated_fraction: number;
+      status: WetlandPatch["quality_status"];
+    };
+    detector_checks: {
+      evidence_state: WetlandPatch["evidence_state"];
+      spatial_status: WetlandPatch["spatial_status"];
+      temporal_status: WetlandPatch["temporal_status"];
+      temporal_overlap_fraction: number | null;
+      threshold_stability: WetlandPatch["threshold_stability"];
+      threshold_variation_fraction: number | null;
+    };
+    baseline_context: {
+      date: string | null;
+      observation_count: number | null;
+      hh_temporal_mad_db: number | null;
+      observation_dates: string[];
+    };
+  };
+  same_acquisition_comparison: {
+    class_filter: "ALL" | WetlandPatch["classification"];
+    candidate_count: number;
+    area_rank: number | null;
+    median_area_km2: number | null;
+    absolute_hh_change_rank: number | null;
+    median_absolute_hh_change_db: number | null;
+  };
+  temporal_comparison: TemporalOverlapContext;
+  evidence_checks: StackRow[];
+  limitations: string[];
+}
+
+/** A portable record of one selected candidate. Values are copied from loaded data and existing checks only. */
+export function buildRegionEvidenceBrief(
+  patch: WetlandPatch,
+  pulse: WetlandPulseData | null,
+  dataTier: DataTier,
+  optical: OpticalState,
+  comparison: RegionDistributionContext,
+  classFilter: "ALL" | WetlandPatch["classification"],
+): RegionEvidenceBrief {
+  const temporal = temporalOverlapContext(patch, pulse);
+  return {
+    schema_version: 1,
+    record_type: "beyonders.wetland.region-evidence",
+    source: {
+      data_tier: dataTier,
+      data_source: patch.data_source ?? pulse?.data_source ?? null,
+      run_id: patch.run_id ?? null,
+      product: pulse?.product ?? null,
+      product_maturity: pulse?.product_maturity ?? null,
+      quality_mask_method: pulse?.quality_mask_method ?? null,
+    },
+    observation: {
+      site: pulse?.site ?? null,
+      date: patch.date,
+      preceding_acquisition: temporal.previousDate,
+      interval_days: temporal.intervalDays,
+    },
+    candidate_region: {
+      id: patch.id,
+      classification: patch.classification,
+      interpretation_label: patch.interpretation_label ?? interpretationOfClass(patch.classification),
+      area_km2: patch.area_km2,
+      pixel_count: patch.pixel_count ?? null,
+      centroid_lat_lng: patch.centroid,
+      geometry: patch.geometry ?? null,
+      radar_db: {
+        hh_before: patch.hh_before,
+        hh_after: patch.hh_after,
+        delta_hh: patch.delta_hh,
+        hv_before: patch.hv_before,
+        hv_after: patch.hv_after,
+        delta_hv: patch.delta_hv,
+      },
+      quality: {
+        valid_fraction: patch.valid_fraction,
+        vegetated_fraction: patch.vegetated_fraction,
+        status: patch.quality_status,
+      },
+      detector_checks: {
+        evidence_state: patch.evidence_state,
+        spatial_status: patch.spatial_status,
+        temporal_status: patch.temporal_status,
+        temporal_overlap_fraction: temporal.overlapFraction,
+        threshold_stability: patch.threshold_stability,
+        threshold_variation_fraction: patch.threshold_variation_fraction ?? null,
+      },
+      baseline_context: {
+        date: pulse?.baseline_date ?? null,
+        observation_count: patch.baseline_observation_count ?? null,
+        hh_temporal_mad_db: patch.baseline_hh_temporal_mad_db ?? null,
+        observation_dates: patch.baseline_observation_dates ?? [],
+      },
+    },
+    same_acquisition_comparison: {
+      class_filter: classFilter,
+      candidate_count: comparison.total,
+      area_rank: comparison.areaRank,
+      median_area_km2: comparison.medianAreaKm2,
+      absolute_hh_change_rank: comparison.deltaHhRank,
+      median_absolute_hh_change_db: comparison.medianAbsDeltaHhDb,
+    },
+    temporal_comparison: temporal,
+    evidence_checks: evidenceStack(patch, optical),
+    limitations: [
+      "This is an algorithmic radar-change candidate, not a confirmed flood.",
+      "Region identifiers are acquisition-specific and do not establish persistent region identity across dates.",
+      "Temporal overlap is same-class pixel overlap with the immediately preceding processed acquisition, not a persistent region match.",
+      "Cross-sensor optical context is not field validation; unavailable ground observations remain unavailable.",
+      "Ranks and medians describe only the currently loaded acquisition and class filter.",
+      "No confidence probability, flood-severity estimate, or interpolation between acquisition dates is provided.",
+    ],
+  };
+}
+
 export interface ChallengeItem { tone: "ok" | "warn" | "note"; text: string; detail?: string }
 export interface ChallengeResult { items: ChallengeItem[]; passes: string[]; warnings: string[]; status: string; interpretation: string; independent: string; validation: string; recommendation: string; alternatives: string[] }
 
