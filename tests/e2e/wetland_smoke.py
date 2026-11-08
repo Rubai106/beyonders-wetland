@@ -181,14 +181,17 @@ with sync_playwright() as p:
         mode: el.dataset.viewMode,
         mapMode: el.dataset.mapMode
     })""")
+    restored_drawer_open = page.locator("#wetland-investigation-drawer").is_visible()
+    explore_tab_selected = page.get_by_role("tab", name="Explore").get_attribute("aria-selected") == "true"
     check(
-        "direct region link restores the same acquisition, candidate and view after reload",
+        "direct region link restores the same acquisition, candidate, view and open investigator after reload",
         restored_state["region"] == expected_region
         and restored_state["date"] == expected_date
         and restored_state["filter"] == link_parts["filter"]
         and restored_state["mode"] == link_parts["mode"]
-        and restored_state["mapMode"] == link_parts["mapMode"],
-        str(restored_state),
+        and restored_state["mapMode"] == link_parts["mapMode"]
+        and restored_drawer_open and explore_tab_selected,
+        str({"state": restored_state, "drawer_open": restored_drawer_open, "explore_selected": explore_tab_selected}),
     )
     evidence_overview = page.locator(".wx-evidence-overview")
     evidence_counts = evidence_overview.evaluate("""el => ({
