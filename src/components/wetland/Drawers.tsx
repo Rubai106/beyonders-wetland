@@ -125,7 +125,9 @@ export function InvestigationDrawer() {
         <ul className="wx-regions">{largest.map((r) => <li key={r.id}><button type="button" onClick={() => setSelectedPatch(r)}><span>{regionLabel(r.id)}</span><span className="wx-mono">{r.area_km2.toFixed(3)} km²</span></button></li>)}</ul></div>}
     </ToolFrame>
   );
-  const regionNav = regionNavigationContext(patches, p.id, vegFilter);
+  // Capture the non-null selection before defining callbacks that use it.
+  const selectedRegion = p;
+  const regionNav = regionNavigationContext(patches, selectedRegion.id, vegFilter);
   const regionDistribution = regionDistributionContext(patches, p.id, vegFilter);
   const optical = opticalState(dataTier, pulseData);
   const it = interpret(p, optical);
@@ -133,9 +135,9 @@ export function InvestigationDrawer() {
   const ch = challenge(p, optical, { baselineMad: p.baseline_hh_temporal_mad_db, baselineCount: p.baseline_observation_count, referenceLimitations: ev?.limitations,
     opticalReason: showcase?.reference.validation ? String((showcase.reference.validation as { reason?: string }).reason ?? "") || undefined : undefined });
   function exportRegionBrief() {
-    const brief = buildRegionEvidenceBrief(p, pulseData, dataTier, optical, regionDistribution, vegFilter);
+    const brief = buildRegionEvidenceBrief(selectedRegion, pulseData, dataTier, optical, regionDistribution, vegFilter);
     downloadFile(
-      `beyonders-${p.date}-${p.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-evidence.json`,
+      `beyonders-${selectedRegion.date}-${selectedRegion.id.replace(/[^a-zA-Z0-9_-]/g, "-")}-evidence.json`,
       JSON.stringify(brief, null, 2),
       "application/json;charset=utf-8",
     );
