@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWetlandStore } from "@/lib/store";
 import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/showcase";
 import { downloadFile, patchesCSV } from "@/lib/real-export";
-import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, temporalOverlapContext, type StackStatus } from "@/lib/story";
+import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
@@ -29,6 +29,46 @@ export function EvidenceStack() {
       ))}
       <li className="wx-stack__note">Radar bars show the size of the measured change on a ±10 dB scale. The other bars show whether a test passed. None of them is a probability.</li>
     </ul>
+  );
+}
+
+/* ── Evidence overview: counts and groups, never a combined score. ── */
+function EvidenceOverview() {
+  const { selectedPatch: patch, dataTier, pulseData } = useWetlandStore();
+  if (!patch) return null;
+  const summary = summarizeEvidence(evidenceStack(patch, opticalState(dataTier, pulseData)));
+  const groups = [
+    { key: "PASS", label: "Passed checks", rows: summary.passed },
+    { key: "PARTIAL", label: "Partial checks", rows: summary.partial },
+    { key: "FAIL", label: "Failed checks", rows: summary.failed },
+    { key: "UNAVAILABLE", label: "Not assessed", rows: summary.unavailable },
+  ] as const;
+  return (
+    <div className="wx-evidence-overview" data-passed={summary.passed.length}
+      data-partial={summary.partial.length} data-failed={summary.failed.length}
+      data-unavailable={summary.unavailable.length}
+      aria-label="Evidence grouped by recorded check status">
+      <div className="wx-evidence-overview__counts" aria-label="Evidence check counts">
+        {groups.map((group) => (
+          <div className="wx-evidence-overview__count" data-status={group.key} key={group.key}>
+            <strong>{group.rows.length}</strong><span>{group.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="wx-evidence-overview__groups">
+        {groups.filter((group) => group.rows.length > 0).map((group) => (
+          <section key={group.key} data-status={group.key}>
+            <h4>{group.label}</h4>
+            <ul>
+              {group.rows.map((row) => <li key={row.key}>
+                <strong>{row.label}</strong><small>{row.detail}</small>
+              </li>)}
+            </ul>
+          </section>
+        ))}
+      </div>
+      <p className="wx-evidence-overview__note">These are counts of recorded checks, not a probability, confidence score, or proof of flooding. The unavailable group includes evidence that was not collected, such as field observations.</p>
+    </div>
   );
 }
 
@@ -100,7 +140,13 @@ export function InvestigationDrawer() {
         <div><dt>Centroid</dt><dd className="wx-mono">{p.centroid[0].toFixed(4)}°N {p.centroid[1].toFixed(4)}°E</dd></div>
       </dl>
       <div className="wx-interp"><span className="wx-micro">Interpretation</span><strong>{it.headline}</strong><p>{it.note}</p></div>
-      <Section eyebrow="Evidence" title="What do we actually know?"><EvidenceStack /></Section>
+      <Section eyebrow="Evidence" title="What do we actually know?">
+        <EvidenceOverview />
+        <details className="wx-raw wx-evidence-details">
+          <summary>See individual evidence checks</summary>
+          <EvidenceStack />
+        </details>
+      </Section>
       <Section eyebrow="Across acquisitions" title="Preceding-observation overlap"><RegionTemporalEvidence patch={p} pulse={pulseData} /></Section>
       <Section eyebrow="Provenance" title="How this result was built">
         <ol className="wx-flow">
