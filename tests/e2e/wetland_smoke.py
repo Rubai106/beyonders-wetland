@@ -74,6 +74,25 @@ with sync_playwright() as p:
     drawer = page.inner_text(".wx-drawer").lower()
     check("Why this region? opens with evidence", "why this region?" in drawer and "what do we actually know?" in drawer and "limitation" in drawer)
     check("evidence uses pipeline semantics", "previous date" in drawer and "compact footprint" in drawer)
+    region_nav = page.locator(".wx-region-nav")
+    initial_region_id = region_nav.get_attribute("data-region-id")
+    next_region = region_nav.get_by_role("button", name="Next region")
+    previous_region = region_nav.get_by_role("button", name="Previous region")
+    navigated_forward = next_region.is_enabled()
+    returned_to_original = False
+    if navigated_forward:
+        next_region.click()
+        page.wait_for_function("(id) => document.querySelector('.wx-region-nav')?.dataset.regionId !== id", arg=initial_region_id)
+        previous_region.click()
+        page.wait_for_function("(id) => document.querySelector('.wx-region-nav')?.dataset.regionId === id", arg=initial_region_id)
+        returned_to_original = region_nav.get_attribute("data-region-id") == initial_region_id
+    check(
+        "next and previous region controls navigate within the investigation drawer",
+        navigated_forward and returned_to_original
+        and "Largest area first" in region_nav.inner_text()
+        and int(region_nav.get_attribute("data-total") or "0") > 1,
+        f"initial={initial_region_id}, current={region_nav.get_attribute('data-region-id')}",
+    )
     evidence_overview = page.locator(".wx-evidence-overview")
     evidence_counts = evidence_overview.evaluate("""el => ({
         passed: Number(el.dataset.passed),
