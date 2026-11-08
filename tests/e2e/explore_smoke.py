@@ -52,11 +52,26 @@ with sync_playwright() as p:
     hydro_samples = []
     for _ in range(8):
         pg.wait_for_timeout(220)
-        current_value = pg.locator("[data-testid='hydro-current-value']").inner_text().strip()
-        active_value = pg.locator(".hydro-bar.is-active .hydro-val").inner_text().strip()
-        hydro_samples.append(current_value)
+        # Read both nodes in one browser task so autoplay cannot advance
+        # between separate Playwright round-trips and create a false mismatch.
+        sample = pg.evaluate("""() => {
+            const current = document.querySelector("[data-testid='hydro-current-value']");
+            const active = document.querySelector(".hydro-bar.is-active .hydro-val");
+            return {
+                current: current?.textContent?.trim() ?? "",
+                active: active?.textContent?.trim() ?? "",
+            };
+        }""")
+        current_value = sample["current"]
+        active_value = sample["active"]
+        hydro_samples.append(f"{current_value}/{active_value}")
         try:
-            hydro_values_match = hydro_values_match and current_value == active_value and float(current_value) >= 0
+            numeric_value = float(current_value)
+            hydro_values_match = (
+                hydro_values_match
+                and current_value == active_value
+                and numeric_value >= 0
+            )
         except ValueError:
             hydro_values_match = False
     check(
