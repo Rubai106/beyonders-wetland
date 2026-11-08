@@ -112,6 +112,25 @@ export function evidenceStack(patch: WetlandPatch, optical: OpticalState): Stack
   ];
 }
 
+export interface EvidenceSummary {
+  passed: StackRow[];
+  partial: StackRow[];
+  failed: StackRow[];
+  unavailable: StackRow[];
+}
+
+/** Group recorded evidence by its existing status; this is not a score or ranking. */
+export function summarizeEvidence(rows: StackRow[]): EvidenceSummary {
+  const summary: EvidenceSummary = { passed: [], partial: [], failed: [], unavailable: [] };
+  for (const row of rows) {
+    if (row.status === "PASS") summary.passed.push(row);
+    else if (row.status === "PARTIAL") summary.partial.push(row);
+    else if (row.status === "FAIL") summary.failed.push(row);
+    else summary.unavailable.push(row);
+  }
+  return summary;
+}
+
 export interface ChallengeItem { tone: "ok" | "warn" | "note"; text: string; detail?: string }
 export interface ChallengeResult { items: ChallengeItem[]; passes: string[]; warnings: string[]; status: string; interpretation: string; independent: string; validation: string; recommendation: string; alternatives: string[] }
 
