@@ -1,7 +1,7 @@
 // Run: npm test   (node's built-in runner; no extra dependencies)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changeStory, daysBetween, opticalState, challenge } from "./story.ts";
+import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext } from "./story.ts";
 
 const pulse = { site: "X", wetland_area_km2: 50, data_source: "NISAR" as const, reference_check_status: "INCONCLUSIVE",
   dates: [{ date: "2026-06-23", area_km2: 1, fraction: 0.1, mean_delta_db: 1, patches: 3 }, { date: "2026-08-29", area_km2: 24.48, fraction: 0.4, mean_delta_db: 2, patches: 295 }],
@@ -18,6 +18,50 @@ test("story uses loaded values and never claims confirmation", () => {
   assert.match(text, /rather than confirmed flooding/);
   assert.match(text, /67 days/);
 });
+const temporalSeries = { ...pulse, dates: [
+  { date: "2026-08-17", area_km2: 1, fraction: 0.1, mean_delta_db: 1, patches: 3 },
+  { date: "2026-08-29", area_km2: 2, fraction: 0.2, mean_delta_db: 2, patches: 4 },
+  { date: "2026-09-10", area_km2: 3, fraction: 0.3, mean_delta_db: 3, patches: 5 },
+  { date: "2026-09-22", area_km2: 4, fraction: 0.4, mean_delta_db: 4, patches: 6 },
+] };
+
+test("temporal overlap resolves the immediately preceding acquisition and real interval", () => {
+  const context = temporalOverlapContext({
+    date: "2026-09-22", temporal_overlap_fraction: 0.72, temporal_status: "PASS",
+  }, temporalSeries);
+  assert.equal(context.previousDate, "2026-09-10");
+  assert.equal(context.intervalDays, 12);
+  assert.equal(context.overlapFraction, 0.72);
+  assert.equal(context.thresholdFraction, 0.5);
+  assert.equal(context.status, "PASS");
+});
+
+test("first acquisition has no invented temporal comparison", () => {
+  const context = temporalOverlapContext({
+    date: "2026-08-17", temporal_overlap_fraction: null, temporal_status: "PARTIAL",
+  }, temporalSeries);
+  assert.equal(context.dateInSeries, true);
+  assert.equal(context.previousDate, null);
+  assert.equal(context.intervalDays, null);
+  assert.equal(context.overlapFraction, null);
+  assert.equal(context.status, "UNAVAILABLE");
+});
+
+test("unknown dates and invalid overlap fractions remain unassessed", () => {
+  const unknown = temporalOverlapContext({
+    date: "2026-10-01", temporal_overlap_fraction: 0.8, temporal_status: "PASS",
+  }, temporalSeries);
+  assert.equal(unknown.dateInSeries, false);
+  assert.equal(unknown.previousDate, null);
+  assert.equal(unknown.status, "UNAVAILABLE");
+  const invalid = temporalOverlapContext({
+    date: "2026-09-22", temporal_overlap_fraction: 1.2, temporal_status: "PASS",
+  }, temporalSeries);
+  assert.equal(invalid.previousDate, "2026-09-10");
+  assert.equal(invalid.overlapFraction, null);
+  assert.equal(invalid.status, "UNAVAILABLE");
+});
+
 test("challenge always lists missing field truth", () => {
   const p = { hh_before: -15, hh_after: -19, hv_before: -22, hv_after: -22.2, delta_hh: -4, delta_hv: -0.2, temporal_status: "PASS", spatial_status: "PASS",
     quality_status: "PASS", threshold_stability: "STABLE", valid_fraction: 0.9, evidence_state: "SUPPORTED", classification: "OPEN_WATER" } as never;
