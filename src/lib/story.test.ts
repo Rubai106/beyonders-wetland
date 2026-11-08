@@ -1,7 +1,7 @@
 // Run: npm test   (node's built-in runner; no extra dependencies)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, type StackRow } from "./story.ts";
+import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, regionNavigationContext, type StackRow } from "./story.ts";
 
 const pulse = { site: "X", wetland_area_km2: 50, data_source: "NISAR" as const, reference_check_status: "INCONCLUSIVE",
   dates: [{ date: "2026-06-23", area_km2: 1, fraction: 0.1, mean_delta_db: 1, patches: 3 }, { date: "2026-08-29", area_km2: 24.48, fraction: 0.4, mean_delta_db: 2, patches: 295 }],
@@ -80,6 +80,39 @@ test("evidence summary preserves all existing statuses without scoring them", ()
 
 test("evidence summary handles an empty set", () => {
   assert.deepEqual(summarizeEvidence([]), { passed: [], partial: [], failed: [], unavailable: [] });
+});
+
+test("region navigation follows largest-area order and resolves both neighbors", () => {
+  const regions = [
+    { id: "small", area_km2: 1, classification: "OPEN_WATER" as const },
+    { id: "large", area_km2: 4, classification: "OPEN_WATER" as const },
+    { id: "middle", area_km2: 2, classification: "VEGETATED_INUNDATION" as const },
+  ];
+  const context = regionNavigationContext(regions, "middle");
+  assert.equal(context.currentIndex, 1);
+  assert.equal(context.total, 3);
+  assert.equal(context.previous?.id, "large");
+  assert.equal(context.next?.id, "small");
+});
+
+test("region navigation respects the class filter and disables unavailable boundaries", () => {
+  const regions = [
+    { id: "open-large", area_km2: 4, classification: "OPEN_WATER" as const },
+    { id: "veg", area_km2: 3, classification: "VEGETATED_INUNDATION" as const },
+    { id: "open-small", area_km2: 1, classification: "OPEN_WATER" as const },
+  ];
+  const first = regionNavigationContext(regions, "open-large", "OPEN_WATER");
+  assert.equal(first.currentIndex, 0);
+  assert.equal(first.total, 2);
+  assert.equal(first.previous, null);
+  assert.equal(first.next?.id, "open-small");
+  const last = regionNavigationContext(regions, "open-small", "OPEN_WATER");
+  assert.equal(last.previous?.id, "open-large");
+  assert.equal(last.next, null);
+  const missing = regionNavigationContext(regions, "veg", "OPEN_WATER");
+  assert.equal(missing.currentIndex, -1);
+  assert.equal(missing.previous, null);
+  assert.equal(missing.next, null);
 });
 
 test("challenge always lists missing field truth", () => {
