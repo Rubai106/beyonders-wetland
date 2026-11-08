@@ -246,13 +246,10 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
           ) : <span className="wx-case__title">{title || (showcaseChecked ? "No real case loaded" : "Loading real observations…")}</span>}
           {cur ? <span className="wx-mono wx-case__date" title={`Observation date: ${cur.date}`}>{fmtDate(cur.date, { month: "short", day: "numeric" })}</span> : null}</span>
         <TierBadge tier={dataTier} completeness={s.showcase?.manifest.completeness} />
-        <nav className="wx-nav" aria-label="GeoNexSAR">
-          <Link href="/wetland" aria-current="page" aria-label="Open the Tanguar and Hakaluki wetland investigations" title="Published wetland investigations"><span>Wetlands</span></Link>
-          <Link href="/agriculture" aria-label="Open Agriculture">Agriculture</Link>
-          <Link href="/forest/rondonia" aria-label="Open the Rondônia forest investigation">Forests</Link>
-          <Link href="/volcano/hayli-gubbi" aria-label="Open the Hayli Gubbi volcano investigation">Volcanoes</Link>
-          <button onClick={() => setSatelliteBasemap(!satelliteBasemap)} aria-pressed={satelliteBasemap} aria-label="Satellite basemap" title="Toggle the satellite basemap">{Icon.layers}<span>Basemap</span></button>
-          <button onClick={returnToOverview} title="Clear selection, comparison and filters (Esc)">Return<span className="wx-nav__long"> to overview</span></button>
+        <nav className="wx-nav" aria-label="Workspace controls">
+          {/* Domain navigation lives in the single global primary nav. */}
+          <button type="button" onClick={() => setSatelliteBasemap(!satelliteBasemap)} aria-pressed={satelliteBasemap} aria-label="Satellite basemap" title="Toggle the satellite basemap">{Icon.layers}<span>Basemap</span></button>
+          <button type="button" onClick={returnToOverview} title="Clear selection, comparison and filters (Esc)">Return<span className="wx-nav__long"> to overview</span></button>
         </nav>
       </header>
 

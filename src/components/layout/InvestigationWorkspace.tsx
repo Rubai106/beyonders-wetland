@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import type { DataTier } from "@/lib/store";
 import { findDrawerTabForAnchor } from "@/lib/workspace-navigation";
@@ -8,13 +7,6 @@ import { Icon } from "../wetland/icons";
 import { TierBadge } from "../wetland/ui";
 
 type Hazard = "wetland" | "volcano" | "forest" | "agriculture";
-
-const sections: Array<{ id: Hazard; label: string; href: string }> = [
-  { id: "wetland", label: "Wetlands", href: "/wetland" },
-  { id: "agriculture", label: "Agriculture", href: "/agriculture" },
-  { id: "forest", label: "Forests", href: "/forest/rondonia" },
-  { id: "volcano", label: "Volcanoes", href: "/volcano/hayli-gubbi" },
-];
 
 const sourceLabel: Record<Hazard, string> = {
   wetland: "NASA NISAR · L-band",
@@ -210,11 +202,9 @@ export default function InvestigationWorkspace({
           <span className="wx-tier__full">{sourceLabel[hazard]}</span>
           <span className="wx-tier__short">NISAR</span>
         </span>}
-        <nav className="wx-nav" aria-label="Earth change topics">
-          <Link href="/wetland" aria-current={hazard === "wetland" ? "page" : undefined} aria-label="Open the published wetland investigations" title="Tanguar Haor and Hakaluki Haor studies"><span>Wetlands</span></Link>
-          {sections.map((section) => (
-            section.id !== "wetland" && <Link key={section.id} href={section.href} aria-current={hazard === section.id ? "page" : undefined}>{section.label}</Link>
-          ))}
+        <nav className="wx-nav" aria-label="Workspace controls">
+          {/* Domain navigation lives in the single global primary nav. Keep only
+              controls that act on this workspace in the masthead. */}
           {onToggleBasemap && <button type="button" onClick={onToggleBasemap} aria-pressed={satelliteBasemap} aria-label="Satellite basemap" title="Toggle the satellite basemap">{Icon.layers}<span>Basemap</span></button>}
           {onReturnToOverview && <button type="button" onClick={onReturnToOverview} title="Clear selection and return to the world view">Return<span className="wx-nav__long"> to overview</span></button>}
         </nav>
