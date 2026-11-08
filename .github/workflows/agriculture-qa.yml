@@ -103,8 +103,22 @@ jobs:
             fi
             sleep 2
           done
+          python tests/e2e/wetland_smoke.py http://127.0.0.1:3140 | tee /tmp/e2e_wetland_run1.log
+          python tests/e2e/wetland_smoke.py http://127.0.0.1:3140 | tee /tmp/e2e_wetland_run2.log
           python tests/e2e/explore_smoke.py http://127.0.0.1:3140
           python tests/e2e/multi_case_module_smoke.py http://127.0.0.1:3140
           python tests/e2e/chokwe_deep_link_smoke.py http://127.0.0.1:3140
           python tests/e2e/scattering_hypothesis_smoke.py http://127.0.0.1:3140
           python tests/e2e/agriculture_evidence_chain_smoke.py http://127.0.0.1:3140
+
+      - name: Upload wetland responsive-browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wetland-step2b-browser-evidence-${{ github.sha }}
+          path: |
+            /tmp/e2e_wetland_chart_*.png
+            /tmp/e2e_wetland_*.png
+            /tmp/e2e_wetland_run*.log
+          if-no-files-found: warn
+          retention-days: 3

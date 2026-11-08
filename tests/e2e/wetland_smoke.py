@@ -9,6 +9,7 @@ every other console/page error fails the run.
 import json
 import os
 import sys
+from datetime import datetime
 from playwright.sync_api import sync_playwright
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:3140"
@@ -80,6 +81,85 @@ with sync_playwright() as p:
         inspector_box is not None and chart_box is not None and inspector_box["y"] < chart_box["y"],
     )
     check("all seven real acquisition dates remain selectable in the chart", page.locator(".wx-pulse-chart__hit[role='button']").count() == 7)
+
+    # Audit the chart against the exact published pulse manifest, including its
+    # date labels, candidate-area values, marker geometry and keyboard controls.
+    pulse_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "public", "showcase", "featured", "pulse.json")
+    saved_pulse = json.load(open(pulse_path))
+    pulse_dates = saved_pulse["dates"]
+    chart_targets = page.locator(".wx-pulse-chart__hit[role='button']")
+    rendered_chart_labels = chart_targets.evaluate_all("els => els.map(el => el.getAttribute('aria-label') || '')")
+    expected_chart_dates = []
+    for row in pulse_dates:
+        date_value = datetime.strptime(row["date"], "%Y-%m-%d")
+        long_date = f"{date_value.strftime('%B')} {date_value.day}, {date_value.year}"
+        short_date = f"{date_value.strftime('%b')} {date_value.day}, {date_value.year}"
+        expected_chart_dates.append((long_date, short_date, row["area_km2"], row["patches"]))
+    labels_match = len(rendered_chart_labels) == len(expected_chart_dates) and all(
+        long_date in label and f"{area:.2f} square kilometres" in label
+        for label, (long_date, _short_date, area, _patches) in zip(rendered_chart_labels, expected_chart_dates)
+    )
+    check("all chart dates and candidate-area labels match pulse.json", labels_match, str(rendered_chart_labels))
+
+    marker_bounds = page.locator(".wx-pulse-chart__marker text").evaluate_all(
+        "(els) => els.map(el => { const b = el.getBBox(); return {label: el.textContent, x: b.x, y: b.y, width: b.width, height: b.height}; })"
+    )
+    marker_overlap = any(
+        a["x"] < b["x"] + b["width"] and b["x"] < a["x"] + a["width"]
+        and a["y"] < b["y"] + b["height"] and b["y"] < a["y"] + a["height"]
+        for i, a in enumerate(marker_bounds) for b in marker_bounds[i + 1:]
+    )
+    check("onset, peak and recession labels do not overlap", len(marker_bounds) == 3 and not marker_overlap, str(marker_bounds))
+
+    grid_lines = page.locator(".wx-pulse-chart__grid").evaluate_all(
+        "els => els.map(el => [Number(el.getAttribute('x1')), Number(el.getAttribute('x2'))])"
+    )
+    baseline_span = page.locator(".wx-pulse-chart__baseline").evaluate(
+        "el => [Number(el.getAttribute('x1')), Number(el.getAttribute('x2'))]"
+    )
+    check("chart grid lines and baseline share the same plot span", len(grid_lines) == 3 and all(line == baseline_span for line in grid_lines), str(grid_lines))
+
+    focusable_chart_targets = chart_targets.evaluate_all(
+        "els => els.filter(el => el.getAttribute('tabindex') === '0' && el.getAttribute('aria-disabled') !== 'true').length"
+    )
+    check("all seven chart dates are keyboard-operable", focusable_chart_targets == 7, str(focusable_chart_targets))
+    if focusable_chart_targets == 7 and len(expected_chart_dates) == 7:
+        for index, (long_date, short_date, area, patch_count) in enumerate(expected_chart_dates):
+            target = chart_targets.nth(index)
+            target.focus()
+            page.keyboard.press("Enter")
+            page.wait_for_function(
+                "(i) => document.querySelectorAll('.wx-pulse-chart__hit')[i]?.getAttribute('aria-pressed') === 'true'",
+                arg=index, timeout=3000,
+            )
+            page.wait_for_function(
+                "(count) => document.querySelectorAll('path.wx-patch').length === count",
+                arg=patch_count, timeout=10000,
+            )
+            selected_value = f"{area:.0f}" if area >= 10 else f"{area:.1f}"
+            expected_summary = f"{selected_value} km² · {patch_count} regions"
+            enter_synced = (
+                page.inner_text(".wx-pulse-chart__summary strong").strip() == short_date
+                and page.inner_text(".wx-now strong").strip() == short_date
+                and page.inner_text(".wx-pulse-chart__summary span:last-child").strip() == expected_summary
+                and page.locator("path.wx-patch").count() == patch_count
+            )
+            check(f"{short_date} selects and syncs chart, timeline and map with Enter", enter_synced)
+
+            target.focus()
+            page.keyboard.press("Space")
+            page.wait_for_function(
+                "(i) => document.querySelectorAll('.wx-pulse-chart__hit')[i]?.getAttribute('aria-pressed') === 'true'",
+                arg=index, timeout=3000,
+            )
+            space_synced = (
+                page.inner_text(".wx-pulse-chart__summary strong").strip() == short_date
+                and page.inner_text(".wx-now strong").strip() == short_date
+                and page.inner_text(".wx-pulse-chart__summary span:last-child").strip() == expected_summary
+                and page.locator("path.wx-patch").count() == patch_count
+            )
+            check(f"{short_date} selects and syncs chart, timeline and map with Space", space_synced)
+
     original_viewport = page.viewport_size
     for width, height in ((1440, 900), (1100, 760), (820, 900), (390, 800)):
         page.set_viewport_size({"width": width, "height": height})
@@ -93,6 +173,7 @@ with sync_playwright() as p:
             chart_dimensions["scroll"] <= chart_dimensions["client"] + 1,
             str(chart_dimensions),
         )
+        page.screenshot(path=f"/tmp/e2e_wetland_chart_{width}.png")
     page.set_viewport_size(original_viewport)
     page.wait_for_timeout(250)
     page.evaluate("document.querySelector('.wx-drawer__body').scrollTop = 99999"); page.click("text=Challenge this detection"); page.wait_for_timeout(400)
@@ -152,7 +233,46 @@ with sync_playwright() as p:
         check(f"no horizontal overflow at {w}px", not over)
         page.screenshot(path=f"/tmp/e2e_wetland_{w}.png")
     page.set_viewport_size({"width": 1440, "height": 900})
+    page.locator(".wx-pulse-chart").scroll_into_view_if_needed()
+    page.wait_for_timeout(250)
+    page.screenshot(path="/tmp/e2e_wetland_chart_1440.png")
     page.screenshot(path="/tmp/e2e_wetland_1440.png")
+
+    # The optional 3D disclosure must open independently and retain the same
+    # seven dated observations; WebGL may render a canvas or a documented fallback.
+    disclosure = page.locator(".field-volume-disclosure")
+    disclosure.scroll_into_view_if_needed()
+    page.get_by_role("button", name="Explore in 3D").click()
+    page.wait_for_selector(".field-volume-disclosure__panel", timeout=10000)
+    page.wait_for_function(
+        "() => Boolean(document.querySelector('.field-volume-scene__canvas canvas, .field-volume-scene__fallback'))",
+        timeout=12000,
+    )
+    scene_dates = page.locator(".field-volume-scene__dates button")
+    check(
+        "optional 3D disclosure opens with its scene or fallback and seven dated observations",
+        scene_dates.count() == 7
+        and page.locator(".field-volume-scene__canvas canvas, .field-volume-scene__fallback").count() >= 1,
+        str(scene_dates.count()),
+    )
+    if scene_dates.count() == 7:
+        scene_dates.nth(6).click()
+        page.wait_for_function(
+            "() => document.querySelectorAll('path.wx-patch').length === 452",
+            timeout=10000,
+        )
+        check(
+            "3D date selection stays synchronized with chart and timeline",
+            scene_dates.nth(6).get_attribute("aria-pressed") == "true"
+            and page.inner_text(".wx-pulse-chart__summary strong").strip() == "Sep 22, 2026"
+            and page.inner_text(".wx-now strong").strip() == "Sep 22, 2026"
+            and page.locator("path.wx-patch").count() == 452,
+        )
+    page.get_by_role("button", name="Close 3D view").click()
+    check(
+        "3D disclosure closes and removes its scene panel",
+        page.locator(".field-volume-disclosure__panel").count() == 0,
+    )
 
     # ── 3D landing ──
     norm = lambda s: " ".join(s.split()).lower()
