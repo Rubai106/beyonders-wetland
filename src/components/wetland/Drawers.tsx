@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWetlandStore } from "@/lib/store";
 import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/showcase";
 import { downloadFile, patchesCSV } from "@/lib/real-export";
-import { challenge, changeStory, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, type StackStatus } from "@/lib/story";
+import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
@@ -276,11 +276,70 @@ export function SensitivityDrawer() {
 
 /* ── What happened? ── */
 export function StoryDrawer() {
-  const { pulseData, dataTier, showcase } = useWetlandStore();
-  if (!pulseData) return null;
+  const { pulseData, dataTier, showcase, selectedDateIndex } = useWetlandStore();
+  if (!pulseData?.dates.length) return null;
+
+  const dates = pulseData.dates;
+  const activeIndex = Math.min(Math.max(Math.trunc(selectedDateIndex), 0), dates.length - 1);
+  const active = dates[activeIndex];
+  const previous = activeIndex > 0 ? dates[activeIndex - 1] : null;
+  const availableDates = dataTier === "SHOWCASE" && showcase ? datesWithPatches(showcase) : null;
+  const hasResult = !availableDates || availableDates.has(active.date);
+  const previousHasResult = Boolean(previous && (!availableDates || availableDates.has(previous.date)));
+  const areaDelta = previous && previousHasResult && hasResult ? active.area_km2 - previous.area_km2 : null;
+  const regionDelta = previous && previousHasResult && hasResult ? active.patches - previous.patches : null;
+  const gapDays = previous && previousHasResult ? daysBetween(previous.date, active.date) : null;
+  const signedArea = areaDelta == null ? null : `${areaDelta > 0 ? "+" : areaDelta < 0 ? "−" : ""}${Math.abs(areaDelta).toFixed(2)} km²`;
+  const signedRegions = regionDelta == null ? null : `${regionDelta > 0 ? "+" : regionDelta < 0 ? "−" : ""}${Math.abs(regionDelta)}`;
   const paras = changeStory(pulseData, dataTier, opticalState(dataTier, pulseData), showcase?.reference);
+
   return (
     <ToolFrame title="What happened?" lede="A plain-language summary written only from the measurements loaded in this case." limitation="This text names no causes and is not a flood report.">
+      <section className="wx-story-snapshot" aria-label="Selected observation context">
+        <header className="wx-story-snapshot__header">
+          <div>
+            <p className="wx-micro">Selected acquisition</p>
+            <strong>{fmtDateLong(active.date)}</strong>
+          </div>
+          {active.date === pulseData.peak.date && <span className="wx-story-snapshot__badge">Peak in this series</span>}
+        </header>
+        {hasResult ? (
+          <>
+            <dl className="wx-story-snapshot__metrics">
+              <div className="wx-story-snapshot__metric">
+                <dt>Candidate area</dt>
+                <dd>{active.area_km2.toFixed(2)} km²</dd>
+              </div>
+              <div className="wx-story-snapshot__metric">
+                <dt>Candidate regions</dt>
+                <dd>{active.patches.toLocaleString()}</dd>
+              </div>
+              <div className="wx-story-snapshot__metric">
+                <dt>Mapped-boundary share</dt>
+                <dd>{(active.fraction * 100).toFixed(1)}%</dd>
+              </div>
+            </dl>
+            {signedArea != null && signedRegions != null && previous ? (
+              <div className="wx-story-snapshot__comparison">
+                <p className="wx-micro">Change from {fmtDateLong(previous.date)}</p>
+                <div className="wx-story-snapshot__delta">
+                  <strong>{signedArea}</strong>
+                  <span>{signedRegions} candidate regions</span>
+                </div>
+                <p className="wx-story-snapshot__note">
+                  {gapDays} days between acquisitions. This is a difference between two recorded snapshots, not a daily rate.
+                </p>
+              </div>
+            ) : previous ? (
+              <p className="wx-story-snapshot__note">The preceding acquisition has no exported candidate result, so a date-to-date difference is not available.</p>
+            ) : (
+              <p className="wx-story-snapshot__note">This is the first acquisition in the loaded series; no earlier observation is available for comparison.</p>
+            )}
+          </>
+        ) : (
+          <p className="wx-story-snapshot__note">This acquisition is recorded, but no candidate-region result was exported for this date.</p>
+        )}
+      </section>
       <div className="wx-prose">{paras.map((t, i) => <p key={i}>{t}</p>)}</div>
     </ToolFrame>
   );
