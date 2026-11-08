@@ -1,7 +1,7 @@
 // Run: npm test   (node's built-in runner; no extra dependencies)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext } from "./story.ts";
+import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, type StackRow } from "./story.ts";
 
 const pulse = { site: "X", wetland_area_km2: 50, data_source: "NISAR" as const, reference_check_status: "INCONCLUSIVE",
   dates: [{ date: "2026-06-23", area_km2: 1, fraction: 0.1, mean_delta_db: 1, patches: 3 }, { date: "2026-08-29", area_km2: 24.48, fraction: 0.4, mean_delta_db: 2, patches: 295 }],
@@ -60,6 +60,26 @@ test("unknown dates and invalid overlap fractions remain unassessed", () => {
   assert.equal(invalid.previousDate, "2026-09-10");
   assert.equal(invalid.overlapFraction, null);
   assert.equal(invalid.status, "UNAVAILABLE");
+});
+
+test("evidence summary preserves all existing statuses without scoring them", () => {
+  const rows: StackRow[] = [
+    { key: "hh", label: "HH radar change", kind: "observed", status: "PASS", detail: "measured change" },
+    { key: "hv", label: "HV radar change", kind: "observed", status: "PARTIAL", detail: "small change" },
+    { key: "threshold", label: "Threshold sensitivity", kind: "derived", status: "FAIL", detail: "not stable" },
+    { key: "truth", label: "Ground truth", kind: "unassessed", status: "UNAVAILABLE", detail: "not collected" },
+  ];
+  const summary = summarizeEvidence(rows);
+  assert.equal(summary.passed.length, 1);
+  assert.equal(summary.partial.length, 1);
+  assert.equal(summary.failed.length, 1);
+  assert.equal(summary.unavailable.length, 1);
+  assert.deepEqual([...summary.passed, ...summary.partial, ...summary.failed, ...summary.unavailable]
+    .map((row) => row.key).sort(), rows.map((row) => row.key).sort());
+});
+
+test("evidence summary handles an empty set", () => {
+  assert.deepEqual(summarizeEvidence([]), { passed: [], partial: [], failed: [], unavailable: [] });
 });
 
 test("challenge always lists missing field truth", () => {
