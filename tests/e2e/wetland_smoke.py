@@ -172,11 +172,26 @@ with sync_playwright() as p:
     live_samples = []
     for _ in range(8):
         page.wait_for_timeout(220)
-        current_text = page.locator("[data-testid='hydro-current-value']").inner_text().strip()
-        active_text = page.locator(".hydro-bar.is-active .hydro-val").inner_text().strip()
-        live_samples.append(current_text)
+        # Read both values in one browser task so autoplay cannot advance
+        # between separate Playwright round-trips and create a false mismatch.
+        sample = page.evaluate("""() => {
+            const current = document.querySelector("[data-testid='hydro-current-value']");
+            const active = document.querySelector(".hydro-bar.is-active .hydro-val");
+            return {
+                current: current?.textContent?.trim() ?? "",
+                active: active?.textContent?.trim() ?? "",
+            };
+        }""")
+        current_text = sample["current"]
+        active_text = sample["active"]
+        live_samples.append(f"{current_text}/{active_text}")
         try:
-            live_values_match = live_values_match and current_text == active_text and float(current_text) >= 0
+            numeric_value = float(current_text)
+            live_values_match = (
+                live_values_match
+                and current_text == active_text
+                and numeric_value >= 0
+            )
         except ValueError:
             live_values_match = False
     check(
