@@ -73,6 +73,12 @@ with sync_playwright() as p:
     drawer = page.inner_text(".wx-drawer").lower()
     check("Why this region? opens with evidence", "why this region?" in drawer and "what do we actually know?" in drawer and "limitation" in drawer)
     check("evidence uses pipeline semantics", "previous date" in drawer and "compact footprint" in drawer)
+    inspector_box = page.get_by_role("heading", name="Why this region?").bounding_box()
+    chart_box = page.locator(".wx-pulse-chart").bounding_box()
+    check(
+        "selected-region evidence appears before the temporal chart",
+        inspector_box is not None and chart_box is not None and inspector_box["y"] < chart_box["y"],
+    )
     page.evaluate("document.querySelector('.wx-drawer__body').scrollTop = 99999"); page.click("text=Challenge this detection"); page.wait_for_timeout(400)
     d2 = page.inner_text(".wx-drawer")
     check("challenge lists real checks + no field truth", "Can we trust this change?" in d2 and "No field truth" in d2 and "threshold" in d2.lower())

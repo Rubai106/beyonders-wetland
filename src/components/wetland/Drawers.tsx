@@ -532,14 +532,14 @@ export function ExplorePanel() {
   const { detectiveOn, setDetectiveOn } = useWetlandStore();
   return (
     <div className="wx-panel">
-      <PanelHead n="01" title="Explore" lede="Touch the data. Click a glowing region to interrogate it — or switch on SAR Detective and probe any point on the map." />
-      <WetlandPulseChart />
+      <PanelHead n="01" title="Explore" lede="Select a candidate region to inspect its radar measurements and limitations, or use SAR Detective to sample a point on the map." />
       <button type="button" className={`wx-detective${detectiveOn ? " is-on" : ""}`} aria-pressed={detectiveOn}
         onClick={() => setDetectiveOn(!detectiveOn)}>
         <span className="wx-micro">{detectiveOn ? "● Detective active — click anywhere on the map" : "SAR Detective"}</span>
         <strong>{detectiveOn ? "Tap again to switch off" : "Read the radar signal at any point"}</strong>
       </button>
       {detectiveOn ? <DetectiveDrawer /> : <InvestigationDrawer />}
+      <WetlandPulseChart />
       <RegionRegister />
       <StoryDrawer />
       <CompareDrawer />
