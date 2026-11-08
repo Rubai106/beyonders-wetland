@@ -82,6 +82,39 @@ with sync_playwright() as p:
     )
     check("all seven real acquisition dates remain selectable in the chart", page.locator(".wx-pulse-chart__hit[role='button']").count() == 7)
 
+    # The register must let visitors browse beyond its first 100 rows and recover
+    # cleanly when a search has no matches. Exports continue to use all filtered rows.
+    register_rows = page.locator(".wx-region-table tbody tr")
+    check(
+        "region register starts with an explicit first page and remaining-result count",
+        register_rows.count() == 100
+        and "Showing 100 of 295 matching regions" in page.inner_text(".wx-region-summary")
+        and page.locator(".wx-region-pagination button").count() == 1,
+        f"visible={register_rows.count()}",
+    )
+    page.locator(".wx-region-pagination button").click()
+    page.wait_for_function("document.querySelectorAll('.wx-region-table tbody tr').length === 200", timeout=5000)
+    check(
+        "region register loads the next 100 rows without changing the full result",
+        register_rows.count() == 200
+        and "Showing 200 of 295 matching regions" in page.inner_text(".wx-region-summary"),
+    )
+    page.get_by_label("Search candidate regions").fill("no-match-region-000")
+    check(
+        "region register shows a useful empty-search state",
+        register_rows.count() == 0
+        and "No candidate regions match those criteria." in page.inner_text(".wx-region-empty")
+        and page.locator(".wx-region-summary button").count() == 1,
+    )
+    page.locator(".wx-region-summary button").click()
+    check(
+        "clearing register filters restores the first page",
+        page.get_by_label("Search candidate regions").input_value() == ""
+        and page.get_by_label("Filter candidate class").input_value() == "ALL"
+        and register_rows.count() == 100
+        and page.locator(".wx-region-pagination button").count() == 1,
+    )
+
     # Audit the chart against the exact published pulse manifest, including its
     # date labels, candidate-area values, marker geometry and keyboard controls.
     pulse_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "public", "showcase", "featured", "pulse.json")
