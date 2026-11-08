@@ -205,10 +205,14 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   useEffect(() => {
     if (typeof window === "undefined" || isLoadingData) return;
     const region = new URLSearchParams(window.location.search).get("region");
-    if (!region || selectedPatchId === region) return;
+    if (!region) return;
     const match = patches.find((patch) => patch.id === region && patch.date === pulseDates?.[selectedDateIndex]?.date);
-    if (match) setSelectedPatch(match);
-  }, [patches, selectedPatchId, selectedDateIndex, pulseDates, isLoadingData, setSelectedPatch]);
+    if (!match) return;
+    if (selectedPatchId !== region) setSelectedPatch(match);
+    // A direct candidate link should open the investigator, not leave the
+    // restored selection hidden behind the closed-drawer overview.
+    setDrawer("EXPLORE");
+  }, [patches, selectedPatchId, selectedDateIndex, pulseDates, isLoadingData, setSelectedPatch, setDrawer]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
