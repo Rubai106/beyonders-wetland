@@ -161,6 +161,49 @@ export function regionNavigationContext<T extends {
   };
 }
 
+export interface RegionDistributionContext {
+  total: number;
+  areaRank: number | null;
+  deltaHhRank: number | null;
+  medianAreaKm2: number | null;
+  medianAbsDeltaHhDb: number | null;
+}
+
+function median(values: number[]): number | null {
+  if (!values.length) return null;
+  const sorted = values.slice().sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+/** Descriptive same-acquisition comparison only; no score or confidence is inferred. */
+export function regionDistributionContext<T extends {
+  id: string;
+  area_km2: number;
+  delta_hh: number;
+  classification: WetlandPatch["classification"];
+}>(
+  regions: readonly T[],
+  selectedId: string,
+  classFilter: "ALL" | WetlandPatch["classification"] = "ALL",
+): RegionDistributionContext {
+  const cohort = regions.filter((region) =>
+    (classFilter === "ALL" || region.classification === classFilter)
+    && Number.isFinite(region.area_km2) && region.area_km2 >= 0
+    && Number.isFinite(region.delta_hh));
+  const byArea = cohort.slice().sort((a, b) => b.area_km2 - a.area_km2 || a.id.localeCompare(b.id));
+  const byDelta = cohort.slice().sort((a, b) => Math.abs(b.delta_hh) - Math.abs(a.delta_hh) || a.id.localeCompare(b.id));
+  const areaIndex = byArea.findIndex((region) => region.id === selectedId);
+  const deltaIndex = byDelta.findIndex((region) => region.id === selectedId);
+  return {
+    total: cohort.length,
+    areaRank: areaIndex >= 0 ? areaIndex + 1 : null,
+    deltaHhRank: deltaIndex >= 0 ? deltaIndex + 1 : null,
+    medianAreaKm2: median(cohort.map((region) => region.area_km2)),
+    medianAbsDeltaHhDb: median(cohort.map((region) => Math.abs(region.delta_hh))),
+  };
+}
+
 export interface ChallengeItem { tone: "ok" | "warn" | "note"; text: string; detail?: string }
 export interface ChallengeResult { items: ChallengeItem[]; passes: string[]; warnings: string[]; status: string; interpretation: string; independent: string; validation: string; recommendation: string; alternatives: string[] }
 
