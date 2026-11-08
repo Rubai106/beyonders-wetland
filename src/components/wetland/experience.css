@@ -666,3 +666,11 @@
   .wx-region-context__export { align-items: stretch; flex-direction: column; }
   .wx-region-context__export .wx-btn { width: 100%; }
 }
+
+
+.wx-region-context__share-message { color: var(--ws-text-2); font-size: .68rem; line-height: 1.45; }
+.wx-region-context__export { justify-content: flex-start; }
+.wx-region-context__export .wx-btn { flex: 1 1 145px; }
+@media (max-width: 380px) {
+  .wx-region-context__export .wx-btn { flex-basis: 100%; }
+}
