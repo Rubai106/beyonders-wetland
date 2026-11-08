@@ -1,7 +1,7 @@
 // Run: npm test   (node's built-in runner; no extra dependencies)
 import test from "node:test";
 import assert from "node:assert/strict";
-import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, regionNavigationContext, regionDistributionContext, type StackRow } from "./story.ts";
+import { changeStory, daysBetween, opticalState, challenge, temporalOverlapContext, summarizeEvidence, regionNavigationContext, regionDistributionContext, buildRegionEvidenceBrief, type StackRow } from "./story.ts";
 
 const pulse = { site: "X", wetland_area_km2: 50, data_source: "NISAR" as const, reference_check_status: "INCONCLUSIVE",
   dates: [{ date: "2026-06-23", area_km2: 1, fraction: 0.1, mean_delta_db: 1, patches: 3 }, { date: "2026-08-29", area_km2: 24.48, fraction: 0.4, mean_delta_db: 2, patches: 295 }],
@@ -149,6 +149,85 @@ test("region distribution excludes invalid measurements and handles an empty coh
     { id: "also-bad", area_km2: 2, delta_hh: Number.POSITIVE_INFINITY, classification: "OPEN_WATER" as const },
   ], "bad");
   assert.deepEqual(context, { total: 0, areaRank: null, deltaHhRank: null, medianAreaKm2: null, medianAbsDeltaHhDb: null });
+});
+
+test("region evidence brief preserves loaded measurements, provenance, and limitations", () => {
+  const patch = {
+    id: "wetland_patch_abcdef123456",
+    date: "2026-09-22",
+    area_km2: 2.5,
+    mean_delta_db: -2.1,
+    median_delta_db: -2,
+    valid_fraction: 0.92,
+    vegetated_fraction: 0.35,
+    classification: "OPEN_WATER" as const,
+    quality_status: "PASS" as const,
+    spatial_status: "PASS" as const,
+    temporal_status: "PASS" as const,
+    threshold_stability: "STABLE" as const,
+    threshold_variation_fraction: 0.1,
+    temporal_overlap_fraction: 0.72,
+    baseline_observation_count: 3,
+    baseline_hh_temporal_mad_db: 0.8,
+    baseline_observation_dates: ["2026-06-01", "2026-06-13", "2026-06-25"],
+    pixel_count: 25,
+    evidence_state: "SUPPORTED" as const,
+    hh_before: -15,
+    hh_after: -19,
+    hv_before: -22,
+    hv_after: -22.2,
+    delta_hh: -4,
+    delta_hv: -0.2,
+    centroid: [25.2, 91.1] as [number, number],
+    run_id: "run-123",
+    data_source: "NISAR" as const,
+  };
+  const brief = buildRegionEvidenceBrief(
+    patch,
+    { ...temporalSeries, site: "Example site", data_source: "NISAR", product: "NISAR L2 GCOV",
+      product_maturity: "PROVISIONAL", quality_mask_method: "documented mask", baseline_date: "2026-06-01" },
+    "SHOWCASE",
+    "NOT_RUN",
+    { total: 10, areaRank: 2, deltaHhRank: 1, medianAreaKm2: 1.2, medianAbsDeltaHhDb: 2.4 },
+    "ALL",
+  );
+  assert.equal(brief.schema_version, 1);
+  assert.equal(brief.record_type, "beyonders.wetland.region-evidence");
+  assert.equal(brief.source.data_source, "NISAR");
+  assert.equal(brief.source.run_id, "run-123");
+  assert.equal(brief.observation.date, "2026-09-22");
+  assert.equal(brief.observation.preceding_acquisition, "2026-09-10");
+  assert.equal(brief.observation.interval_days, 12);
+  assert.equal(brief.candidate_region.radar_db.delta_hh, -4);
+  assert.equal(brief.candidate_region.baseline_context.observation_count, 3);
+  assert.equal(brief.same_acquisition_comparison.area_rank, 2);
+  assert.equal(brief.same_acquisition_comparison.candidate_count, 10);
+  assert.equal(brief.evidence_checks.length, 8);
+  assert.ok(brief.limitations.some((item) => item.includes("not a confirmed flood")));
+  assert.ok(brief.limitations.some((item) => item.includes("not field validation")));
+  assert.ok(!("confidence_score" in (brief as unknown as Record<string, unknown>)));
+  assert.doesNotThrow(() => JSON.parse(JSON.stringify(brief)));
+});
+
+test("region evidence brief keeps unavailable comparison fields null", () => {
+  const patch = {
+    id: "first-date-region", date: "2026-08-17", area_km2: 1, mean_delta_db: 1, median_delta_db: 1,
+    valid_fraction: 1, vegetated_fraction: 0, classification: "UNCERTAIN" as const,
+    quality_status: "PASS" as const, spatial_status: "PARTIAL" as const, temporal_status: "PARTIAL" as const,
+    threshold_stability: "SENSITIVE" as const, evidence_state: "UNCERTAIN" as const,
+    hh_before: -10, hh_after: -9, hv_before: -20, hv_after: -20, delta_hh: 1, delta_hv: 0,
+    centroid: [0, 0] as [number, number],
+  };
+  const brief = buildRegionEvidenceBrief(
+    patch, temporalSeries, "SHOWCASE", "NOT_RUN",
+    { total: 1, areaRank: null, deltaHhRank: null, medianAreaKm2: 1, medianAbsDeltaHhDb: 1 },
+    "UNCERTAIN",
+  );
+  assert.equal(brief.temporal_comparison.previousDate, null);
+  assert.equal(brief.temporal_comparison.overlapFraction, null);
+  assert.equal(brief.same_acquisition_comparison.class_filter, "UNCERTAIN");
+  assert.equal(brief.candidate_region.geometry, null);
+  assert.equal(brief.candidate_region.baseline_context.observation_count, null);
 });
 
 test("challenge always lists missing field truth", () => {
