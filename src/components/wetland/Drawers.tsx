@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useWetlandStore } from "@/lib/store";
 import { datesWithPatches, showcaseUrl, type ShowcaseReference } from "@/lib/showcase";
 import { downloadFile, patchesCSV } from "@/lib/real-export";
-import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, regionNavigationContext, type StackStatus } from "@/lib/story";
+import { challenge, changeStory, daysBetween, evidenceStack, fmtDate, fmtDateLong, interpret, interpretationOfClass, opticalLabel, opticalState, regionLabel, summarizeEvidence, temporalOverlapContext, regionNavigationContext, regionDistributionContext, type StackStatus } from "@/lib/story";
 import { KindTag, Section, TierBadge, ToolFrame, type Kind } from "./ui";
 import FieldVolumeDisclosure from "@/components/shared/FieldVolumeDisclosure";
 import ScatteringHypothesisPanel from "@/components/shared/ScatteringHypothesisPanel";
@@ -126,6 +126,7 @@ export function InvestigationDrawer() {
     </ToolFrame>
   );
   const regionNav = regionNavigationContext(patches, p.id, vegFilter);
+  const regionDistribution = regionDistributionContext(patches, p.id, vegFilter);
   const optical = opticalState(dataTier, pulseData);
   const it = interpret(p, optical);
   const ev = showcase?.reference.evidence;
@@ -150,6 +151,24 @@ export function InvestigationDrawer() {
         <div><dt>Class</dt><dd>{p.interpretation_label ?? interpretationOfClass(p.classification)}</dd></div>
         <div><dt>Centroid</dt><dd className="wx-mono">{p.centroid[0].toFixed(4)}°N {p.centroid[1].toFixed(4)}°E</dd></div>
       </dl>
+      <section className="wx-region-context" aria-label="Same-acquisition candidate context"
+        data-region-id={p.id} data-total={regionDistribution.total}
+        data-area-rank={regionDistribution.areaRank ?? ""}
+        data-delta-rank={regionDistribution.deltaHhRank ?? ""}>
+        <div className="wx-region-context__head">
+          <strong>Compared with this observation</strong>
+          <span>{regionDistribution.total} candidates{vegFilter === "ALL" ? "" : " · current class"}</span>
+        </div>
+        {regionDistribution.areaRank != null && regionDistribution.deltaHhRank != null ? (
+          <div className="wx-region-context__grid">
+            <div><span>Area position</span><strong>{regionDistribution.areaRank} of {regionDistribution.total}</strong></div>
+            <div><span>Median candidate area</span><strong>{regionDistribution.medianAreaKm2?.toFixed(3) ?? "n/a"} km²</strong></div>
+            <div><span>|ΔHH| position</span><strong>{regionDistribution.deltaHhRank} of {regionDistribution.total}</strong></div>
+            <div><span>Median |ΔHH|</span><strong>{regionDistribution.medianAbsDeltaHhDb?.toFixed(2) ?? "n/a"} dB</strong></div>
+          </div>
+        ) : <p className="wx-region-context__note">This candidate is outside the active class filter, so no cohort position is shown.</p>}
+        <p className="wx-region-context__note">Positions and medians describe only the currently loaded acquisition and class filter. They are descriptive comparisons, not detection confidence, flood severity, or validation.</p>
+      </section>
       <div className="wx-interp"><span className="wx-micro">Interpretation</span><strong>{it.headline}</strong><p>{it.note}</p></div>
       <Section eyebrow="Evidence" title="What do we actually know?">
         <EvidenceOverview />
