@@ -80,7 +80,9 @@ class ChokweNativeRecoveryChecks(unittest.TestCase):
         with rasterio.open(path, "w", **profile) as destination:
             destination.write(values.astype(dtype), 1)
 
-    def _make_native_fixture(self, folder: Path, *, shifted_after_hv=False, bad_class=False):
+    def _make_native_fixture(
+        self, folder: Path, *, shifted_after_hv=False, bad_class=False, exclude_non_candidate=False
+    ):
         classes = np.array([[1, 0, 2], [0, 1, 0]], dtype=np.uint8)
         if bad_class:
             classes[0, 0] = 3
@@ -103,9 +105,12 @@ class ChokweNativeRecoveryChecks(unittest.TestCase):
                 nodata=np.nan,
                 transform=transform,
             )
+        wetland_values = np.ones((2, 3), dtype=np.uint8)
+        if exclude_non_candidate:
+            wetland_values[1, 2] = 0
         self._write_raster(
             folder / "wetland_mask.tif",
-            np.ones((2, 3), dtype=np.uint8),
+            wetland_values,
             dtype="uint8",
             nodata=None,
         )
@@ -127,6 +132,30 @@ class ChokweNativeRecoveryChecks(unittest.TestCase):
         self.assertEqual(summary["valid_open_water_candidate_pixel_count"], 2)
         self.assertEqual(summary["valid_vegetated_candidate_pixel_count"], 1)
         self.assertAlmostEqual(summary["native_pixel_area_km2"], 0.0001)
+
+    def test_valid_denominator_is_restricted_to_aoi_mask(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            observation = self._make_native_fixture(folder, exclude_non_candidate=True)
+            summary = inspect_native_run(folder, observation)
+        self.assertEqual(summary["wetland_mask_pixel_count"], 5)
+        self.assertEqual(summary["common_valid_native_pixel_count"], 5)
+        self.assertEqual(summary["valid_no_candidate_pixel_count"], 2)
+
+    def test_candidate_outside_aoi_mask_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            observation = self._make_native_fixture(folder)
+            outside = np.ones((2, 3), dtype=np.uint8)
+            outside[0, 2] = 0
+            self._write_raster(
+                folder / "wetland_mask.tif",
+                outside,
+                dtype="uint8",
+                nodata=None,
+            )
+            with self.assertRaisesRegex(ValueError, "outside the published AOI mask"):
+                inspect_native_run(folder, observation)
 
     def test_misaligned_native_input_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
