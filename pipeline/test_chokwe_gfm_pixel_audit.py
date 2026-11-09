@@ -78,7 +78,7 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
             "0": 0, "1": 1, "2": 1, "3": 0
         })
         self.assertEqual(result["low_likelihood_flood_pixels_with_advisory_flag"], 1)
-        self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_all_low_likelihood_flood_pixels"]["list_flood_extent"]["valid_sample_count"], 2)
+        self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_all_low_likelihood_flood_pixels"]["list_likelihood"]["valid_sample_count"], 2)
         self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_low_likelihood_candidate_overlap_pixels"]["tuw_likelihood"]["valid_sample_count"], 1)
 
     def test_candidate_overlap_keeps_excluded_water_and_nodata_out_of_denominator(self):
