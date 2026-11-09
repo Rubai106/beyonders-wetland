@@ -424,6 +424,11 @@
   .wx-region-cards { display: flex; }
 }
 .wx-region-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(110px, .7fr); gap: var(--s2); }
+/* The desktop investigation drawer is only ~300px wide. Give the class filter
+   a full row there so its selected option is readable without opening it. */
+@container (max-width: 340px) {
+  .wx-region-tools label:last-child { grid-column: 1 / -1; }
+}
 .wx-region-tools label, .wx-region-export label { display: flex; flex-direction: column; gap: 5px; color: var(--ws-text-2); font-size: .75rem; }
 .wx-region-tools label:first-child { grid-column: 1 / -1; }
 .wx-region-tools input, .wx-region-tools select, .wx-region-export select { min-width: 0; width: 100%; padding: 8px 9px; border: 1px solid #293640; border-radius: var(--r-1); background: #0d141a; color: var(--ws-text); }
