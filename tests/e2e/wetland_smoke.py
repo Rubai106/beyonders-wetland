@@ -216,6 +216,8 @@ with sync_playwright() as p:
         const afterPane = document.querySelector('.leaflet-wxRadarAfter-pane');
         return !!before && !!afterPane?.querySelector('img') && Boolean(afterPane.style.clipPath);
     }""", timeout=12000)
+    check("shared view reload remains paused at its selected acquisition",
+          page.locator(".wx-play[aria-pressed='true']").count() == 0)
     restored_state = page.locator(".wx-region-nav").evaluate("""el => ({
         region: el.dataset.regionId,
         date: el.dataset.acquisitionDate,
