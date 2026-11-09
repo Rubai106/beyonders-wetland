@@ -306,7 +306,7 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   const emptyState = showcaseChecked && dataTier === "EMPTY";
 
   return (
-    <div className="wx-root wx-root--drawer-tabs" data-tier={dataTier} data-detective={probeActive ? "true" : "false"} data-drawer={activeTab !== "NONE" ? "open" : "closed"} data-map-mode={s.mapMode}
+    <div className="wx-root wx-root--drawer-tabs" data-tier={dataTier} data-detective={probeActive ? "true" : "false"} data-drawer={activeTab !== "NONE" ? "open" : "closed"} data-map-mode={s.mapMode}>
       <Hatch />
       <header className="wx-mast">
         <span className="wx-case"><span className="wx-micro">Case</span>
