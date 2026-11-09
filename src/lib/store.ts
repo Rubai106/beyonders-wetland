@@ -357,10 +357,12 @@ export const useWetlandStore = create<WetlandStore>((set, get) => ({
       if (!patches.every((patch: WetlandPatch) => patch.geometry && ["Polygon", "MultiPolygon"].includes(patch.geometry.type))) {
         throw new Error("The pipeline run does not include mapped region geometry. Regenerate the selected pipeline run.");
       }
+      const nextMapMode = get().mapMode === "BEFORE" || get().mapMode === "SPLIT" ? "AFTER" : get().mapMode;
+      const nextRadarStage = nextMapMode === "BEFORE" ? "before" : nextMapMode === "AFTER" || nextMapMode === "SPLIT" ? "after" : "change";
       set({ demoMode: false, patches, pulseData, sensitivityData, siteBoundary, dataTier: "LOCAL_RUN", showcase: null, lock: null, pipelineRunId: runId, selectedPatch: null, probeResult: null, isPlaying: false, isLoadingData: false,
         selectedDateIndex: Math.max(0, pulseData.dates.findIndex((d: { date: string }) => d.date === pulseData.peak.date)),
         threshold: normalizeThreshold(Number(sensitivityData.base_threshold_db)),
-        mapMode: get().mapMode === "BEFORE" || get().mapMode === "SPLIT" ? "AFTER" : get().mapMode });
+        mapMode: nextMapMode, radarStage: nextRadarStage });
     } catch (e) {
       if (requestId !== pipelineRequestSequence) return;
       console.error(e);
