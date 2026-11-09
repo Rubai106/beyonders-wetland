@@ -152,7 +152,7 @@
 .agriculture-workspace .agri-granule-list span { color: #98aab0; font-size: .62rem; overflow-wrap: anywhere; }
 .agriculture-workspace .agri-granule-list code { color: #79b9b9; font-size: .56rem; overflow-wrap: anywhere; }
 .agriculture-workspace .agri-map-toolbar {
-  position: absolute; z-index: 1100; top: 14px; right: 14px; display: flex; align-items: center; gap: 4px;
+  position: absolute; z-index: 1100; top: 14px; right: 58px; display: flex; align-items: center; gap: 4px;
   padding: 5px; border: 1px solid #30424a; border-radius: 5px; background: rgb(8 17 22 / 94%); color: #d9e2e6;
   box-shadow: 0 8px 22px rgb(0 0 0 / 20%);
 }
@@ -1838,10 +1838,31 @@
 @media (max-width: 1100px) {
   .agriculture-workspace .agri-map-toolbar {
     left: 12px;
-    right: 12px;
+    right: 58px;
     max-width: none;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #648990 #101a20;
+  }
+
+  .agriculture-workspace .agri-map-toolbar button,
+  .agriculture-workspace .agri-map-toolbar > span {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .agriculture-workspace .agri-map-toolbar::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .agriculture-workspace .agri-map-toolbar::-webkit-scrollbar-thumb {
+    background: #648990;
   }
 
   .agriculture-workspace .agri-map-toolbar button {
@@ -1863,7 +1884,7 @@
   .agriculture-workspace .agri-map-toolbar {
     top: 8px;
     left: 8px;
-    right: 8px;
+    right: 58px;
     gap: 4px;
     padding: 5px;
   }
