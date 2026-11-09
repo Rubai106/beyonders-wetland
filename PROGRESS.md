@@ -66,3 +66,12 @@
 - The date-level surface audit records 750 snow/ice-flag pixels on non-usable dates, 43 precipitation-flag pixels, and 236 out-of-range surface-flag encodings per acquisition. Unsupported encodings remain separate and are not reinterpreted.
 - Added a testable, fail-closed summary generator for the candidate workflow. It cross-checks baseline/DSG identity, acquisition dates, usable-date counts, AOI bounds and exact-cohort counts before it renders the comparison and per-date timeline. Six regression tests cover gap derivation, report alignment, evidence consistency and the no-ranking caveat.
 - **Decision:** neither track is ranked for agricultural suitability. No independent crop mask has been applied, no crop-area result is claimed, and no public Agriculture study or preview was created. The existing SME2 quality filters and public publication pointer are unchanged.
+
+
+## 2026-11-09 — Chókwè GFM reference discovery (preflight only)
+
+- Added a read-only STAC preflight for the exact Chókwè analyst-defined box (32.93–33.03°E, 24.58–24.48°S) and the 7–28 January 2026 window. It returns item IDs, dates, asset names and metadata only; it does not download raster pixels or produce flood metrics.
+- Added a manual GitHub Actions workflow that saves the discovery report as a short-lived artifact. Continuous QA remains offline and does not depend on the external STAC service.
+- Added offline regression tests for inclusive date queries, pagination, host validation, deduplication, no-result states and fail-closed datetime parsing.
+- The source lead is EODC's published southern Mozambique GFM example, whose larger AOI contains the Chókwè box. Exact valid-pixel coverage over Chókwè is **not yet checked**.
+- **Decision pending:** inspect the workflow artifact, then inspect the GFM ensemble flood, reference-water and exclusion masks over the exact box. Until those steps succeed, keep the Chókwè case unverified and do not publish an overlap or accuracy score.

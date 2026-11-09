@@ -1,0 +1,50 @@
+name: Chokwe GFM reference preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: Inclusive UTC start date for the GFM archive search
+        required: true
+        type: string
+        default: '2026-01-07'
+      end_date:
+        description: Inclusive UTC end date for the GFM archive search
+        required: true
+        type: string
+        default: '2026-01-28'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chokwe-gfm-preflight
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Query the public GFM STAC catalogue for the exact Chokwe AOI
+        run: |
+          python pipeline/discover_chokwe_gfm.py \
+            --start-date "${{ inputs.start_date }}" \
+            --end-date "${{ inputs.end_date }}" \
+            --output /tmp/chokwe-gfm-stac-preflight.json
+
+      - name: Upload the metadata-only discovery report
+        uses: actions/upload-artifact@v4
+        with:
+          name: chokwe-gfm-stac-preflight-${{ github.run_id }}
+          path: /tmp/chokwe-gfm-stac-preflight.json
+          if-no-files-found: error
+          retention-days: 30
