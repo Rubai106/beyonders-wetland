@@ -367,10 +367,6 @@ def inspect_native_run(
         str(code): int(np.count_nonzero(class_raw == code))
         for code in (0, 1, 2)
     }
-    valid_count = int(common_valid.sum())
-    water_count = int(np.count_nonzero(common_valid & (class_raw == 1)))
-    vegetation_count = int(np.count_nonzero(common_valid & (class_raw == 2)))
-    no_candidate_count = int(np.count_nonzero(common_valid & (class_raw == 0)))
 
     transform = class_meta["profile"]["transform"]
     crs = class_meta["profile"]["crs"]
@@ -401,6 +397,11 @@ def inspect_native_run(
         raise ValueError("Native AOI mask is not aligned to the classification grid.")
     if np.any((class_raw > 0) & (wetland_values != 1)):
         raise ValueError("A native candidate falls outside the published AOI mask.")
+    common_valid &= wetland_values == 1
+    valid_count = int(common_valid.sum())
+    water_count = int(np.count_nonzero(common_valid & (class_raw == 1)))
+    vegetation_count = int(np.count_nonzero(common_valid & (class_raw == 2)))
+    no_candidate_count = int(np.count_nonzero(common_valid & (class_raw == 0)))
 
     return {
         "classification_file": class_name,
