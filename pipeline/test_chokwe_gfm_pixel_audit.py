@@ -58,10 +58,16 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
             "tuw_flood_extent": layer([[0, 1], [0, 0]]),
         }
         advisory = np.array([[0, 1], [0, 0]], dtype=np.uint8)
+        algorithm_likelihoods = {
+            "list_flood_extent": layer([[80, 70], [65, 20]]),
+            "dlr_flood_extent": layer([[75, 30], [25, 10]]),
+            "tuw_flood_extent": layer([[20, 80], [90, 90]]),
+        }
         result = audit.summarize_algorithm_consistency(
             ensemble_flood, likelihood, exclusion, exclusion_valid,
-            reference, reference_valid, inside, layers,
-            advisory, np.ones((2, 2), dtype=bool),
+            reference, reference_valid, inside, layers, algorithm_likelihoods,
+            candidate_mask=np.array([[0, 1], [1, 0]], dtype=bool),
+            advisory_flags=advisory, advisory_valid=np.ones((2, 2), dtype=bool),
         )
         self.assertEqual(result["source_algorithm_positive_pixel_counts"], {
             "list_flood_extent": 3, "dlr_flood_extent": 1, "tuw_flood_extent": 1
@@ -72,6 +78,8 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
             "0": 0, "1": 1, "2": 1, "3": 0
         })
         self.assertEqual(result["low_likelihood_flood_pixels_with_advisory_flag"], 1)
+        self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_all_low_likelihood_flood_pixels"]["list_flood_extent"]["valid_sample_count"], 2)
+        self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_low_likelihood_candidate_overlap_pixels"]["tuw_flood_extent"]["valid_sample_count"], 1)
 
     def test_candidate_overlap_keeps_excluded_water_and_nodata_out_of_denominator(self):
         candidate = np.array([[1, 1], [1, 1]], dtype=np.uint8)

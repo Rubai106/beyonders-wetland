@@ -48,6 +48,9 @@ ASSET_NAMES = (
     "list_flood_extent",
     "dlr_flood_extent",
     "tuw_flood_extent",
+    "list_likelihood",
+    "dlr_likelihood",
+    "tuw_likelihood",
 )
 PATCHES_PATH = (
     ROOT
@@ -215,6 +218,8 @@ def summarize_algorithm_consistency(
     reference_valid: np.ndarray,
     inside_aoi: np.ndarray,
     algorithm_layers: dict[str, dict],
+    algorithm_likelihood_layers: dict[str, dict],
+    candidate_mask: np.ndarray | None = None,
     advisory_flags: np.ndarray | None = None,
     advisory_valid: np.ndarray | None = None,
 ) -> dict:
@@ -222,12 +227,18 @@ def summarize_algorithm_consistency(
     required = ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
     if set(algorithm_layers) != set(required):
         raise ValueError("Exactly the LIST, DLR and TUW flood layers are required.")
+    if set(algorithm_likelihood_layers) != set(required):
+        raise ValueError("Exactly the LIST, DLR and TUW likelihood/uncertainty layers are required.")
     arrays = [
         ensemble_flood, ensemble_likelihood, exclusion, exclusion_valid,
         reference_water, reference_valid, inside_aoi,
     ]
     arrays.extend(algorithm_layers[name]["data"] for name in required)
     arrays.extend(algorithm_layers[name]["valid"] for name in required)
+    arrays.extend(algorithm_likelihood_layers[name]["data"] for name in required)
+    arrays.extend(algorithm_likelihood_layers[name]["valid"] for name in required)
+    if candidate_mask is not None:
+        arrays.append(candidate_mask)
     if advisory_flags is not None:
         arrays.append(advisory_flags)
     if advisory_valid is not None:
@@ -264,6 +275,30 @@ def summarize_algorithm_consistency(
             for vote_count in range(4)
         }
 
+    low_likelihood_algorithm_values = {}
+    low_likelihood_candidate_algorithm_values = {}
+    low_likelihood_candidates = (
+        low_likelihood_positive & candidate_mask.astype(bool)
+        if candidate_mask is not None
+        else np.zeros(ensemble_flood.shape, dtype=bool)
+    )
+    for name in required:
+        layer = algorithm_likelihood_layers[name]
+        for target, mask in (
+            (low_likelihood_algorithm_values, low_likelihood_positive),
+            (low_likelihood_candidate_algorithm_values, low_likelihood_candidates),
+        ):
+            sample_mask = mask & layer["valid"].astype(bool)
+            values = layer["data"][sample_mask]
+            target[name] = {
+                "valid_sample_count": int(values.size),
+                "raw_layer_value_histogram": value_histogram(values),
+                "minimum": int(np.min(values)) if values.size else None,
+                "median": float(np.median(values)) if values.size else None,
+                "mean": float(np.mean(values)) if values.size else None,
+                "maximum": int(np.max(values)) if values.size else None,
+            }
+
     result = {
         "source_algorithm_positive_pixel_counts": individual_counts,
         "common_valid_eligible_pixel_count": int(eligible.sum()),
@@ -273,6 +308,8 @@ def summarize_algorithm_consistency(
         "ensemble_binary_vs_two_of_three_disagreement_count": int(disagreement.sum()),
         "ensemble_flood_pixels_with_likelihood_below_50": int(low_likelihood_positive.sum()),
         "low_likelihood_flood_algorithm_vote_histogram": vote_histogram(low_likelihood_positive),
+        "raw_intermediate_likelihood_uncertainty_on_all_low_likelihood_flood_pixels": low_likelihood_algorithm_values,
+        "raw_intermediate_likelihood_uncertainty_on_low_likelihood_candidate_overlap_pixels": low_likelihood_candidate_algorithm_values,
         "ensemble_nonflood_pixels_with_likelihood_at_least_50": int(high_likelihood_negative.sum()),
     }
     if advisory_flags is not None and advisory_valid is not None:
@@ -409,6 +446,9 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
         "list_flood_extent",
         "dlr_flood_extent",
         "tuw_flood_extent",
+        "list_likelihood",
+        "dlr_likelihood",
+        "tuw_likelihood",
     ):
         url = asset_urls.get(name)
         if not url:
@@ -489,6 +529,10 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
         name: loaded[name]
         for name in ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
     }
+    algorithm_likelihood_layers = {
+        name: loaded[name]
+        for name in ("list_likelihood", "dlr_likelihood", "tuw_likelihood")
+    }
     algorithm_consistency = summarize_algorithm_consistency(
         ensemble_flood=flood["data"],
         ensemble_likelihood=likelihood["data"],
@@ -498,6 +542,8 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
         reference_valid=reference["valid"],
         inside_aoi=flood["inside_aoi"],
         algorithm_layers=algorithm_layers,
+        algorithm_likelihood_layers=algorithm_likelihood_layers,
+        candidate_mask=candidate,
         advisory_flags=loaded["advisory_flags"]["data"],
         advisory_valid=loaded["advisory_flags"]["valid"],
     )

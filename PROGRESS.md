@@ -99,3 +99,10 @@
 - The exact-AOI audit now reads the three intermediate algorithm flood masks on the same grid and compares their votes with the final ensemble binary layer. It also checks whether advisory flags coincide with low-likelihood ensemble-flood pixels.
 - This is a product-internal consistency check. The close-date overlap remains positive-only cross-sensor support and is not field truth or an accuracy score.
 - **Pending:** inspect the follow-up Actions artifact before deciding whether the COG's binary/likelihood inconsistency is material or explained by the intermediate algorithm layers/advisory flags.
+
+
+## 2026-11-09 — GFM raw likelihood-input audit
+
+- Added all three individual likelihood/uncertainty COGs (LIST, DLR and TUW) to the exact-AOI comparison. TUW's source layer is explicitly an uncertainty estimate; it must be inverted/harmonized according to the PDD before any comparison with the final ensemble likelihood.
+- The audit now reports raw per-algorithm values on all low-ensemble-likelihood flooded cells and, separately, on the NISAR candidate overlap subset. It does not treat raw TUW uncertainty as flood likelihood.
+- **Pending:** inspect the next artifact, then verify whether the harmonized component values reproduce the final ensemble likelihood within expected integer rounding.

@@ -66,3 +66,10 @@ The GFM manual describes the observed-flood layer as binary, with value 1 denoti
 ## GFM internal consistency check (pending)
 
 The GFM Product User Manual describes the final binary flood layer as a two-of-three consensus from LIST, DLR and TU Wien and says flooded pixels should have ensemble likelihood from 50 to 100. The exact AOI audit identified 33 pixels labelled flooded in the final binary layer with likelihood below 50. A follow-up audit now reads all three intermediate algorithm flood masks on the same grid, checks their majority vote against the final binary result, and cross-references the advisory flags. This is a data-quality audit; its result must be reviewed before the likelihood values are summarized as confidence.
+
+
+## Individual algorithm likelihood/uncertainty sources
+
+The final GFM binary flood map is based on a majority decision across available LIST, DLR and TU Wien algorithms. Its likelihood layer is calculated separately by averaging the algorithms' likelihood inputs. TU Wien's intermediate layer is an uncertainty estimate and is flipped before it is used in the ensemble. The audit therefore records raw intermediate values separately and must not describe TUW's raw uncertainty values as flood probabilities. The next artifact reports these raw values for the low-ensemble-likelihood flood pixels and the NISAR candidate overlap subset before any further aggregation is interpreted.
+
+Sources: [GFM PDD v4.0, ensemble rule](https://extwiki.eodc.eu/gfm_assets/gfm_pdd_v4_0.pdf); [TUW uncertainty handling](https://extwiki.eodc.eu/GFM/PDD/GFM_algorithms/TUW_algorithm); [DLR likelihood semantics](https://extwiki.eodc.eu/en/GFM/PDD/GFM_algorithms/DLR_algo); [LIST likelihood semantics](https://extwiki.eodc.eu/GFM/PDD/GFM_algorithms/LIST_algorithm).
