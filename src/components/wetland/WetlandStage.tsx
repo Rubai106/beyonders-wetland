@@ -182,7 +182,7 @@ function PatchLayer({ list, interactive, dim }: { list: WetlandPatch[]; interact
 }
 
 export default function WetlandStage() {
-  const { patches, lock, viewMode, mapMode, satelliteBasemap, siteBoundary, selectedPatch, pulseData, probeResult, probeActive } = useWetlandStore();
+  const { patches, lock, viewMode, mapMode, selectedDateIndex, satelliteBasemap, siteBoundary, selectedPatch, pulseData, probeResult, probeActive } = useWetlandStore();
   const [split, setSplit] = useState(50);
   const [basemapReady, setBasemapReady] = useState(false);
   const [basemapFailed, setBasemapFailed] = useState(false);
@@ -257,7 +257,7 @@ export default function WetlandStage() {
             <div className="wx-split-label wx-split-label--r"><small>After · candidate regions</small>{fmtDate(dates[lock.afterIndex]?.date ?? "", { month: "short", day: "numeric", year: "numeric" })}</div>
           </> : <>
             <div className="wx-split-label wx-split-label--l"><small>Before · baseline median</small>Earlier observations</div>
-            <div className="wx-split-label wx-split-label--r"><small>After · selected acquisition</small>{fmtDate(dates[useWetlandStore.getState().selectedDateIndex]?.date ?? "", { month: "short", day: "numeric", year: "numeric" })}</div>
+            <div className="wx-split-label wx-split-label--r"><small>After · selected acquisition</small>{fmtDate(dates[selectedDateIndex]?.date ?? "", { month: "short", day: "numeric", year: "numeric" })}</div>
           </>}
         </>
       )}
