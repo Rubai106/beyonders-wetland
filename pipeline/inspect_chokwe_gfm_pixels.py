@@ -369,6 +369,62 @@ def summarize_algorithm_consistency(
         str(number): int(np.count_nonzero(formula_comparison_mask & (harmonized_input_count == number)))
         for number in (1, 2, 3)
     }
+    low_flood_observed = ensemble_likelihood.astype(np.float64)[low_flood_formula_mask]
+    low_flood_residual = low_flood_observed - low_flood_expected
+    low_flood_candidate_mask = (
+        low_flood_formula_mask & candidate_mask.astype(bool)
+        if candidate_mask is not None
+        else np.zeros(ensemble_flood.shape, dtype=bool)
+    )
+    low_flood_candidate_expected = harmonized_mean[low_flood_candidate_mask]
+    low_flood_candidate_observed = ensemble_likelihood.astype(np.float64)[low_flood_candidate_mask]
+    low_flood_component_class_counts = {}
+    for name in required:
+        selected = algorithm_layers[name]["data"][low_likelihood_positive]
+        low_flood_component_class_counts[name] = {
+            "flood_class_pixels": int(np.count_nonzero(selected == 1)),
+            "non_flood_class_pixels": int(np.count_nonzero(selected == 0)),
+        }
+
+    low_flood_mismatch_examples = []
+    mismatch_rows, mismatch_cols = np.where(
+        low_flood_formula_mask & (np.abs(
+            ensemble_likelihood.astype(np.float64) - harmonized_mean
+        ) > 1.0)
+    )
+    for row, col in zip(mismatch_rows[:25], mismatch_cols[:25]):
+        list_raw = float(algorithm_likelihood_layers["list_likelihood"]["data"][row, col])
+        dlr_raw = float(algorithm_likelihood_layers["dlr_likelihood"]["data"][row, col])
+        tuw_raw = float(algorithm_likelihood_layers["tuw_likelihood"]["data"][row, col])
+        tuw_class = int(algorithm_layers["tuw_flood_extent"]["data"][row, col])
+        dlr_harmonized = (
+            100.0 - 1.25 * (100.0 - dlr_raw) if dlr_raw >= 60 else dlr_raw / 1.2
+        )
+        tuw_harmonized = 100.0 - tuw_raw if tuw_class == 1 else tuw_raw
+        component_values = {
+            "list_likelihood": {"class": int(algorithm_layers["list_flood_extent"]["data"][row, col]), "raw": list_raw, "harmonized": list_raw},
+            "dlr_likelihood": {"class": int(algorithm_layers["dlr_flood_extent"]["data"][row, col]), "raw": dlr_raw, "harmonized": dlr_harmonized},
+            "tuw_likelihood": {"class": tuw_class, "raw_uncertainty": tuw_raw, "harmonized": tuw_harmonized},
+        }
+        advisory_value = None
+        if advisory_flags is not None and advisory_valid is not None and advisory_valid[row, col]:
+            advisory_value = int(advisory_flags[row, col])
+        low_flood_mismatch_examples.append({
+            "window_row": int(row),
+            "window_col": int(col),
+            "candidate_display_polygon": bool(candidate_mask[row, col]) if candidate_mask is not None else False,
+            "ensemble_binary_flood": int(ensemble_flood[row, col]),
+            "ensemble_likelihood": int(ensemble_likelihood[row, col]),
+            "harmonized_component_mean": float(harmonized_mean[row, col]),
+            "residual_published_minus_reconstructed": float(
+                ensemble_likelihood[row, col] - harmonized_mean[row, col]
+            ),
+            "algorithm_components": component_values,
+            "advisory_flag": advisory_value,
+            "exclusion_mask": int(exclusion[row, col]),
+            "reference_water_mask": int(reference_water[row, col]),
+        })
+
     formula_summary = {
         "formula": (
             "LIST probability; DLR fuzzy F transformed as 100 - 1.25*(100-F) for F>=60, "
@@ -391,14 +447,21 @@ def summarize_algorithm_consistency(
             "median": float(np.median(low_flood_expected)) if low_flood_expected.size else None,
             "mean": float(np.mean(low_flood_expected)) if low_flood_expected.size else None,
             "maximum": float(np.max(low_flood_expected)) if low_flood_expected.size else None,
-            "within_one_value_count": int(np.count_nonzero(
-                np.abs(
-                    ensemble_likelihood.astype(np.float64)[low_flood_formula_mask]
-                    - low_flood_expected
-                ) <= 1.0
-            )),
+            "within_one_value_count": int(np.count_nonzero(np.abs(low_flood_residual) <= 1.0)),
             "expected_mean_below_50_count": int(np.count_nonzero(low_flood_expected < 50)),
+            "residual_mean_absolute": float(np.mean(np.abs(low_flood_residual))) if low_flood_residual.size else None,
+            "residual_maximum_absolute": float(np.max(np.abs(low_flood_residual))) if low_flood_residual.size else None,
         },
+        "low_likelihood_binary_flood_component_class_counts": low_flood_component_class_counts,
+        "low_likelihood_candidate_overlap_expected_mean": {
+            "pixel_count": int(low_flood_candidate_mask.sum()),
+            "within_one_value_count": int(np.count_nonzero(
+                np.abs(low_flood_candidate_observed - low_flood_candidate_expected) <= 1.0
+            )),
+            "expected_mean_below_50_count": int(np.count_nonzero(low_flood_candidate_expected < 50)),
+            "median": float(np.median(low_flood_candidate_expected)) if low_flood_candidate_expected.size else None,
+        },
+        "low_likelihood_binary_flood_mismatch_examples": low_flood_mismatch_examples,
         "interpretation": (
             "The ensemble binary flood decision is based on majority voting, while its likelihood is "
             "the separate arithmetic mean of harmonized individual likelihood inputs. These outputs "

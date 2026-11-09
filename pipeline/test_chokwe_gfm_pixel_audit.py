@@ -137,6 +137,40 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
         self.assertEqual(check["low_likelihood_binary_flood_expected_mean"]["expected_mean_below_50_count"], 1)
         self.assertEqual(check["low_likelihood_binary_flood_expected_mean"]["within_one_value_count"], 1)
 
+    def test_formula_check_limits_low_flood_summary_to_common_valid_nonexcluded_pixels(self):
+        def layer(data):
+            arr = np.array(data, dtype=np.uint8)
+            return {"data": arr, "valid": np.ones(arr.shape, dtype=bool)}
+
+        flood_layers = {
+            "list_flood_extent": layer([[1, 1], [1, 1]]),
+            "dlr_flood_extent": layer([[1, 1], [1, 1]]),
+            "tuw_flood_extent": layer([[0, 0], [0, 0]]),
+        }
+        likelihood_layers = {
+            "list_likelihood": layer([[20, 20], [20, 20]]),
+            "dlr_likelihood": layer([[33, 33], [33, 33]]),
+            "tuw_likelihood": layer([[19, 19], [19, 19]]),
+        }
+        result = audit.summarize_algorithm_consistency(
+            ensemble_flood=np.ones((2, 2), dtype=np.uint8),
+            ensemble_likelihood=np.full((2, 2), 22, dtype=np.uint8),
+            exclusion=np.array([[0, 1], [0, 0]], dtype=np.uint8),
+            exclusion_valid=np.ones((2, 2), dtype=bool),
+            reference_water=np.array([[0, 0], [1, 0]], dtype=np.uint8),
+            reference_valid=np.ones((2, 2), dtype=bool),
+            inside_aoi=np.ones((2, 2), dtype=bool),
+            algorithm_layers=flood_layers,
+            algorithm_likelihood_layers=likelihood_layers,
+            candidate_mask=np.array([[1, 1], [1, 1]], dtype=bool),
+            ensemble_likelihood_valid=np.ones((2, 2), dtype=bool),
+        )
+        check = result["harmonized_likelihood_formula_check"]
+        self.assertEqual(check["low_likelihood_binary_flood_pixel_count"], 2)
+        self.assertEqual(check["low_likelihood_binary_flood_component_class_counts"]["tuw_flood_extent"]["non_flood_class_pixels"], 2)
+        self.assertEqual(check["low_likelihood_candidate_overlap_expected_mean"]["pixel_count"], 2)
+        self.assertEqual(len(check["low_likelihood_binary_flood_mismatch_examples"]), 0)
+
     def test_candidate_overlap_keeps_excluded_water_and_nodata_out_of_denominator(self):
         candidate = np.array([[1, 1], [1, 1]], dtype=np.uint8)
         inside = np.ones((2, 2), dtype=bool)
