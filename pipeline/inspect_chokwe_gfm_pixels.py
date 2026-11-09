@@ -364,6 +364,11 @@ def summarize_algorithm_consistency(
         & (ensemble_likelihood < 50)
         & (harmonized_input_count > 0)
     )
+    low_likelihood_positive = (
+        formula_eligible_mask
+        & (ensemble_flood == 1)
+        & (ensemble_likelihood < 50)
+    )
     low_flood_expected = harmonized_mean[low_flood_formula_mask]
     formula_input_histogram = {
         str(number): int(np.count_nonzero(formula_comparison_mask & (harmonized_input_count == number)))
