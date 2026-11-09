@@ -21,7 +21,6 @@ import math
 import re
 import sys
 import tempfile
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -329,9 +328,11 @@ def inspect_native_run(
     if not classification_path.is_file():
         raise FileNotFoundError(f"Native classification raster is missing: {classification_path}")
     class_values, class_meta = _raster_valid_values(classification_path)
-    class_raw = class_values.astype(np.uint8, copy=False)
-    if not np.isin(class_raw, (0, 1, 2)).all():
+    if not np.issubdtype(class_values.dtype, np.integer):
+        raise ValueError("Native classification must use an integer class raster.")
+    if not np.isin(class_values, (0, 1, 2)).all():
         raise ValueError("Native classification contains an undocumented class code.")
+    class_raw = class_values.astype(np.uint8, copy=False)
 
     common_valid = np.ones(class_raw.shape, dtype=bool)
     aligned_paths: dict[str, Path] = {}
@@ -386,14 +387,18 @@ def inspect_native_run(
     wetland_mask = run_dir / "wetland_mask.tif"
     if not wetland_mask.is_file():
         raise FileNotFoundError("Recovered native wetland/AOI mask is missing.")
-    _, wetland_meta = _raster_valid_values(wetland_mask)
+    wetland_values, wetland_meta = _raster_valid_values(wetland_mask)
+    if not np.isin(wetland_values, (0, 1)).all():
+        raise ValueError("Native AOI mask contains values other than 0/1.")
     if (
         wetland_meta["profile"]["crs"] != crs
-        or wetland_meta["profile"]["transform"].almost_equals(transform, precision=1e-8) is False
+        or not wetland_meta["profile"]["transform"].almost_equals(transform, precision=1e-8)
         or wetland_meta["profile"]["width"] != class_meta["profile"]["width"]
         or wetland_meta["profile"]["height"] != class_meta["profile"]["height"]
     ):
         raise ValueError("Native AOI mask is not aligned to the classification grid.")
+    if np.any((class_raw > 0) & (wetland_values != 1)):
+        raise ValueError("A native candidate falls outside the published AOI mask.")
 
     return {
         "classification_file": class_name,
@@ -421,6 +426,7 @@ def inspect_native_run(
         "valid_open_water_candidate_area_km2": water_count * pixel_area_km2,
         "valid_vegetated_candidate_area_km2": vegetation_count * pixel_area_km2,
         "wetland_mask_file": wetland_mask.name,
+        "wetland_mask_pixel_count": int(np.count_nonzero(wetland_values == 1)),
     }
 
 
@@ -489,6 +495,9 @@ def recover(
     if (
         run_manifest.get("baseline_scene") != SOURCE_BASELINE_SCENE
         or run_manifest.get("observation_scenes") != [SOURCE_EVENT_SCENE]
+        or run_manifest.get("baseline_date") != "2026-01-05"
+        or run_manifest.get("selected_date") != "2026-01-17"
+        or run_manifest.get("observation_count") != 1
         or run_manifest.get("product") != EXPECTED_PRODUCT
         or run_manifest.get("frequency") != EXPECTED_FREQUENCY
     ):
@@ -500,6 +509,18 @@ def recover(
         raise ValueError("Recovered run does not contain exactly one observation.")
     native_summary = inspect_native_run(run_dir, observations[0])
     files = _verify_required_files(run_dir)
+    processing_config = _read_json(run_dir / "processing_config.json")
+    expected_processing = source["method_parameters"]
+    actual_processing = processing_config.get("processing") if isinstance(processing_config, dict) else None
+    if not isinstance(actual_processing, dict):
+        raise ValueError("Recovered processing configuration is malformed.")
+    for key, expected in expected_processing.items():
+        actual = actual_processing.get(key)
+        if isinstance(expected, float):
+            if not isinstance(actual, (int, float)) or not _close(float(actual), expected, tolerance=1e-9):
+                raise ValueError(f"Recovered processing parameter differs from published source: {key}.")
+        elif actual != expected:
+            raise ValueError(f"Recovered processing parameter differs from published source: {key}.")
 
     # Include the actual GCOV quality products recorded for both selected granules.
     quality_doc = _read_json(run_dir / "quality_observations.json")
@@ -579,7 +600,6 @@ def recover(
         json.dumps(recovery_manifest, indent=2, ensure_ascii=False, allow_nan=False) + "\n",
         encoding="utf-8",
     )
-    recovery_manifest["recovery_manifest_sha256"] = _sha256(recovery_path)
     return {
         "status": "RECOVERED_NATIVE_RASTERS",
         "source_published_run_id": SOURCE_RUN_ID,
