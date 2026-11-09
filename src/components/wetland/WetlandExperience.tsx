@@ -165,7 +165,7 @@ function ContextRail() {
 }
 
 function RadarControls() {
-  const { radarChannel, radarStage, setRadarLayer, dataTier, pulseData, selectedDateIndex, showcase, showcaseId, mapMode } = useWetlandStore();
+  const { radarChannel, setRadarLayer, dataTier, pulseData, selectedDateIndex, showcase, showcaseId, mapMode } = useWetlandStore();
   const [expanded, setExpanded] = useState(false);
   const date = pulseData?.dates[selectedDateIndex]?.date;
   const [loaded, setLoaded] = useState<{ date: string; preview: RadarPreview | null } | null>(null);
@@ -177,6 +177,7 @@ function RadarControls() {
   const preview = loaded && loaded.date === date ? loaded.preview : null;
   const noPreview = dataTier === "SHOWCASE" && !!date && !(showcase?.manifest.radar_dates ?? []).includes(date);
   const scale = mapMode === "SPLIT" ? null : mapMode === "DIFFERENCE" ? [-10, 10] : preview?.layers[radarChannel]?.scale_db;
+  const channelStage = mapMode === "BEFORE" ? "before" : mapMode === "AFTER" || mapMode === "SPLIT" ? "after" : "change";
   const stageWord = mapMode === "BEFORE" ? "Baseline" : mapMode === "AFTER" ? "After" : mapMode === "SPLIT" ? "Split" : "Difference";
   const stageDescription = mapMode === "BEFORE"
     ? "Baseline is the per-pixel median of earlier observations."
@@ -199,7 +200,7 @@ function RadarControls() {
           {(["hh", "hv"] as const).map((channel) =>
             <button key={channel} type="button" data-channel={channel.toUpperCase()} aria-pressed={radarChannel === channel}
               aria-label={`Show ${channel.toUpperCase()} polarization`}
-              onClick={() => { setRadarLayer(channel, radarStage); setExpanded(false); }}>{channel.toUpperCase()}</button>)}
+              onClick={() => { setRadarLayer(channel, channelStage); setExpanded(false); }}>{channel.toUpperCase()}</button>)}
         </div>
         {scale && <div className="wx-ramp"><i className={mapMode === "DIFFERENCE" ? "is-div" : "is-gray"} /><span className="wx-mono">{scale[0]} dB</span><span className="wx-mono">{scale[1]} dB</span></div>}
         {noPreview && <p className="wx-radar__notice" role="status">No radar raster preview was exported for {date}. The selected comparison mode is kept, but only candidate outlines can be shown for this date.</p>}
