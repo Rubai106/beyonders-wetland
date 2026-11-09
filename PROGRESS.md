@@ -139,3 +139,12 @@
 - Full independent regression: 210/210 Python tests, 186/186 JS tests, lint, TypeScript check, public production build, and 477/477 browser-suite checks passed.
 - GitHub Actions run `42682317233` completed successfully on application fix commit `6ba71324e6ef67d98bb07b505e0e7bd4301a0dcd`. The documentation-only HEAD `739d6a2` was not separately run by Actions at the time of Muse's audit.
 - **Status: PASS.** The 390 px matrix regression and the 360 px facts-grid overflow are both independently verified resolved.
+
+## 2026-11-10 — Desktop investigation drawer reflow fixes (independent verification pending)
+
+- Muse's O-3 inspection reproduced the Wetland region-register class-filter select truncation at a 338.4 px desktop drawer inside a 1440 px viewport. Added a container query to give the class-filter label/select a full row when the register itself is at most 340 px wide. This uses the register's actual width rather than viewport breakpoints.
+- Muse separately reproduced the Chókwè Learn layout failure at a 345 px drawer body: the two-column case forced a 599 px intrinsic width, the verdict pill extended beyond the visible drawer, comparison figures collapsed to a sliver, and the pixel inspector also exceeded its column.
+- Added inline-size containment to the Wetland hazard drawer and a 380 px container-query reflow: the Chókwè story and image figures stack, headings/verdict wrap, evidence rows collapse to one column, and the pixel-inspection panel uses a single shrinkable column. No data, scientific logic, or detector behavior changed.
+- CSS commits: `ffebe9ef5e70530e0a3797037509480ceb506c74` (Wetland filter row) and `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b` (Chókwè Learn case).
+- **Pending:** Muse visual and geometry verification at 360, 390, 820, and 1440 px. At 1440, confirm the class filter displays “Vegetation-related” in full and the Chókwè verdict, text, figures, and pixel inspector fit without horizontal scrolling. Confirm the existing 360/390 mobile behavior and the Observability/Agriculture responsive fixes remain intact.
+
