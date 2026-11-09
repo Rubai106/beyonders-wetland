@@ -7,6 +7,7 @@ import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 
+from main import _not_run_reference
 from recover_chokwe_native import (
     EXPECTED_BOUNDS,
     SOURCE_BASELINE_SCENE,
@@ -27,6 +28,16 @@ class ChokweNativeRecoveryChecks(unittest.TestCase):
         self.assertEqual(source["observation"]["scene_name"], SOURCE_EVENT_SCENE)
         self.assertEqual(source["boundary_bounds"], EXPECTED_BOUNDS)
         self.assertEqual(source["manifest"]["reference_check_status"], "INCONCLUSIVE")
+
+    def test_not_run_reference_reason_distinguishes_demo_from_real(self):
+        demo = _not_run_reference("demo")
+        real = _not_run_reference("real")
+        self.assertEqual(demo["status"], "NOT_RUN")
+        self.assertIn("simulated run", demo["reason"])
+        self.assertEqual(real["status"], "NOT_RUN")
+        self.assertIn("real-data run", real["reason"])
+        self.assertNotIn("simulated", real["reason"])
+        self.assertFalse(real["reference_validated"])
 
     def test_config_uses_exact_granules_and_published_method(self):
         source = load_source_package()
