@@ -161,7 +161,11 @@ export const useWetlandStore = create<WetlandStore>((set, get) => ({
   setSelectedPatch: (p) => set({ selectedPatch: p }),
 
   mapMode: "DIFFERENCE",
-  setMapMode: (m) => set({ mapMode: m, probeResult: null }),
+  setMapMode: (mapMode) => set({
+    mapMode,
+    radarStage: mapMode === "BEFORE" ? "before" : mapMode === "AFTER" || mapMode === "SPLIT" ? "after" : "change",
+    probeResult: null,
+  }),
 
   vegFilter: "ALL",
   setVegFilter: (v) => {
@@ -193,7 +197,7 @@ export const useWetlandStore = create<WetlandStore>((set, get) => ({
     pipelineRequestSequence++;
     set({ ...buildDemo(), demoMode: true, dataTier: "EMPTY", showcase: null, showcaseChecked: true,
       showcaseCases: [], showcaseId: SHOWCASE_ID, pipelineRunId: null, selectedDateIndex: 3, threshold: 2,
-      selectedPatch: null, vegFilter: "ALL", mapMode: "DIFFERENCE", probeResult: null, probeActive: false,
+      selectedPatch: null, vegFilter: "ALL", mapMode: "DIFFERENCE", radarStage: "change", probeResult: null, probeActive: false,
       isPlaying: false, satelliteBasemap: true, siteBoundary: null, dataError: null, isLoadingData: false,
       lock: null, challengeOpen: false, drawer: "NONE", detectiveOn: false });
   },
@@ -242,7 +246,7 @@ export const useWetlandStore = create<WetlandStore>((set, get) => ({
     const target = avail && !avail.has(state.pulseData?.peak.date ?? "") ? state.showcase?.manifest.selected_date : state.pulseData?.peak.date;
     const peakIndex = Math.max(0, (state.pulseData?.dates ?? []).findIndex((d) => d.date === target));
     set({ selectedPatch: null, probeResult: null, probeActive: false, lock: null, vegFilter: "ALL", drawer: "NONE",
-      challengeOpen: false, isPlaying: false, viewMode: "MOTION", mapMode: "DIFFERENCE", dataError: null });
+      challengeOpen: false, isPlaying: false, viewMode: "MOTION", mapMode: "DIFFERENCE", radarStage: "change", dataError: null });
     if (state.selectedDateIndex !== peakIndex) get().setSelectedDateIndex(peakIndex);
   },
   loadShowcase: async (id) => {
@@ -265,7 +269,7 @@ export const useWetlandStore = create<WetlandStore>((set, get) => ({
         // Legacy run, metadata only: real acquisition dates + verified boundary, no derived results.
         set({ demoMode: false, dataTier: "SHOWCASE", showcase: bundle, showcaseChecked: true, showcaseCases: cases, showcaseId: caseId, pipelineRunId: bundle.manifest.run_id,
           patches: [], pulseData: null, sensitivityData: null, siteBoundary: bundle.boundary, selectedDateIndex: 0, selectedPatch: null,
-          probeResult: null, isPlaying: false, isLoadingData: false, lock: null, challengeOpen: false, dataError: null, mapMode: "DIFFERENCE" });
+          probeResult: null, isPlaying: false, isLoadingData: false, lock: null, challengeOpen: false, dataError: null, mapMode: "DIFFERENCE", radarStage: "change" });
         return "LOADED";
       }
       const available = datesWithPatches(bundle);
@@ -279,7 +283,7 @@ export const useWetlandStore = create<WetlandStore>((set, get) => ({
         patches, pulseData: bundle.pulse, sensitivityData: bundle.sensitivity, siteBoundary: bundle.boundary,
         selectedDateIndex: startIndex, selectedPatch: null, probeResult: null, isPlaying: autoPlay, isLoadingData: false,
         threshold: normalizeThreshold(Number((bundle.sensitivity as unknown as { base_threshold_db?: number } | null)?.base_threshold_db)),
-        mapMode: "DIFFERENCE", lock: null, challengeOpen: false, dataError: null });
+        mapMode: "DIFFERENCE", radarStage: "change", lock: null, challengeOpen: false, dataError: null });
       return "LOADED";
     } catch (error) {
       if (requestId !== pipelineRequestSequence) return "STALE";
