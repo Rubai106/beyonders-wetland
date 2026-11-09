@@ -56,17 +56,51 @@ with sync_playwright() as p:
     page.click(".wx-obs >> nth=4"); page.wait_for_timeout(1200)
     check("scrubbing syncs date and region count", "Aug 29, 2026" in page.inner_text(".wx-now") and "295" in page.inner_text(".wx-now"))
 
-    # modes (live UI has MOTION / RADAR / DETECTION only; no EXPLAIN mode)
+    # map view (MOTION / RADAR / DETECTION) and the four real radar raster comparison modes
     for mode in ("Radar", "Detection", "Motion"):
         page.click(f".wx-modes button[data-mode='{mode.upper()}']"); page.wait_for_timeout(500)
         check(f"mode {mode} selectable", page.get_attribute(f".wx-modes button[data-mode='{mode.upper()}']", "aria-checked") == "true")
-    page.click(".wx-modes button[data-mode='RADAR']"); page.wait_for_timeout(1500)
-    # Live radar UI is a picker: open it, then check the layer trigger states HH + date.
+    for map_mode in ("BEFORE", "AFTER", "DIFFERENCE", "SPLIT"):
+        page.click(f".wx-mapmodes button[data-map-mode='{map_mode}']")
+        page.wait_for_function("(mode) => document.querySelector('.wx-root')?.dataset.mapMode === mode", arg=map_mode, timeout=5000)
+        page.wait_for_function("document.querySelector('.wx-modes button[data-mode=RADAR]')?.getAttribute('aria-checked') === 'true'", timeout=5000)
+        if map_mode == "SPLIT":
+            page.wait_for_function("""() => {
+                const before = document.querySelector('.leaflet-wxRadarBefore-pane img');
+                const afterPane = document.querySelector('.leaflet-wxRadarAfter-pane');
+                const after = afterPane?.querySelector('img');
+                return !!before && !!after && Boolean(afterPane.style.clipPath);
+            }""", timeout=10000)
+            split_slider = page.locator(".wx-stage .wx-split[role='slider']")
+            split_before = split_slider.get_attribute("aria-valuenow")
+            split_slider.focus()
+            page.keyboard.press("ArrowRight")
+            page.wait_for_function("(before) => document.querySelector('.wx-stage .wx-split')?.getAttribute('aria-valuenow') !== before", arg=split_before, timeout=3000)
+            check("split mode renders baseline and after images with an adjustable divider",
+                  page.locator(".leaflet-wxRadarBefore-pane img").count() == 1
+                  and page.locator(".leaflet-wxRadarAfter-pane img").count() == 1
+                  and page.locator(".leaflet-wxRadarAfter-pane").evaluate("(el) => Boolean(el.style.clipPath)")
+                  and split_slider.get_attribute("aria-valuenow") != split_before)
+        else:
+            page.wait_for_function("document.querySelectorAll('.leaflet-wxRadar-pane img').length === 1", timeout=10000)
+            check(f"map mode {map_mode} selects the correct single raster view",
+                  page.get_attribute(".wx-root", "data-map-mode") == map_mode
+                  and page.get_attribute(f".wx-mapmodes button[data-map-mode='{map_mode}']", "aria-checked") == "true"
+                  and page.locator(".leaflet-wxRadar-pane img").count() == 1)
+    page.click(".wx-mapmodes button[data-map-mode='DIFFERENCE']")
+    page.wait_for_timeout(500)
+    # Polarization is independent of the comparison mode.
     page.click(".wx-radar-trigger"); page.wait_for_timeout(500)
-    check("radar view states which layer is shown", "HH" in page.inner_text(".wx-radar-trigger") and "2026-08-29" in page.inner_text(".wx-radar__head"))
-    check("radar image overlay loaded", page.locator(".leaflet-wxRadar-pane img").count() == 1)
-    page.click(".wx-radar__row >> nth=1 >> button >> nth=2"); page.wait_for_timeout(800)
-    check("HV change layer selectable", "HV" in page.inner_text(".wx-radar-trigger") and "Change" in page.inner_text(".wx-radar-trigger"))
+    check("radar controls identify polarization, comparison mode and acquisition date",
+          "HH" in page.inner_text(".wx-radar-trigger")
+          and "Difference" in page.inner_text(".wx-radar-trigger")
+          and "2026-08-29" in page.inner_text(".wx-radar__head"))
+    check("radar difference overlay loaded", page.locator(".leaflet-wxRadar-pane img").count() == 1)
+    page.locator(".wx-radar__row button[data-channel='HV']").click(); page.wait_for_timeout(800)
+    check("HV polarization selectable without changing the comparison mode",
+          "HV" in page.inner_text(".wx-radar-trigger")
+          and "Difference" in page.inner_text(".wx-radar-trigger")
+          and page.get_attribute(".wx-root", "data-map-mode") == "DIFFERENCE")
     page.click(".wx-modes button[data-mode='MOTION']")
 
     # investigate a region + challenge
@@ -134,6 +168,8 @@ with sync_playwright() as p:
     page.evaluate("""() => Object.defineProperty(navigator, 'clipboard', {
         configurable: true, value: { writeText: async () => { throw new Error('Clipboard unavailable in test'); } }
     })""")
+    page.click(".wx-mapmodes button[data-map-mode='SPLIT']")
+    page.wait_for_function("document.querySelector('.wx-root')?.dataset.mapMode === 'SPLIT'")
     page.get_by_role("button", name="Copy direct region link").click()
     fallback_link = page.locator(".wx-share-fallback input").input_value()
     link_parts = page.evaluate("""(value) => {
@@ -151,7 +187,8 @@ with sync_playwright() as p:
         and link_parts["date"].isdigit()
         and link_parts["filter"] == "ALL"
         and link_parts["mode"] in ("MOTION", "RADAR", "DETECTION")
-        and link_parts["mapMode"] in ("BEFORE", "AFTER", "DIFFERENCE", "SPLIT")
+        and link_parts["mapMode"] == "SPLIT"
+        and link_parts["mode"] == "RADAR"
         and link_parts["region"] == region_context_data["regionId"]
         and bool(link_parts["caseId"]),
         str(link_parts),
@@ -183,14 +220,18 @@ with sync_playwright() as p:
     })""")
     restored_drawer_open = page.locator("#wetland-investigation-drawer").is_visible()
     explore_tab_selected = page.get_by_role("tab", name="Explore").get_attribute("aria-selected") == "true"
+    restored_split_layers = (
+        page.locator(".leaflet-wxRadarBefore-pane img").count() == 1
+        and page.locator(".leaflet-wxRadarAfter-pane img").count() == 1
+    )
     check(
-        "direct region link restores the same acquisition, candidate, view and open investigator after reload",
+        "direct region link restores the same acquisition, candidate, split map and open investigator after reload",
         restored_state["region"] == expected_region
         and restored_state["date"] == expected_date
         and restored_state["filter"] == link_parts["filter"]
         and restored_state["mode"] == link_parts["mode"]
-        and restored_state["mapMode"] == link_parts["mapMode"]
-        and restored_drawer_open and explore_tab_selected,
+        and restored_state["mapMode"] == link_parts["mapMode"] == "SPLIT"
+        and restored_drawer_open and explore_tab_selected and restored_split_layers,
         str({"state": restored_state, "drawer_open": restored_drawer_open, "explore_selected": explore_tab_selected}),
     )
     evidence_overview = page.locator(".wx-evidence-overview")
