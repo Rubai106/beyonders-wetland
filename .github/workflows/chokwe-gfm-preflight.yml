@@ -1,6 +1,11 @@
 name: Chokwe GFM reference preflight
 
 on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/chokwe-gfm-preflight.yml'
+      - 'pipeline/discover_chokwe_gfm.py'
   workflow_dispatch:
     inputs:
       start_date:
@@ -37,8 +42,8 @@ jobs:
       - name: Query the public GFM STAC catalogue for the exact Chokwe AOI
         run: |
           python pipeline/discover_chokwe_gfm.py \
-            --start-date "${{ inputs.start_date }}" \
-            --end-date "${{ inputs.end_date }}" \
+            --start-date "${{ inputs.start_date || '2026-01-07' }}" \
+            --end-date "${{ inputs.end_date || '2026-01-28' }}" \
             --output /tmp/chokwe-gfm-stac-preflight.json
 
       - name: Upload the metadata-only discovery report
