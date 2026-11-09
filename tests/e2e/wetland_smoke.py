@@ -71,7 +71,7 @@ with sync_playwright() as p:
                 const after = afterPane?.querySelector('img');
                 return !!before && !!after && Boolean(afterPane.style.clipPath);
             }""", timeout=10000)
-            split_slider = page.locator(".wx-stage .wx-split[role='slider']")
+            split_slider = page.locator(".wx-stage .wx-radar-split[role='slider']")
             split_before = split_slider.get_attribute("aria-valuenow")
             split_slider.focus()
             page.keyboard.press("ArrowRight")
