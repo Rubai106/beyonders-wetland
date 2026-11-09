@@ -26,9 +26,9 @@ jobs:
     timeout-minutes: 90
     env:
       BEYONDERS_WEB_JOB: "1"
-      EARTHDATA_TOKEN: \${{ secrets.EARTHDATA_TOKEN }}
-      EARTHDATA_USERNAME: \${{ secrets.EARTHDATA_USERNAME }}
-      EARTHDATA_PASSWORD: \${{ secrets.EARTHDATA_PASSWORD }}
+      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      EARTHDATA_USERNAME: ${{ secrets.EARTHDATA_USERNAME }}
+      EARTHDATA_PASSWORD: ${{ secrets.EARTHDATA_PASSWORD }}
 
     steps:
       - name: Check out master source
@@ -49,7 +49,7 @@ jobs:
       - name: Verify Earthdata credentials are configured
         shell: bash
         run: |
-          if [[ -z "\${EARTHDATA_TOKEN}" && -z "\${EARTHDATA_USERNAME}" ]]; then
+          if [[ -z "${EARTHDATA_TOKEN}" && -z "${EARTHDATA_USERNAME}" ]]; then
             echo "::error::Configure EARTHDATA_TOKEN or EARTHDATA_USERNAME (and EARTHDATA_PASSWORD) as repository Actions secrets."
             exit 1
           fi
@@ -65,7 +65,7 @@ jobs:
       - name: Upload private native-raster recovery package
         uses: actions/upload-artifact@v4
         with:
-          name: chokwe-native-nisar-recovery-\${{ github.run_id }}
+          name: chokwe-native-nisar-recovery-${{ github.run_id }}
           path: /tmp/chokwe-native-recovery/
           if-no-files-found: error
           retention-days: 30
