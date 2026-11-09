@@ -246,7 +246,7 @@ export default function WetlandStage() {
 
       {(lock || isRadarSplit) && (
         <>
-          <div className="wx-split" role="slider" tabIndex={0} aria-label={lock ? "Before and after divider" : "Radar baseline and after divider"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(split)}
+          <div className={lock ? "wx-split" : "wx-radar-split"} role="slider" tabIndex={0} aria-label={lock ? "Before and after divider" : "Radar baseline and after divider"} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(split)}
             style={{ left: `${split}%` }}
             onPointerDown={(e) => { drag.current = true; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); }}
             onKeyDown={(e) => { if (e.key === "ArrowLeft") { e.preventDefault(); setSplit((v) => Math.max(2, v - 4)); } if (e.key === "ArrowRight") { e.preventDefault(); setSplit((v) => Math.min(98, v + 4)); } if (e.key === "Home") setSplit(2); if (e.key === "End") setSplit(98); }}>
