@@ -176,7 +176,7 @@ function RadarControls() {
   }, [date, dataTier, showcaseId, showcase?.manifest]);
   const preview = loaded && loaded.date === date ? loaded.preview : null;
   const noPreview = dataTier === "SHOWCASE" && !!date && !(showcase?.manifest.radar_dates ?? []).includes(date);
-  const scale = mapMode === "DIFFERENCE" ? [-10, 10] : preview?.layers[radarChannel]?.scale_db;
+  const scale = mapMode === "SPLIT" ? null : mapMode === "DIFFERENCE" ? [-10, 10] : preview?.layers[radarChannel]?.scale_db;
   const stageWord = mapMode === "BEFORE" ? "Baseline" : mapMode === "AFTER" ? "After" : mapMode === "SPLIT" ? "Split" : "Difference";
   const stageDescription = mapMode === "BEFORE"
     ? "Baseline is the per-pixel median of earlier observations."
