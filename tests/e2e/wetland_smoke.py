@@ -309,11 +309,19 @@ with sync_playwright() as p:
         and compact_cards.locator("li").count() == 100,
         f"register={register_width}px cards={compact_cards.locator('li').count()}",
     )
+    compact_target_id = compact_cards.locator("li").first.get_attribute("data-region-id")
     compact_cards.locator("button").first.click()
+    page.wait_for_function(
+        "(id) => document.querySelector('.wx-region-nav')?.dataset.regionId === id",
+        arg=compact_target_id,
+        timeout=5000,
+    )
     check(
-        "compact region card opens the selected region inspector",
+        "compact region card opens the selected region inspector without URL override",
         compact_cards.locator("button").first.get_attribute("aria-pressed") == "true"
-        and page.get_by_role("heading", name="Why this region?").count() == 1,
+        and page.get_by_role("heading", name="Why this region?").count() == 1
+        and page.locator(".wx-region-nav").get_attribute("data-region-id") == compact_target_id,
+        f"expected={compact_target_id}, actual={page.locator('.wx-region-nav').get_attribute('data-region-id')}",
     )
 
     # Audit the chart against the exact published pulse manifest, including its
