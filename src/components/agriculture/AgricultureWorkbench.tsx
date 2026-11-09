@@ -1487,7 +1487,7 @@ export default function AgricultureWorkbench() {
           if (nextLayer === "moisture") setSeriesSupportMode("date-valid");
         }}
       />}
-      mapToolbar={<div className="agri-map-toolbar" role="group" aria-label="Agriculture map layers">
+      mapToolbar={<div className="agri-map-toolbar" role="group" aria-label="Agriculture map layers" tabIndex={0}>
         <button type="button" aria-pressed={layer === "moisture"} disabled={!study} onClick={() => { setLayer("moisture"); setSeriesSupportMode("date-valid"); }}>Soil moisture</button>
         <button type="button" aria-pressed={layer === "change"} disabled={!study} onClick={() => setLayer("change")}>Change</button>
         <button type="button" aria-pressed={layer === "matched"} disabled={!study || study.matched_support.observations.length === 0} onClick={() => { setLayer("matched"); setSeriesSupportMode("same-pixels"); }}>Same pixels</button>
