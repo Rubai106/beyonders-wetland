@@ -419,6 +419,9 @@
   font-family: var(--font-sans);
   font-size: 0.78rem;
 }
+.wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer {
+  container-type: inline-size;
+}
 
 .wx-root.wx-hazard-shell .wx-drawer :is(h1, h2, h3, strong, legend, dt, th) {
   color: var(--ws-text);
@@ -2052,3 +2055,107 @@
    instead of forcing the page to 857px on mobile. */
 .deformation-heading p { overflow-wrap: anywhere; }
 .deformation-provenance code { overflow-wrap: anywhere; }
+
+
+/* The Chókwè event case also appears inside the fixed-width desktop drawer.
+   Reflow from the drawer's actual width (not the viewport) so its story,
+   figures, verdict, evidence and pixel inspector all retain usable columns. */
+@container (max-width: 380px) {
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case {
+    min-width: 0;
+    max-width: 100%;
+    margin: 12px 0;
+    padding: 14px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__heading {
+    min-width: 0;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__heading > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__heading h2 {
+    max-width: none;
+    overflow-wrap: anywhere;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__verdict {
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__body > *,
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__story,
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__images {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__images {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__image--reference {
+    grid-column: auto;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__image figcaption {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__image figcaption span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__evidence {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__limits {
+    padding: 0 0 0 12px;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .mozambique-case__sources {
+    min-width: 0;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .chokwe-physics {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .chokwe-physics > * {
+    min-width: 0;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .chokwe-physics > div:first-child {
+    grid-column: auto;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .radar-physics > header {
+    flex-wrap: wrap;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .radar-physics > header > div {
+    min-width: 0;
+  }
+
+  .wx-root.wx-hazard-shell[data-hazard="wetland"] .wx-drawer .radar-physics dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
