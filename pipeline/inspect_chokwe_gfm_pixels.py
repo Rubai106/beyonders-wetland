@@ -346,8 +346,19 @@ def summarize_algorithm_consistency(
     formula_expected = harmonized_mean[formula_comparison_mask]
     formula_residual = formula_observed - formula_expected
     formula_rounded = np.rint(formula_expected)
-    low_flood_formula_mask = (
+    formula_eligible_mask = (
         inside_aoi.astype(bool)
+        & exclusion_valid.astype(bool)
+        & reference_valid.astype(bool)
+        & np.logical_and.reduce([
+            algorithm_layers[name]["valid"].astype(bool)
+            for name in ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
+        ])
+        & (exclusion == 0)
+        & (reference_water == 0)
+    )
+    low_flood_formula_mask = (
+        formula_eligible_mask
         & ensemble_likelihood_valid
         & (ensemble_flood == 1)
         & (ensemble_likelihood < 50)

@@ -120,7 +120,7 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
         }
         result = audit.summarize_algorithm_consistency(
             ensemble_flood=np.array([[1]], dtype=np.uint8),
-            ensemble_likelihood=np.array([[45]], dtype=np.uint8),
+            ensemble_likelihood=np.array([[22]], dtype=np.uint8),
             exclusion=np.array([[0]], dtype=np.uint8),
             exclusion_valid=np.ones((1, 1), dtype=bool),
             reference_water=np.array([[0]], dtype=np.uint8),
