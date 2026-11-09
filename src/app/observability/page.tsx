@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 /* Platform observation health — a server-rendered view computed from the
    published manifests in public/. No values are invented: a missing manifest
    is reported as missing, and live services are labelled "not checked here". */
@@ -7,6 +9,12 @@ import type { StudyHealth } from "@/lib/observation-health";
 import { qualityBarWidth } from "@/lib/evidence-quality";
 import { loadStudyQuality } from "@/lib/evidence-quality-server";
 import "./observability.css";
+
+export const metadata: Metadata = {
+  title: "Observation health & evidence maturity | Beyonders",
+  description:
+    "A source-backed view of what each Beyonders study has observed, processed, published, and independently assessed.",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +58,7 @@ function MaturityMatrix({ domains }: { domains: { domain: string; label: string;
         dot means the study reached that stage. No study has reached validation —
         that column is empty for everyone, and that is honest, not a gap in the chart.
       </p>
-      <div className="obs-matrix-scroll">
+      <div className="obs-matrix-scroll" role="region" aria-label="Evidence maturity table" tabIndex={0}>
         <table className="obs-matrix">
           <thead>
             <tr>
