@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -201,16 +201,18 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   const selectedDateIndex = s.selectedDateIndex;
   const setSelectedPatch = s.setSelectedPatch;
   const pulseDates = pulseData?.dates;
+  // Consume the URL's region request once it has been restored. Subsequent
+  // user selections and drawer closes must not be overridden by the old URL.
+  const regionRestoreHandled = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || isLoadingData) return;
+    if (typeof window === "undefined" || isLoadingData || regionRestoreHandled.current) return;
     const region = new URLSearchParams(window.location.search).get("region");
     if (!region) return;
     const match = patches.find((patch) => patch.id === region && patch.date === pulseDates?.[selectedDateIndex]?.date);
     if (!match) return;
+    regionRestoreHandled.current = true;
     if (selectedPatchId !== region) setSelectedPatch(match);
-    // A direct candidate link should open the investigator, not leave the
-    // restored selection hidden behind the closed-drawer overview.
     setDrawer("EXPLORE");
   }, [patches, selectedPatchId, selectedDateIndex, pulseDates, isLoadingData, setSelectedPatch, setDrawer]);
 
