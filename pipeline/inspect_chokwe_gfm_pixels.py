@@ -209,6 +209,85 @@ def inspect_asset(url: str, expected_grid: dict | None = None) -> dict:
     }
 
 
+def harmonize_algorithm_likelihoods(
+    algorithm_layers: dict[str, dict],
+    algorithm_likelihood_layers: dict[str, dict],
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply the published LIST/DLR/TUW harmonization before averaging.
+
+    LIST values are already flood probabilities on a 0–100 scale.
+    DLR fuzzy values are piecewise transformed to the same scale.
+    TUW uncertainty is inverted only where TUW classifies a pixel as flooded.
+    Missing algorithm inputs are omitted from the pixelwise arithmetic mean.
+    """
+    required_flood = ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
+    required_likelihood = ("list_likelihood", "dlr_likelihood", "tuw_likelihood")
+    if set(algorithm_layers) != set(required_flood):
+        raise ValueError("Exactly the LIST, DLR and TUW flood layers are required.")
+    if set(algorithm_likelihood_layers) != set(required_likelihood):
+        raise ValueError("Exactly the LIST, DLR and TUW likelihood/uncertainty layers are required.")
+
+    shapes = {
+        np.asarray(algorithm_layers[name]["data"]).shape for name in required_flood
+    }
+    shapes.update(
+        np.asarray(algorithm_layers[name]["valid"]).shape for name in required_flood
+    )
+    shapes.update(
+        np.asarray(algorithm_likelihood_layers[name]["data"]).shape
+        for name in required_likelihood
+    )
+    shapes.update(
+        np.asarray(algorithm_likelihood_layers[name]["valid"]).shape
+        for name in required_likelihood
+    )
+    if len(shapes) != 1:
+        raise ValueError("All algorithm flood and likelihood layers must share one array shape.")
+
+    list_data = np.asarray(algorithm_likelihood_layers["list_likelihood"]["data"], dtype=np.float64)
+    dlr_fuzzy = np.asarray(algorithm_likelihood_layers["dlr_likelihood"]["data"], dtype=np.float64)
+    tuw_uncertainty = np.asarray(algorithm_likelihood_layers["tuw_likelihood"]["data"], dtype=np.float64)
+    tuw_flood = np.asarray(algorithm_layers["tuw_flood_extent"]["data"])
+
+    list_valid = np.asarray(algorithm_likelihood_layers["list_likelihood"]["valid"], dtype=bool)
+    dlr_valid = np.asarray(algorithm_likelihood_layers["dlr_likelihood"]["valid"], dtype=bool)
+    tuw_valid = np.asarray(algorithm_likelihood_layers["tuw_likelihood"]["valid"], dtype=bool)
+
+    for name, values, valid in (
+        ("LIST likelihood", list_data, list_valid),
+        ("DLR fuzzy value", dlr_fuzzy, dlr_valid),
+        ("TUW uncertainty", tuw_uncertainty, tuw_valid),
+    ):
+        if np.any(~np.isfinite(values[valid])):
+            raise ValueError(f"{name} contains non-finite values on valid pixels.")
+        if np.any((values[valid] < 0) | (values[valid] > 100)):
+            raise ValueError(f"{name} contains values outside the documented 0–100 range.")
+
+    dlr_likelihood = np.where(
+        dlr_fuzzy >= 60,
+        100.0 - 1.25 * (100.0 - dlr_fuzzy),
+        dlr_fuzzy / 1.2,
+    )
+    tuw_likelihood = np.where(tuw_flood == 1, 100.0 - tuw_uncertainty, tuw_uncertainty)
+
+    component_values = (
+        (list_data, list_valid),
+        (dlr_likelihood, dlr_valid),
+        (tuw_likelihood, tuw_valid),
+    )
+    shape = list_data.shape
+    total = np.zeros(shape, dtype=np.float64)
+    count = np.zeros(shape, dtype=np.uint8)
+    for values, valid in component_values:
+        total[valid] += values[valid]
+        count[valid] += 1
+
+    mean = np.full(shape, np.nan, dtype=np.float64)
+    has_input = count > 0
+    mean[has_input] = total[has_input] / count[has_input]
+    return mean, count
+
+
 def summarize_algorithm_consistency(
     ensemble_flood: np.ndarray,
     ensemble_likelihood: np.ndarray,
@@ -222,6 +301,7 @@ def summarize_algorithm_consistency(
     candidate_mask: np.ndarray | None = None,
     advisory_flags: np.ndarray | None = None,
     advisory_valid: np.ndarray | None = None,
+    ensemble_likelihood_valid: np.ndarray | None = None,
 ) -> dict:
     """Check final binary flood class against LIST/DLR/TUW majority votes."""
     required = ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
@@ -244,8 +324,77 @@ def summarize_algorithm_consistency(
         arrays.append(advisory_flags)
     if advisory_valid is not None:
         arrays.append(advisory_valid)
+    if ensemble_likelihood_valid is not None:
+        arrays.append(ensemble_likelihood_valid)
     if len({array.shape for array in arrays}) != 1:
         raise ValueError("All GFM algorithm, ensemble and mask arrays must share one grid window.")
+
+    harmonized_mean, harmonized_input_count = harmonize_algorithm_likelihoods(
+        algorithm_layers, algorithm_likelihood_layers
+    )
+    ensemble_likelihood_valid = (
+        inside_aoi.astype(bool)
+        if ensemble_likelihood_valid is None
+        else ensemble_likelihood_valid.astype(bool)
+    )
+    formula_comparison_mask = (
+        inside_aoi.astype(bool)
+        & ensemble_likelihood_valid
+        & (harmonized_input_count > 0)
+    )
+    formula_observed = ensemble_likelihood.astype(np.float64)[formula_comparison_mask]
+    formula_expected = harmonized_mean[formula_comparison_mask]
+    formula_residual = formula_observed - formula_expected
+    formula_rounded = np.rint(formula_expected)
+    low_flood_formula_mask = (
+        inside_aoi.astype(bool)
+        & ensemble_likelihood_valid
+        & (ensemble_flood == 1)
+        & (ensemble_likelihood < 50)
+        & (harmonized_input_count > 0)
+    )
+    low_flood_expected = harmonized_mean[low_flood_formula_mask]
+    formula_input_histogram = {
+        str(number): int(np.count_nonzero(formula_comparison_mask & (harmonized_input_count == number)))
+        for number in (1, 2, 3)
+    }
+    formula_summary = {
+        "formula": (
+            "LIST probability; DLR fuzzy F transformed as 100 - 1.25*(100-F) for F>=60, "
+            "otherwise F/1.2; TUW uncertainty U transformed as 100-U where TUW flood=1, "
+            "otherwise U; arithmetic mean of available valid inputs."
+        ),
+        "source": "Krullikowski et al. (2023), GFM ensemble likelihood paper, equations (4)–(5) and Section III.A.",
+        "valid_comparison_pixel_count": int(formula_comparison_mask.sum()),
+        "valid_component_input_count_histogram": formula_input_histogram,
+        "rounded_exact_match_count": int(np.count_nonzero(formula_observed == formula_rounded)),
+        "within_one_value_count": int(np.count_nonzero(np.abs(formula_residual) <= 1.0)),
+        "mean_absolute_residual": float(np.mean(np.abs(formula_residual))) if formula_residual.size else None,
+        "median_absolute_residual": float(np.median(np.abs(formula_residual))) if formula_residual.size else None,
+        "p95_absolute_residual": float(np.percentile(np.abs(formula_residual), 95)) if formula_residual.size else None,
+        "maximum_absolute_residual": float(np.max(np.abs(formula_residual))) if formula_residual.size else None,
+        "mean_signed_residual": float(np.mean(formula_residual)) if formula_residual.size else None,
+        "low_likelihood_binary_flood_pixel_count": int(low_flood_formula_mask.sum()),
+        "low_likelihood_binary_flood_expected_mean": {
+            "minimum": float(np.min(low_flood_expected)) if low_flood_expected.size else None,
+            "median": float(np.median(low_flood_expected)) if low_flood_expected.size else None,
+            "mean": float(np.mean(low_flood_expected)) if low_flood_expected.size else None,
+            "maximum": float(np.max(low_flood_expected)) if low_flood_expected.size else None,
+            "within_one_value_count": int(np.count_nonzero(
+                np.abs(
+                    ensemble_likelihood.astype(np.float64)[low_flood_formula_mask]
+                    - low_flood_expected
+                ) <= 1.0
+            )),
+            "expected_mean_below_50_count": int(np.count_nonzero(low_flood_expected < 50)),
+        },
+        "interpretation": (
+            "The ensemble binary flood decision is based on majority voting, while its likelihood is "
+            "the separate arithmetic mean of harmonized individual likelihood inputs. These outputs "
+            "can disagree on confidence; a binary flood pixel with a mean below 50 is low-confidence "
+            "positive support, not by itself evidence that the binary vote is wrong."
+        ),
+    }
 
     layers_valid = np.logical_and.reduce([
         algorithm_layers[name]["valid"].astype(bool) for name in required
@@ -312,6 +461,7 @@ def summarize_algorithm_consistency(
         "raw_intermediate_likelihood_uncertainty_on_all_low_likelihood_flood_pixels": low_likelihood_algorithm_values,
         "raw_intermediate_likelihood_uncertainty_on_low_likelihood_candidate_overlap_pixels": low_likelihood_candidate_algorithm_values,
         "ensemble_nonflood_pixels_with_likelihood_at_least_50": int(high_likelihood_negative.sum()),
+        "harmonized_likelihood_formula_check": formula_summary,
     }
     if advisory_flags is not None and advisory_valid is not None:
         if advisory_valid.shape != ensemble_flood.shape:
@@ -547,6 +697,7 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
         candidate_mask=candidate,
         advisory_flags=loaded["advisory_flags"]["data"],
         advisory_valid=loaded["advisory_flags"]["valid"],
+        ensemble_likelihood_valid=loaded["ensemble_likelihood"]["valid"],
     )
     return {
         "candidate_source": {

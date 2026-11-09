@@ -81,6 +81,62 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
         self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_all_low_likelihood_flood_pixels"]["list_likelihood"]["valid_sample_count"], 2)
         self.assertEqual(result["raw_intermediate_likelihood_uncertainty_on_low_likelihood_candidate_overlap_pixels"]["tuw_likelihood"]["valid_sample_count"], 2)
 
+    def test_harmonizes_list_dlr_and_tuw_values_before_mean_and_skips_nodata(self):
+        def layer(data, valid):
+            return {
+                "data": np.array(data, dtype=np.uint8),
+                "valid": np.array(valid, dtype=bool),
+            }
+
+        flood_layers = {
+            "list_flood_extent": layer([[1, 0]], [[1, 1]]),
+            "dlr_flood_extent": layer([[1, 0]], [[1, 0]]),
+            "tuw_flood_extent": layer([[1, 0]], [[1, 1]]),
+        }
+        likelihood_layers = {
+            "list_likelihood": layer([[10, 20]], [[1, 1]]),
+            "dlr_likelihood": layer([[33, 60]], [[1, 0]]),
+            "tuw_likelihood": layer([[10, 35]], [[1, 1]]),
+        }
+        mean, count = audit.harmonize_algorithm_likelihoods(flood_layers, likelihood_layers)
+        self.assertEqual(count.tolist(), [[3, 2]])
+        self.assertAlmostEqual(mean[0, 0], (10 + (33 / 1.2) + 90) / 3)
+        self.assertAlmostEqual(mean[0, 1], (20 + 35) / 2)
+
+    def test_harmonized_formula_check_separates_majority_vote_from_mean_confidence(self):
+        def layer(data):
+            array = np.array(data, dtype=np.uint8)
+            return {"data": array, "valid": np.ones(array.shape, dtype=bool)}
+
+        flood_layers = {
+            "list_flood_extent": layer([[1]]),
+            "dlr_flood_extent": layer([[1]]),
+            "tuw_flood_extent": layer([[0]]),
+        }
+        likelihood_layers = {
+            "list_likelihood": layer([[20]]),
+            "dlr_likelihood": layer([[33]]),
+            "tuw_likelihood": layer([[19]]),
+        }
+        result = audit.summarize_algorithm_consistency(
+            ensemble_flood=np.array([[1]], dtype=np.uint8),
+            ensemble_likelihood=np.array([[45]], dtype=np.uint8),
+            exclusion=np.array([[0]], dtype=np.uint8),
+            exclusion_valid=np.ones((1, 1), dtype=bool),
+            reference_water=np.array([[0]], dtype=np.uint8),
+            reference_valid=np.ones((1, 1), dtype=bool),
+            inside_aoi=np.ones((1, 1), dtype=bool),
+            algorithm_layers=flood_layers,
+            algorithm_likelihood_layers=likelihood_layers,
+            ensemble_likelihood_valid=np.ones((1, 1), dtype=bool),
+        )
+        check = result["harmonized_likelihood_formula_check"]
+        expected = (20 + (33 / 1.2) + 19) / 3
+        self.assertEqual(result["ensemble_binary_vs_two_of_three_disagreement_count"], 0)
+        self.assertAlmostEqual(check["low_likelihood_binary_flood_expected_mean"]["mean"], expected)
+        self.assertEqual(check["low_likelihood_binary_flood_expected_mean"]["expected_mean_below_50_count"], 1)
+        self.assertEqual(check["low_likelihood_binary_flood_expected_mean"]["within_one_value_count"], 1)
+
     def test_candidate_overlap_keeps_excluded_water_and_nodata_out_of_denominator(self):
         candidate = np.array([[1, 1], [1, 1]], dtype=np.uint8)
         inside = np.ones((2, 2), dtype=bool)
