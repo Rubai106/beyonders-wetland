@@ -130,10 +130,12 @@
 - The recovery is **reprocessing, not restoration of the original TIFF bytes**. It does not publish to `public/`, does not change the production run pointer, does not rerun or upgrade the source HLS `INCONCLUSIVE` result, and does not calculate accuracy/precision/recall/F1.
 - **Status:** implementation committed to `master`; independent Muse QA and any credentialed Earthdata reprocessing have not yet been performed. Native NISAR–GFM comparison remains a separate next gate.
 
-## 2026-11-09/10 — Observability mobile overflow fixes (independent verification pending)
+## 2026-11-09/10 — Observability mobile overflow fixes (verified)
 
-- Muse's independent QA found that `/observability` at 390 px had document-level horizontal overflow (scrollWidth 761) after the maturity matrix containment rule was removed.
-- Restored `contain: layout` on `.obs-matrix-scroll`. Muse's 2026-11-10 report verifies the page is now 390/390, the 980 px maturity table still scrolls inside its own region, all seven studies and eleven columns remain reachable, and the regression suites are green.
-- The same report measured a separate, pre-existing 360 px issue: 389/360, identical on the pre-regression `5bdc8a9` baseline. It isolated the cause to unbreakable values in `.obs-facts dd` forcing the facts grid wider than its card.
-- Updated `.obs-facts` to use shrinkable grid tracks and allow long values to wrap anywhere. This follow-up fix is committed to `master` as `6ba71324e6ef67d98bb07b505e0e7bd4301a0dcd`.
-- **Pending:** independent browser verification at 360 px (expected 360/360) and 390 px (expected 390/390), plus a check that the study facts remain readable and that the maturity matrix still scrolls internally.
+- Restored `contain: layout` on `.obs-matrix-scroll` after Muse isolated a 390 px page overflow (761/390) to the maturity matrix. Muse independently verified 390/390 after the fix; the matrix remains 980 px wide and internally scrollable.
+- A separate pre-existing 360 px overflow (389/360) was isolated to long product/run-ID values in `.obs-facts dd`. Updated the facts grid to use shrinkable columns and allow long values to wrap anywhere. Application fix commit: `6ba71324e6ef67d98bb07b505e0e7bd4301a0dcd`.
+- Muse independently verified the final application tree at `739d6a222ee32df93c99dcafc6b294a558a226b9`: `/observability` document width exactly matches viewport at 360, 390, 820, and 1440 px; all 36 facts rows across seven cards remain readable with no clipping; the maturity matrix remains internally scrollable and all seven studies / eleven columns remain reachable.
+- `/agriculture` also passed at all four viewports; toolbar remains separate from Leaflet zoom controls.
+- Full independent regression: 210/210 Python tests, 186/186 JS tests, lint, TypeScript check, public production build, and 477/477 browser-suite checks passed.
+- GitHub Actions run `42682317233` completed successfully on application fix commit `6ba71324e6ef67d98bb07b505e0e7bd4301a0dcd`. The documentation-only HEAD `739d6a2` was not separately run by Actions at the time of Muse's audit.
+- **Status: PASS.** The 390 px matrix regression and the 360 px facts-grid overflow are both independently verified resolved.
