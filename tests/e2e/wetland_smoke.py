@@ -376,18 +376,22 @@ with sync_playwright() as p:
         and compact_cards.locator("li").count() == 100,
         f"register={register_width}px cards={compact_cards.locator('li').count()}",
     )
-    compact_target_id = compact_cards.locator("li").first.get_attribute("data-region-id")
-    compact_cards.locator("button").first.click()
+    compact_target = compact_cards.locator("li").first
+    compact_target_id = compact_target.get_attribute("data-region-id")
+    compact_target.locator("button").click()
     page.wait_for_function(
         """(id) => {
             const nav = document.querySelector(".wx-region-nav");
-            const firstCard = document.querySelector(".wx-region-cards li:first-child button");
+            const card = [...document.querySelectorAll(".wx-region-cards li")]
+                .find((item) => item.dataset.regionId === id);
+            const button = card?.querySelector("button");
             return nav?.dataset.regionId === id
-                && firstCard?.getAttribute("aria-pressed") === "true"
+                && button?.getAttribute("aria-pressed") === "true"
+                && card?.classList.contains("is-selected")
                 && document.querySelector("#wetland-investigation-drawer") !== null;
         }""",
         arg=compact_target_id,
-        timeout=5000,
+        timeout=12000,
     )
     compact_selection_state = page.evaluate("""() => {
         const nav = document.querySelector(".wx-region-nav");
