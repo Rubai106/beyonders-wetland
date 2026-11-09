@@ -168,7 +168,7 @@
 
 /* split comparison */
 .wx-split, .wx-radar-split { position: absolute; top: 0; bottom: 0; width: 28px; transform: translateX(-50%); z-index: 1050; cursor: ew-resize; touch-action: none; display: grid; place-items: center; }
-.wx-split::before { content: ""; position: absolute; inset: 0 13px; background: var(--c-derived); }
+.wx-split::before, .wx-radar-split::before { content: ""; position: absolute; inset: 0 13px; background: var(--c-derived); }
 .wx-split__grip { position: relative; width: 20px; height: 44px; background: #0B1117; border: 1.5px solid var(--c-derived); border-radius: var(--r-1); }
 .wx-split-label { position: absolute; top: 84px; z-index: 1040; padding: 6px 10px; background: rgba(7,10,13,.9); border: 1px solid #1E2A33; border-radius: var(--r-1); font: 0.8125rem var(--font-mono); pointer-events: none; }
 .wx-split-label small { display: block; font: 600 0.6875rem var(--font-sans); letter-spacing: .06em; color: var(--c-derived); }
