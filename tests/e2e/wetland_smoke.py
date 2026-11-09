@@ -333,16 +333,33 @@ with sync_playwright() as p:
     compact_target_id = compact_cards.locator("li").first.get_attribute("data-region-id")
     compact_cards.locator("button").first.click()
     page.wait_for_function(
-        "(id) => document.querySelector('.wx-region-nav')?.dataset.regionId === id",
+        """(id) => {
+            const nav = document.querySelector(".wx-region-nav");
+            const firstCard = document.querySelector(".wx-region-cards li:first-child button");
+            return nav?.dataset.regionId === id
+                && firstCard?.getAttribute("aria-pressed") === "true"
+                && document.querySelector("#wetland-investigation-drawer") !== null;
+        }""",
         arg=compact_target_id,
         timeout=5000,
     )
+    compact_selection_state = page.evaluate("""() => {
+        const nav = document.querySelector(".wx-region-nav");
+        const firstCard = document.querySelector(".wx-region-cards li:first-child button");
+        return {
+            navRegionId: nav?.dataset.regionId ?? null,
+            cardPressed: firstCard?.getAttribute("aria-pressed") ?? null,
+            investigatorOpen: document.querySelector("#wetland-investigation-drawer") !== null,
+            titleCount: [...document.querySelectorAll("h1,h2,h3")].filter(el => el.textContent?.trim() === "Why this region?").length
+        };
+    }""")
     check(
         "compact region card opens the selected region inspector without URL override",
-        compact_cards.locator("button").first.get_attribute("aria-pressed") == "true"
-        and page.get_by_role("heading", name="Why this region?").count() == 1
-        and page.locator(".wx-region-nav").get_attribute("data-region-id") == compact_target_id,
-        f"expected={compact_target_id}, actual={page.locator('.wx-region-nav').get_attribute('data-region-id')}",
+        compact_selection_state["navRegionId"] == compact_target_id
+        and compact_selection_state["cardPressed"] == "true"
+        and compact_selection_state["investigatorOpen"]
+        and compact_selection_state["titleCount"] == 1,
+        str({"expected": compact_target_id, **compact_selection_state}),
     )
 
     # Audit the chart against the exact published pulse manifest, including its
