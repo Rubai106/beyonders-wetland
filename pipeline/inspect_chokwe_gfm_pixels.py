@@ -1,8 +1,9 @@
-"""Audit exact Chókwè pixels in close-date Copernicus GFM COG assets.
+"""Audit exact Chókwè pixels and positive-only support from close-date GFM COGs.
 
-This inspects only the analyst-defined Chókwè rectangle and only the
-17 January 2026 Sentinel-1 GFM items. It reports source masks and value
-histograms; it does not calculate overlap with NISAR or accuracy scores.
+This reads only the Chókwè AOI window from 17 January 2026 GFM assets.
+Published NISAR candidate polygons are rasterized onto the GFM grid using
+pixel-center inclusion. Results are positive-only cross-sensor support, not
+field truth or an accuracy assessment.
 """
 from __future__ import annotations
 
@@ -10,7 +11,6 @@ import argparse
 import json
 import math
 import sys
-from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -18,14 +18,14 @@ from urllib.parse import urlparse
 import numpy as np
 import rasterio
 from rasterio.features import bounds as geometry_bounds
-from rasterio.features import geometry_mask
-from rasterio.transform import array_bounds
+from rasterio.features import geometry_mask, rasterize
 from rasterio.warp import transform_geom
 from rasterio.windows import Window, from_bounds
 
 import discover_chokwe_gfm as discovery
 
 
+ROOT = Path(__file__).resolve().parent.parent
 STUDY_GEOMETRY = {
     "type": "Polygon",
     "coordinates": [[
@@ -44,6 +44,17 @@ ASSET_NAMES = (
     "ensemble_water_extent",
     "exclusion_mask",
     "reference_water_mask",
+    "advisory_flags",
+)
+PATCHES_PATH = (
+    ROOT
+    / "public"
+    / "studies"
+    / "releases"
+    / "2026.10.29-chokwe"
+    / "runs"
+    / "ec8fa5ee15ae41d1aa89f930f2b47e36"
+    / "patches_final.geojson"
 )
 DEFAULT_OUTPUT = (
     Path(__file__).resolve().parent
@@ -84,9 +95,7 @@ def _safe_asset_url(asset: dict, item_id: str, asset_name: str) -> str:
         or parsed.hostname != API_HOST
         or not parsed.path.lower().endswith((".tif", ".tiff"))
     ):
-        raise ValueError(
-            f"Refusing unexpected URL for {item_id}/{asset_name}."
-        )
+        raise ValueError(f"Refusing unexpected URL for {item_id}/{asset_name}.")
     return href
 
 
@@ -104,7 +113,7 @@ def _window_for_geometry(src, projected_geometry: dict) -> Window:
     return clipped
 
 
-def inspect_asset(url: str, expected_grid: dict | None = None) -> dict:
+def read_asset_window(url: str, expected_grid: dict | None = None) -> dict:
     """Read a small exact-AOI window from a public COG over HTTP range requests."""
     with rasterio.Env(
         GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR",
@@ -142,43 +151,290 @@ def inspect_asset(url: str, expected_grid: dict | None = None) -> dict:
             if nodata is not None and math.isfinite(float(nodata)):
                 finite &= data != nodata
             valid = inside_aoi & source_mask & finite
-            values = data[valid]
-
-            inside_count = int(inside_aoi.sum())
-            valid_count = int(valid.sum())
-            invalid_count = inside_count - valid_count
-            if inside_count == 0:
-                raise ValueError("The projected Chókwè AOI contains no raster pixel centers.")
-
-            return {
-                "url": url,
-                "grid": grid,
-                "raster": {
-                    "driver": src.driver,
-                    "dtype": src.dtypes[0],
-                    "nodata": nodata,
-                    "compression": src.compression.value if src.compression else None,
-                    "block_shapes": [list(shape) for shape in src.block_shapes],
-                    "descriptions": list(src.descriptions),
-                    "tags": {
-                        str(key): str(value)[:500]
-                        for key, value in src.tags().items()
-                    },
-                },
-                "window": {
-                    "row_off": int(window.row_off),
-                    "col_off": int(window.col_off),
-                    "height": int(window.height),
-                    "width": int(window.width),
-                    "aoi_pixel_centers": inside_count,
-                },
-                "coverage": {
-                    "valid_pixel_count": valid_count,
-                    "invalid_or_nodata_pixel_count": invalid_count,
-                    "valid_fraction_of_aoi": valid_count / inside_count,
-                    "value_histogram_on_valid_aoi_pixels": value_histogram(values),
-                },
+            tags = {
+                str(key): str(value)[:500]
+                for key, value in src.tags().items()
             }
+            raster = {
+                "driver": src.driver,
+                "dtype": src.dtypes[0],
+                "nodata": nodata,
+                "compression": src.compression.value if src.compression else None,
+                "block_shapes": [list(shape) for shape in src.block_shapes],
+                "descriptions": list(src.descriptions),
+                "tags": tags,
+            }
+            return {
+                "data": data,
+                "valid": valid,
+                "inside_aoi": inside_aoi,
+                "transform": transform,
+                "window": window,
+                "grid": grid,
+                "raster": raster,
+            }
+
+
+def inspect_asset(url: str, expected_grid: dict | None = None) -> dict:
+    """Summarize a source asset without retaining its array in the report."""
+    loaded = read_asset_window(url, expected_grid=expected_grid)
+    values = loaded["data"][loaded["valid"]]
+    inside_count = int(loaded["inside_aoi"].sum())
+    valid_count = int(loaded["valid"].sum())
+    if inside_count == 0:
+        raise ValueError("The projected Chókwè AOI contains no raster pixel centers.")
+    window = loaded["window"]
+    return {
+        "grid": loaded["grid"],
+        "raster": loaded["raster"],
+        "window": {
+            "row_off": int(window.row_off),
+            "col_off": int(window.col_off),
+            "height": int(window.height),
+            "width": int(window.width),
+            "aoi_pixel_centers": inside_count,
+        },
+        "coverage": {
+            "valid_pixel_count": valid_count,
+            "invalid_or_nodata_pixel_count": inside_count - valid_count,
+            "valid_fraction_of_aoi": valid_count / inside_count,
+            "value_histogram_on_valid_aoi_pixels": value_histogram(values),
+        },
+    }
+
+
+def summarize_candidate_overlap(
+    candidate: np.ndarray,
+    inside_aoi: np.ndarray,
+    flood: np.ndarray,
+    flood_valid: np.ndarray,
+    exclusion: np.ndarray,
+    exclusion_valid: np.ndarray,
+    reference_water: np.ndarray,
+    reference_valid: np.ndarray,
+    likelihood: np.ndarray,
+    likelihood_valid: np.ndarray,
+    pixel_area_km2: float,
+) -> dict:
+    """Compute positive-only support on shared valid, non-excluded, non-reference-water cells."""
+    arrays = (
+        candidate, inside_aoi, flood, flood_valid, exclusion,
+        exclusion_valid, reference_water, reference_valid,
+        likelihood, likelihood_valid,
+    )
+    if len({array.shape for array in arrays}) != 1:
+        raise ValueError("Candidate and GFM arrays must share one raster window.")
+    if not math.isfinite(pixel_area_km2) or pixel_area_km2 <= 0:
+        raise ValueError("Pixel area must be finite and positive.")
+
+    candidate_aoi = candidate.astype(bool) & inside_aoi.astype(bool)
+    common_valid = (
+        flood_valid.astype(bool)
+        & exclusion_valid.astype(bool)
+        & reference_valid.astype(bool)
+        & likelihood_valid.astype(bool)
+        & inside_aoi.astype(bool)
+    )
+    candidate_valid = candidate_aoi & common_valid
+    candidate_no_data = candidate_aoi & ~common_valid
+    candidate_excluded = candidate_valid & (exclusion == 1)
+    candidate_reference_water = candidate_valid & (reference_water > 0)
+    eligible = candidate_valid & (exclusion == 0) & (reference_water == 0)
+    positive = eligible & (flood == 1)
+    negative = eligible & (flood == 0)
+
+    def count(mask: np.ndarray) -> int:
+        return int(np.count_nonzero(mask))
+
+    candidate_count = count(candidate_aoi)
+    candidate_valid_count = count(candidate_valid)
+    eligible_count = count(eligible)
+    positive_count = count(positive)
+    negative_count = count(negative)
+
+    positive_likelihood = likelihood[positive]
+    likelihood_summary = None
+    if positive_likelihood.size:
+        likelihood_summary = {
+            "count": int(positive_likelihood.size),
+            "minimum": int(np.min(positive_likelihood)),
+            "median": float(np.median(positive_likelihood)),
+            "mean": float(np.mean(positive_likelihood)),
+            "maximum": int(np.max(positive_likelihood)),
+            "below_50_count": int(np.count_nonzero(positive_likelihood < 50)),
+            "histogram": value_histogram(positive_likelihood),
+        }
+
+    return {
+        "pixel_area_km2": pixel_area_km2,
+        "rasterization_rule": "pixel center (all_touched=False) on the 20 m GFM grid",
+        "candidate": {
+            "rasterized_pixel_count_in_aoi": candidate_count,
+            "rasterized_area_km2": candidate_count * pixel_area_km2,
+            "candidate_pixels_with_common_valid_gfm_data": candidate_valid_count,
+            "candidate_pixels_without_common_valid_gfm_data": count(candidate_no_data),
+            "candidate_coverage_fraction": (
+                candidate_valid_count / candidate_count if candidate_count else None
+            ),
+            "candidate_pixels_in_exclusion_mask": count(candidate_excluded),
+            "candidate_pixels_in_reference_water_mask": count(candidate_reference_water),
+            "eligible_candidate_pixel_count": eligible_count,
+            "eligible_candidate_area_km2": eligible_count * pixel_area_km2,
+        },
+        "gfm_positive_support": {
+            "overlap_pixel_count": positive_count,
+            "overlap_area_km2": positive_count * pixel_area_km2,
+            "fraction_of_eligible_candidate_pixels": (
+                positive_count / eligible_count if eligible_count else None
+            ),
+            "fraction_of_all_rasterized_candidate_pixels": (
+                positive_count / candidate_count if candidate_count else None
+            ),
+            "eligible_candidate_pixels_not_mapped_as_flood": negative_count,
+            "positive_pixel_likelihood": likelihood_summary,
+        },
+        "denominator_warning": (
+            "Positive-only cross-sensor support among candidate pixels with common valid GFM data "
+            "outside GFM exclusion and permanent/seasonal reference-water masks. Missing, excluded "
+            "and reference-water pixels are not counted as negative labels."
+        ),
+    }
+
+
+def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
+    """Rasterize the published NISAR candidate polygons and inspect GFM overlap."""
+    if not PATCHES_PATH.is_file():
+        raise FileNotFoundError(f"Published NISAR candidate GeoJSON not found: {PATCHES_PATH}")
+    with PATCHES_PATH.open(encoding="utf-8") as handle:
+        document = json.load(handle)
+    features = document.get("features") if isinstance(document, dict) else None
+    if not isinstance(features, list) or not features:
+        raise ValueError("Published NISAR candidate GeoJSON contains no features.")
+
+    loaded = {}
+    grid = None
+    for name in (
+        "ensemble_flood_extent",
+        "ensemble_likelihood",
+        "exclusion_mask",
+        "reference_water_mask",
+    ):
+        url = asset_urls.get(name)
+        if not url:
+            raise ValueError(f"Best GFM item is missing required asset: {name}")
+        loaded[name] = read_asset_window(url, expected_grid=grid)
+        grid = loaded[name]["grid"] if grid is None else grid
+
+    flood = loaded["ensemble_flood_extent"]
+    if any(
+        loaded[name]["window"] != flood["window"]
+        or loaded[name]["transform"] != flood["transform"]
+        or loaded[name]["data"].shape != flood["data"].shape
+        for name in loaded
+    ):
+        raise ValueError("GFM mask and flood windows are not spatially aligned.")
+
+    geometries = []
+    property_keys: set[str] = set()
+    invalid_geometry_count = 0
+    for feature in features:
+        if not isinstance(feature, dict) or not isinstance(feature.get("geometry"), dict):
+            invalid_geometry_count += 1
+            continue
+        geometry = feature["geometry"]
+        if geometry.get("type") not in ("Polygon", "MultiPolygon"):
+            invalid_geometry_count += 1
+            continue
+        projected = transform_geom("EPSG:4326", flood["grid"]["crs"], geometry)
+        if projected:
+            geometries.append((projected, 1))
+            properties = feature.get("properties")
+            if isinstance(properties, dict):
+                property_keys.update(properties.keys())
+    if not geometries:
+        raise ValueError("No valid polygon geometries exist in the published candidate GeoJSON.")
+
+    candidate = rasterize(
+        geometries,
+        out_shape=flood["data"].shape,
+        transform=flood["transform"],
+        fill=0,
+        all_touched=False,
+        dtype="uint8",
+    ) == 1
+
+    exclusion = loaded["exclusion_mask"]
+    reference = loaded["reference_water_mask"]
+    likelihood = loaded["ensemble_likelihood"]
+    transform = flood["transform"]
+    pixel_area_km2 = abs(
+        transform.a * transform.e - transform.b * transform.d
+    ) / 1_000_000
+
+    comparison = summarize_candidate_overlap(
+        candidate=candidate,
+        inside_aoi=flood["inside_aoi"],
+        flood=flood["data"],
+        flood_valid=flood["valid"],
+        exclusion=exclusion["data"],
+        exclusion_valid=exclusion["valid"],
+        reference_water=reference["data"],
+        reference_valid=reference["valid"],
+        likelihood=likelihood["data"],
+        likelihood_valid=likelihood["valid"],
+        pixel_area_km2=pixel_area_km2,
+    )
+
+    common_valid_aoi = (
+        flood["valid"] & exclusion["valid"] & reference["valid"] & likelihood["valid"]
+    )
+    aoi_eligible = (
+        common_valid_aoi
+        & (exclusion["data"] == 0)
+        & (reference["data"] == 0)
+    )
+    aoi_flooded = aoi_eligible & (flood["data"] == 1)
+    return {
+        "candidate_source": {
+            "path": str(PATCHES_PATH.relative_to(ROOT)),
+            "feature_count": len(features),
+            "valid_polygon_feature_count": len(geometries),
+            "skipped_feature_count": invalid_geometry_count,
+            "property_keys": sorted(property_keys),
+            "geometry_note": (
+                "The comparison uses published display GeoJSON polygons, not the private native "
+                "NISAR classification raster. Polygon simplification and rasterization can change "
+                "edge-cell counts; treat the result as a spatial-support check."
+            ),
+        },
+        "gfm_item": {
+            "id": item["id"],
+            "datetime": item["properties"].get("datetime"),
+            "minutes_from_nisar_event": round((
+                datetime.fromisoformat(item["properties"]["datetime"].replace("Z", "+00:00"))
+                - datetime.fromisoformat(NISAR_EVENT_TIME.replace("Z", "+00:00"))
+            ).total_seconds() / 60, 2),
+            "gfm_nrt_version": flood["raster"]["tags"].get("gfm_nrt_version"),
+            "crs": flood["grid"]["crs"],
+            "pixel_size_m": [abs(transform.a), abs(transform.e)],
+            "valid_aoi_pixel_count": int(flood["valid"].sum()),
+        },
+        "aoi_context": {
+            "common_valid_pixel_count": int(common_valid_aoi.sum()),
+            "eligible_non_excluded_non_reference_water_pixel_count": int(aoi_eligible.sum()),
+            "gfm_flooded_pixel_count_after_masks": int(aoi_flooded.sum()),
+            "gfm_flooded_area_km2_after_masks": int(aoi_flooded.sum()) * pixel_area_km2,
+        },
+        "candidate_overlap": comparison,
+        "interpretation_limits": [
+            "This is positive-only overlap between an independent Sentinel-1 GFM algorithm product and published NISAR candidate polygons.",
+            "It is not field validation, not a precision/recall/F1 score, and not proof that each NISAR candidate was flooded.",
+            "The GFM scene is 23.75 minutes before the NISAR event time; sensors, wavelengths, acquisition geometries and processing algorithms differ.",
+            "Only candidate cells with common valid data and outside GFM exclusion and reference-water masks enter the eligible denominator.",
+            "Unobserved, excluded and permanent/seasonal reference-water cells are not treated as reference negatives.",
+            "Published NISAR polygons are display geometries; the native classification raster was not included in the public release.",
+        ],
+    }
 
 
 def build_report(items: list[dict]) -> dict:
@@ -187,6 +443,7 @@ def build_report(items: list[dict]) -> dict:
         raise ValueError(f"No GFM STAC items were returned for {EVENT_DATE}.")
     cache: dict[str, dict] = {}
     acquisitions = []
+    asset_urls_by_id: dict[str, dict] = {}
 
     for item in selected:
         item_id = item.get("id")
@@ -200,19 +457,19 @@ def build_report(items: list[dict]) -> dict:
 
         grid = None
         results = {}
+        asset_urls = {}
         for asset_name in ASSET_NAMES:
             asset = assets.get(asset_name)
             if not isinstance(asset, dict):
                 results[asset_name] = {"status": "MISSING_ASSET"}
                 continue
             url = _safe_asset_url(asset, item_id, asset_name)
+            asset_urls[asset_name] = url
             if url not in cache:
                 cache[url] = inspect_asset(url, expected_grid=grid)
             result = cache[url]
             grid = result["grid"] if grid is None else grid
-            results[asset_name] = {
-                key: value for key, value in result.items() if key != "url"
-            }
+            results[asset_name] = result
 
         event_time = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         nisar_time = datetime.fromisoformat(NISAR_EVENT_TIME.replace("Z", "+00:00"))
@@ -230,11 +487,22 @@ def build_report(items: list[dict]) -> dict:
             },
             "assets": results,
         })
+        asset_urls_by_id[item_id] = asset_urls
+
+    best_acquisition = max(
+        acquisitions,
+        key=lambda acquisition: acquisition["assets"]["ensemble_flood_extent"]
+        .get("coverage", {}).get("valid_fraction_of_aoi", 0),
+    )
+    best_item = next(item for item in selected if item["id"] == best_acquisition["item_id"])
+    candidate_comparison = compare_published_candidates(
+        best_item, asset_urls_by_id[best_item["id"]]
+    )
 
     return {
         "schema_version": 1,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "status": "AOI_RASTER_WINDOWS_INSPECTED",
+        "status": "AOI_RASTER_WINDOWS_AND_CANDIDATE_OVERLAP_INSPECTED",
         "study": {
             "name": "Chokwe event study box",
             "bounds_wgs84": [32.93, -24.58, 33.03, -24.48],
@@ -247,14 +515,14 @@ def build_report(items: list[dict]) -> dict:
             "gfm_item_count": len(acquisitions),
             "assets_inspected": list(ASSET_NAMES),
             "raster_pixels_read": True,
+            "comparison_item_id": best_item["id"],
         },
         "acquisitions": acquisitions,
+        "published_nisar_candidate_comparison": candidate_comparison,
         "interpretation_limits": [
-            "This is an exact-AOI raster-support and value audit, not a NISAR/GFM spatial overlap result.",
-            "Raster value codes are reported without assigning flood-class meanings; consult the version-matched GFM manual before interpreting them.",
-            "Valid coverage includes source-valid pixels only and does not itself imply flood observability or classification confidence.",
-            "Reference-water and exclusion masks must be interpreted separately; permanent water and excluded pixels are not event flood positives or reference negatives.",
-            "No precision, recall, F1, accuracy or field-validation score is calculated.",
+            "Valid coverage and positive overlap do not establish classification accuracy or field truth.",
+            "Unobserved, excluded and reference-water pixels remain separate and are not counted as negative labels.",
+            "The GFM acquisition is an independent Sentinel-1 cross-sensor product; it is not a same-instrument replication of NISAR.",
         ],
     }
 
@@ -289,8 +557,11 @@ def main(argv: list[str] | None = None) -> int:
             "flood value histogram:",
             coverage.get("value_histogram_on_valid_aoi_pixels", {}),
         )
-    print("Saved metadata and raster-window audit:", args.output)
-    print("No NISAR overlap or accuracy metrics were calculated.")
+    comparison = report["published_nisar_candidate_comparison"]["candidate_overlap"]
+    print("NISAR published candidate overlap:")
+    print(json.dumps(comparison, indent=2))
+    print("Saved exact-AOI raster and candidate overlap audit:", args.output)
+    print("No accuracy, precision, recall or F1 metrics were calculated.")
     return 0
 
 

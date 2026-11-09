@@ -40,6 +40,33 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
                 {"id": "other", "properties": {"datetime": "2026-01-16T03:26:10Z"}}
             ])
 
+    def test_candidate_overlap_keeps_excluded_water_and_nodata_out_of_denominator(self):
+        candidate = np.array([[1, 1], [1, 1]], dtype=np.uint8)
+        inside = np.ones((2, 2), dtype=bool)
+        flood = np.array([[1, 1], [0, 1]], dtype=np.uint8)
+        flood_valid = np.array([[1, 1], [1, 0]], dtype=bool)
+        exclusion = np.array([[0, 0], [1, 0]], dtype=np.uint8)
+        exclusion_valid = np.ones((2, 2), dtype=bool)
+        reference = np.array([[0, 1], [0, 0]], dtype=np.uint8)
+        reference_valid = np.ones((2, 2), dtype=bool)
+        likelihood = np.array([[80, 60], [20, 90]], dtype=np.uint8)
+        likelihood_valid = np.array([[1, 1], [1, 0]], dtype=bool)
+
+        result = audit.summarize_candidate_overlap(
+            candidate, inside, flood, flood_valid, exclusion,
+            exclusion_valid, reference, reference_valid,
+            likelihood, likelihood_valid, 0.0004,
+        )
+        self.assertEqual(result["candidate"]["rasterized_pixel_count_in_aoi"], 4)
+        self.assertEqual(result["candidate"]["candidate_pixels_without_common_valid_gfm_data"], 1)
+        self.assertEqual(result["candidate"]["candidate_pixels_in_exclusion_mask"], 1)
+        self.assertEqual(result["candidate"]["candidate_pixels_in_reference_water_mask"], 1)
+        self.assertEqual(result["candidate"]["eligible_candidate_pixel_count"], 1)
+        self.assertEqual(result["gfm_positive_support"]["overlap_pixel_count"], 1)
+        self.assertEqual(result["gfm_positive_support"]["overlap_area_km2"], 0.0004)
+        self.assertEqual(result["gfm_positive_support"]["fraction_of_eligible_candidate_pixels"], 1.0)
+        self.assertEqual(result["gfm_positive_support"]["positive_pixel_likelihood"]["median"], 80.0)
+
 
 if __name__ == "__main__":
     unittest.main()

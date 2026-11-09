@@ -83,3 +83,11 @@
 - Added a bounded COG audit for the 17 January event-date items. It reads only the Chókwè AOI window from the ensemble flood, likelihood, observed-water, exclusion and reference-water assets, and reports source-valid coverage and raw value histograms.
 - This is a raster-support check only. It does not calculate NISAR/GFM overlap or accuracy scores, and no raster value is assigned a scientific class until the version-matched GFM documentation is checked.
 - **Pending:** inspect the raster audit artifact, check class/mask meanings and then decide whether any positive-support overlay is defensible.
+
+
+## 2026-11-09 — Chókwè GFM close-date candidate overlay (pending)
+
+- The exact-pixel audit found three 17 January 2026 GFM items over the same tile: 03:18:22 UTC (10.57% valid AOI coverage), 03:18:47 UTC (88.67%), and 03:19:12 UTC (0%). The middle scene is 23 minutes 45 seconds before the NISAR 03:42:32 UTC event timestamp.
+- The selected 03:18:47 COG is tagged GFM NRT v4.1.0. On its 264,771 valid Chókwè AOI pixels, the observed-flood layer contains 25,130 value-1 pixels and 239,641 value-0 pixels; 62,948 valid pixels are flagged by the binary exclusion layer. The shared reference-water raster has 334 permanent-water and 827 seasonal-water pixel centers inside the AOI.
+- Added a candidate-overlay calculation that rasterizes the published Chókwè NISAR GeoJSON onto the exact GFM 20 m grid, uses only common-valid support outside exclusion and reference-water masks, and reports positive overlap only. It explicitly notes that the polygons are simplified display geometries, not the private native NISAR classification raster.
+- **Pending:** verify the GFM/NISAR positive-support overlap and confidence distribution from the next pixel-audit artifact. No accuracy, precision, recall or F1 score is produced.

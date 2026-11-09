@@ -50,3 +50,14 @@ Even a close-date GFM overlap would be independent cross-sensor algorithmic supp
 - OCHA Centre for Humanitarian Data, [GFM exploration guide](https://ocha-dap.github.io/ds-flood-gfm/gfm-exploration/index.html).
 - NASA, [NISAR reveals major flooding in Mozambique](https://svs.gsfc.nasa.gov/5661/).
 - Existing project comparison and limitations: [evidence report](evidence-report.md) and [scientific method](scientific-method.md).
+
+
+## January 17 close-date GFM raster audit
+
+The exact Chókwè box query returned three GFM items on 17 January 2026. The item at 03:18:47 UTC is the only one with high local coverage (88.67% of AOI pixel centers); the other two have 10.57% and 0% valid coverage. The selected COG is tagged GFM NRT v4.1.0, uses a 20 m EPSG:27701 grid, and is 23 minutes 45 seconds before the NISAR event timestamp.
+
+The 03:18:47 item has 264,771 source-valid pixels in the AOI. Its observed-flood raster has 25,130 value-1 pixels and 239,641 value-0 pixels. The exclusion layer marks 62,948 valid AOI pixels as excluded. The shared reference-water mask contains 334 permanent-water and 827 seasonal-water pixels in the AOI.
+
+A follow-up overlay rasterizes the published NISAR candidate GeoJSON to the GFM pixel grid using pixel-center inclusion. The denominator includes only common-valid pixels outside the GFM exclusion mask and outside both permanent and seasonal reference water. The resulting intersection is positive-only independent satellite support; it is not a confusion-matrix score or field validation. Because the public NISAR GeoJSON is a simplified display product, not the private native NISAR classification raster, the overlap is approximate at candidate polygon edges.
+
+The GFM manual describes the observed-flood layer as binary, with value 1 denoting flood, and the likelihood layer as 0–100 with 50 separating flooded from unflooded classes. Its reference-water classes distinguish no water (0), permanent water (1) and seasonal water (2); excluded pixels are not suitable as negative labels. The retrieved COGs themselves are tagged with GFM NRT version 4.1.0. See the [GFM output-layer manual](https://extwiki.eodc.eu/GFM/PUM/Products) and the [GFM recommendations](https://extwiki.eodc.eu/GFM/PUM/Recommendations).
