@@ -328,6 +328,8 @@ def inspect_native_run(
     if not classification_path.is_file():
         raise FileNotFoundError(f"Native classification raster is missing: {classification_path}")
     class_values, class_meta = _raster_valid_values(classification_path)
+    if class_meta["profile"].get("nodata") != 0:
+        raise ValueError("Native classification must preserve the pipeline's nodata=0 convention.")
     if not np.issubdtype(class_values.dtype, np.integer):
         raise ValueError("Native classification must use an integer class raster.")
     if not np.isin(class_values, (0, 1, 2)).all():
@@ -507,13 +509,52 @@ def recover(
     observations = _read_json(run_dir / "observations.json")
     if not isinstance(observations, list) or len(observations) != 1:
         raise ValueError("Recovered run does not contain exactly one observation.")
-    native_summary = inspect_native_run(run_dir, observations[0])
+    recovered_observation = observations[0]
+    expected_rasters = {
+        "before_hh": "before_hh_masked.tif",
+        "after_hh": "after_00_hh_masked.tif",
+        "before_hv": "before_hv_masked.tif",
+        "after_hv": "after_00_hv_masked.tif",
+    }
+    if (
+        not isinstance(recovered_observation, dict)
+        or recovered_observation.get("date") != "2026-01-17"
+        or recovered_observation.get("scene_name") != SOURCE_EVENT_SCENE
+        or recovered_observation.get("classification_file") != "classification_00.tif"
+        or recovered_observation.get("rasters") != expected_rasters
+    ):
+        raise ValueError("Recovered observation row does not match the exact pinned scene/output mapping.")
+    native_summary = inspect_native_run(run_dir, recovered_observation)
     files = _verify_required_files(run_dir)
     processing_config = _read_json(run_dir / "processing_config.json")
     expected_processing = source["method_parameters"]
     actual_processing = processing_config.get("processing") if isinstance(processing_config, dict) else None
-    if not isinstance(actual_processing, dict):
+    if not isinstance(processing_config, dict) or not isinstance(actual_processing, dict):
         raise ValueError("Recovered processing configuration is malformed.")
+    actual_nisar = processing_config.get("nisar")
+    actual_site = processing_config.get("site")
+    if not isinstance(actual_nisar, dict) or not isinstance(actual_site, dict):
+        raise ValueError("Recovered NISAR/site configuration is missing.")
+    if (
+        actual_nisar.get("product") != EXPECTED_PRODUCT
+        or actual_nisar.get("frequency") != EXPECTED_FREQUENCY
+        or actual_nisar.get("temporal") != ["2026-01-05", "2026-01-17"]
+        or actual_nisar.get("selected_scene_names") != [SOURCE_BASELINE_SCENE, SOURCE_EVENT_SCENE]
+    ):
+        raise ValueError("Recovered NISAR configuration differs from the pinned source pair.")
+    actual_bounds = actual_site.get("bbox")
+    expected_wgs84_bounds = {
+        "min_lon": source["boundary_bounds"][0],
+        "min_lat": source["boundary_bounds"][1],
+        "max_lon": source["boundary_bounds"][2],
+        "max_lat": source["boundary_bounds"][3],
+    }
+    if not isinstance(actual_bounds, dict) or any(
+        not isinstance(actual_bounds.get(key), (int, float))
+        or not _close(float(actual_bounds[key]), float(expected), tolerance=1e-9)
+        for key, expected in expected_wgs84_bounds.items()
+    ):
+        raise ValueError("Recovered AOI bounds differ from the pinned published polygon.")
     for key, expected in expected_processing.items():
         actual = actual_processing.get(key)
         if isinstance(expected, float):
@@ -545,6 +586,8 @@ def recover(
             }
         mask_name = row.get("mask_ensemble_file")
         if isinstance(mask_name, str):
+            if Path(mask_name).name != mask_name:
+                raise ValueError(f"GCOV ensemble-mask path is unsafe: {scene_name}.")
             path = run_dir / mask_name
             if not path.is_file():
                 raise FileNotFoundError(f"GCOV ensemble-mask sidecar is missing: {path}")
