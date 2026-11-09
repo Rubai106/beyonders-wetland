@@ -91,3 +91,11 @@
 - The selected 03:18:47 COG is tagged GFM NRT v4.1.0. On its 264,771 valid Chókwè AOI pixels, the observed-flood layer contains 25,130 value-1 pixels and 239,641 value-0 pixels; 62,948 valid pixels are flagged by the binary exclusion layer. The shared reference-water raster has 334 permanent-water and 827 seasonal-water pixel centers inside the AOI.
 - Added a candidate-overlay calculation that rasterizes the published Chókwè NISAR GeoJSON onto the exact GFM 20 m grid, uses only common-valid support outside exclusion and reference-water masks, and reports positive overlap only. It explicitly notes that the polygons are simplified display geometries, not the private native NISAR classification raster.
 - **Pending:** verify the GFM/NISAR positive-support overlap and confidence distribution from the next pixel-audit artifact. No accuracy, precision, recall or F1 score is produced.
+
+
+## 2026-11-09 — GFM ensemble-consistency investigation
+
+- The public GFM manual states that the ensemble flood mask is a two-of-three consensus from LIST, DLR and TU Wien and that binary flooded pixels should have likelihood values 50–100. A small set of 33 pixels in the January 17 COG appeared to violate the likelihood rule.
+- The exact-AOI audit now reads the three intermediate algorithm flood masks on the same grid and compares their votes with the final ensemble binary layer. It also checks whether advisory flags coincide with low-likelihood ensemble-flood pixels.
+- This is a product-internal consistency check. The close-date overlap remains positive-only cross-sensor support and is not field truth or an accuracy score.
+- **Pending:** inspect the follow-up Actions artifact before deciding whether the COG's binary/likelihood inconsistency is material or explained by the intermediate algorithm layers/advisory flags.

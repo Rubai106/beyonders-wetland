@@ -45,6 +45,9 @@ ASSET_NAMES = (
     "exclusion_mask",
     "reference_water_mask",
     "advisory_flags",
+    "list_flood_extent",
+    "dlr_flood_extent",
+    "tuw_flood_extent",
 )
 PATCHES_PATH = (
     ROOT
@@ -203,6 +206,90 @@ def inspect_asset(url: str, expected_grid: dict | None = None) -> dict:
     }
 
 
+def summarize_algorithm_consistency(
+    ensemble_flood: np.ndarray,
+    ensemble_likelihood: np.ndarray,
+    exclusion: np.ndarray,
+    exclusion_valid: np.ndarray,
+    reference_water: np.ndarray,
+    reference_valid: np.ndarray,
+    inside_aoi: np.ndarray,
+    algorithm_layers: dict[str, dict],
+    advisory_flags: np.ndarray | None = None,
+    advisory_valid: np.ndarray | None = None,
+) -> dict:
+    """Check final binary flood class against LIST/DLR/TUW majority votes."""
+    required = ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
+    if set(algorithm_layers) != set(required):
+        raise ValueError("Exactly the LIST, DLR and TUW flood layers are required.")
+    arrays = [
+        ensemble_flood, ensemble_likelihood, exclusion, exclusion_valid,
+        reference_water, reference_valid, inside_aoi,
+    ]
+    arrays.extend(algorithm_layers[name]["data"] for name in required)
+    arrays.extend(algorithm_layers[name]["valid"] for name in required)
+    if advisory_flags is not None:
+        arrays.append(advisory_flags)
+    if advisory_valid is not None:
+        arrays.append(advisory_valid)
+    if len({array.shape for array in arrays}) != 1:
+        raise ValueError("All GFM algorithm, ensemble and mask arrays must share one grid window.")
+
+    layers_valid = np.logical_and.reduce([
+        algorithm_layers[name]["valid"].astype(bool) for name in required
+    ])
+    common_valid = (
+        inside_aoi.astype(bool)
+        & exclusion_valid.astype(bool)
+        & reference_valid.astype(bool)
+        & layers_valid
+    )
+    eligible = common_valid & (exclusion == 0) & (reference_water == 0)
+    votes = np.zeros(ensemble_flood.shape, dtype=np.uint8)
+    individual_counts = {}
+    for name in required:
+        flooded = algorithm_layers[name]["data"] == 1
+        votes += flooded.astype(np.uint8)
+        individual_counts[name] = int(np.count_nonzero(eligible & flooded))
+
+    ensemble_positive = eligible & (ensemble_flood == 1)
+    majority_positive = eligible & (votes >= 2)
+    disagreement = eligible & ((ensemble_flood == 1) != (votes >= 2))
+    low_likelihood_positive = ensemble_positive & (ensemble_likelihood < 50)
+    high_likelihood_negative = eligible & (ensemble_flood == 0) & (ensemble_likelihood >= 50)
+
+    def vote_histogram(mask: np.ndarray) -> dict[str, int]:
+        return {
+            str(vote_count): int(np.count_nonzero(mask & (votes == vote_count)))
+            for vote_count in range(4)
+        }
+
+    result = {
+        "source_algorithm_positive_pixel_counts": individual_counts,
+        "common_valid_eligible_pixel_count": int(eligible.sum()),
+        "algorithm_vote_histogram_on_eligible_pixels": vote_histogram(eligible),
+        "ensemble_flood_pixels_with_majority_support": int((ensemble_positive & majority_positive).sum()),
+        "ensemble_flood_pixels_without_majority_support": int((ensemble_positive & ~majority_positive).sum()),
+        "ensemble_binary_vs_two_of_three_disagreement_count": int(disagreement.sum()),
+        "ensemble_flood_pixels_with_likelihood_below_50": int(low_likelihood_positive.sum()),
+        "low_likelihood_flood_algorithm_vote_histogram": vote_histogram(low_likelihood_positive),
+        "ensemble_nonflood_pixels_with_likelihood_at_least_50": int(high_likelihood_negative.sum()),
+    }
+    if advisory_flags is not None and advisory_valid is not None:
+        if advisory_valid.shape != ensemble_flood.shape:
+            raise ValueError("Advisory flags must share the GFM grid window.")
+        low_with_flag = (
+            low_likelihood_positive
+            & advisory_valid.astype(bool)
+            & (advisory_flags == 1)
+        )
+        result["low_likelihood_flood_pixels_with_advisory_flag"] = int(low_with_flag.sum())
+        result["low_likelihood_flood_pixels_without_advisory_flag_or_flag_data"] = (
+            int(low_likelihood_positive.sum()) - int(low_with_flag.sum())
+        )
+    return result
+
+
 def summarize_candidate_overlap(
     candidate: np.ndarray,
     inside_aoi: np.ndarray,
@@ -318,6 +405,10 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
         "ensemble_likelihood",
         "exclusion_mask",
         "reference_water_mask",
+        "advisory_flags",
+        "list_flood_extent",
+        "dlr_flood_extent",
+        "tuw_flood_extent",
     ):
         url = asset_urls.get(name)
         if not url:
@@ -394,6 +485,22 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
         & (reference["data"] == 0)
     )
     aoi_flooded = aoi_eligible & (flood["data"] == 1)
+    algorithm_layers = {
+        name: loaded[name]
+        for name in ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
+    }
+    algorithm_consistency = summarize_algorithm_consistency(
+        ensemble_flood=flood["data"],
+        ensemble_likelihood=likelihood["data"],
+        exclusion=exclusion["data"],
+        exclusion_valid=exclusion["valid"],
+        reference_water=reference["data"],
+        reference_valid=reference["valid"],
+        inside_aoi=flood["inside_aoi"],
+        algorithm_layers=algorithm_layers,
+        advisory_flags=loaded["advisory_flags"]["data"],
+        advisory_valid=loaded["advisory_flags"]["valid"],
+    )
     return {
         "candidate_source": {
             "path": str(PATCHES_PATH.relative_to(ROOT)),
@@ -425,6 +532,7 @@ def compare_published_candidates(item: dict, asset_urls: dict) -> dict:
             "gfm_flooded_pixel_count_after_masks": int(aoi_flooded.sum()),
             "gfm_flooded_area_km2_after_masks": int(aoi_flooded.sum()) * pixel_area_km2,
         },
+        "ensemble_consistency": algorithm_consistency,
         "candidate_overlap": comparison,
         "interpretation_limits": [
             "This is positive-only overlap between an independent Sentinel-1 GFM algorithm product and published NISAR candidate polygons.",

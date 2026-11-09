@@ -40,6 +40,39 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
                 {"id": "other", "properties": {"datetime": "2026-01-16T03:26:10Z"}}
             ])
 
+    def test_ensemble_binary_is_checked_against_three_algorithm_majority(self):
+        def layer(data):
+            data = np.array(data, dtype=np.uint8)
+            return {"data": data, "valid": np.ones(data.shape, dtype=bool)}
+
+        ensemble_flood = np.array([[1, 1], [1, 0]], dtype=np.uint8)
+        likelihood = np.array([[80, 40], [49, 20]], dtype=np.uint8)
+        exclusion = np.zeros((2, 2), dtype=np.uint8)
+        exclusion_valid = np.ones((2, 2), dtype=bool)
+        reference = np.zeros((2, 2), dtype=np.uint8)
+        reference_valid = np.ones((2, 2), dtype=bool)
+        inside = np.ones((2, 2), dtype=bool)
+        layers = {
+            "list_flood_extent": layer([[1, 1], [1, 0]]),
+            "dlr_flood_extent": layer([[1, 0], [0, 0]]),
+            "tuw_flood_extent": layer([[0, 1], [1, 0]]),
+        }
+        advisory = np.array([[0, 1], [0, 0]], dtype=np.uint8)
+        result = audit.summarize_algorithm_consistency(
+            ensemble_flood, likelihood, exclusion, exclusion_valid,
+            reference, reference_valid, inside, layers,
+            advisory, np.ones((2, 2), dtype=bool),
+        )
+        self.assertEqual(result["source_algorithm_positive_pixel_counts"], {
+            "list_flood_extent": 3, "dlr_flood_extent": 1, "tuw_flood_extent": 2
+        })
+        self.assertEqual(result["ensemble_binary_vs_two_of_three_disagreement_count"], 1)
+        self.assertEqual(result["ensemble_flood_pixels_with_likelihood_below_50"], 2)
+        self.assertEqual(result["low_likelihood_flood_algorithm_vote_histogram"], {
+            "0": 0, "1": 0, "2": 1, "3": 1
+        })
+        self.assertEqual(result["low_likelihood_flood_pixels_with_advisory_flag"], 1)
+
     def test_candidate_overlap_keeps_excluded_water_and_nodata_out_of_denominator(self):
         candidate = np.array([[1, 1], [1, 1]], dtype=np.uint8)
         inside = np.ones((2, 2), dtype=bool)
