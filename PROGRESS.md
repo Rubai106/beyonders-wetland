@@ -129,3 +129,10 @@
 - Added `docs/chokwe-native-recovery.md` with source identity, commands, workflow credentials and output contract.
 - The recovery is **reprocessing, not restoration of the original TIFF bytes**. It does not publish to `public/`, does not change the production run pointer, does not rerun or upgrade the source HLS `INCONCLUSIVE` result, and does not calculate accuracy/precision/recall/F1.
 - **Status:** implementation committed to `master`; independent Muse QA and any credentialed Earthdata reprocessing have not yet been performed. Native NISAR–GFM comparison remains a separate next gate.
+
+## 2026-11-09 — Observability mobile overflow containment fix (verification pending)
+
+- Muse's independent QA found that `/observability` at 390 px had document-level horizontal overflow (scrollWidth 761) introduced when the maturity matrix's `contain: layout` rule was removed.
+- Restored `contain: layout` on `.obs-matrix-scroll` so the 980 px table remains inside its own horizontally scrollable region rather than widening the page.
+- The change is committed to `master` as `37a0583c6e1d19ca2ba85ea59b6532c77e12bbeb`.
+- **Pending:** independent browser verification at 390 px and 360 px, including `documentElement.scrollWidth === viewport width`, while confirming horizontal scrolling remains available within the matrix.
