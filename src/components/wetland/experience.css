@@ -115,6 +115,13 @@
 .wx-modes button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 8px; border-radius: var(--r-1); color: var(--ws-text-2); transition: background var(--t-fast), color var(--t-fast); font-weight: 500; }
 .wx-modes button:hover { color: var(--ws-text); }
 .wx-modes button[aria-checked="true"] { background: var(--c-derived); color: #14100A; font-weight: 700; }
+.wx-mapmodebar { pointer-events: auto; display: inline-flex; align-items: center; gap: 6px; padding: 3px; border: 1px solid #1E2A33; border-radius: var(--r-1); background: rgba(11,17,23,.92); box-shadow: 0 4px 18px rgba(0,0,0,.42); }
+.wx-mapmodebar__label { padding: 0 5px; color: var(--ws-text-2); font: 600 .62rem var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.wx-mapmodes { display: inline-flex; align-items: center; gap: 2px; }
+.wx-mapmodes button { min-height: 34px; padding: 6px 8px; border: 1px solid transparent; border-radius: var(--r-1); color: var(--ws-text-2); font-size: .72rem; font-weight: 500; white-space: nowrap; transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast); }
+.wx-mapmodes button:hover { color: var(--ws-text); background: #141E26; }
+.wx-mapmodes button[aria-checked="true"] { border-color: var(--c-derived); background: var(--c-derived); color: #14100A; font-weight: 700; }
+.wx-mapmodes button:focus-visible { outline: 2px solid var(--ws-text); outline-offset: 2px; }
 
 /* investigation tabs: numbered, labeled, never icon-only */
 .wx-tabs { position: absolute; right: 0; top: 50%; transform: translateY(-50%); z-index: 1000; display: flex; flex-direction: column; background: rgba(11,17,23,.94); border: 1px solid #1E2A33; border-right: 0; border-radius: var(--r-1) 0 0 var(--r-1); overflow: hidden; box-shadow: -4px 0 18px rgba(0,0,0,.4); }
@@ -450,6 +457,10 @@
   .wx-obs { width: 36px; } .wx-obs__date { font-size: 0.625rem; } .wx-track__cap { display: none; }
   .wx-map-controls { flex-direction: column; align-items: stretch; }
   .wx-modebar { width: 100%; align-items: stretch; }
+  .wx-mapmodebar { width: 100%; justify-content: space-between; }
+  .wx-mapmodes { flex: 1; justify-content: space-around; }
+  .wx-mapmodes button { flex: 1; min-width: 0; padding-inline: 5px; }
+  .wx-mapmodebar__label { padding-inline: 6px; }
   .wx-modes { width: 100%; justify-content: space-around; }
   .wx-radar-picker, .wx-radar-trigger { width: 100%; }
   .wx-radar-trigger { justify-content: center; }
