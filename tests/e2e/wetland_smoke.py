@@ -285,6 +285,27 @@ with sync_playwright() as p:
         register_rows.count() == 200
         and "Showing 200 of 295 matching regions" in page.inner_text(".wx-region-summary"),
     )
+    page.locator(".wx-region-pagination button").click()
+    page.wait_for_function("document.querySelectorAll('.wx-region-table tbody tr').length === 295", timeout=5000)
+    last_sorted_region = page.locator(".wx-region-cards li").last()
+    last_sorted_region_id = last_sorted_region.get_attribute("data-region-id")
+    last_sorted_region.locator("button").click()
+    page.wait_for_function(
+        """(id) => {
+            const nav = document.querySelector(".wx-region-nav");
+            return nav?.dataset.regionId === id
+                && Number(nav.dataset.position) === Number(nav.dataset.total);
+        }""",
+        arg=last_sorted_region_id,
+        timeout=5000,
+    )
+    check(
+        "register area sort shares the inspector navigation ID tie-break",
+        page.locator(".wx-region-nav").get_attribute("data-region-id") == last_sorted_region_id
+        and page.locator(".wx-region-nav").get_attribute("data-position")
+            == page.locator(".wx-region-nav").get_attribute("data-total"),
+        f"last_id={last_sorted_region_id}, position={page.locator('.wx-region-nav').get_attribute('data-position')}, total={page.locator('.wx-region-nav').get_attribute('data-total')}",
+    )
     page.get_by_label("Search candidate regions").fill("no-match-region-000")
     check(
         "region register shows a useful empty-search state",
