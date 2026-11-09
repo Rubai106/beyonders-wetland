@@ -180,7 +180,6 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   const [shareUrlInitialized, setShareUrlInitialized] = useState(false);
   useEffect(() => {
     let active = true;
-    setShareUrlInitialized(false);
     void (async () => {
       await useWetlandStore.getState().initExperience(preferLocalRun, initialCaseId);
       if (!active) return;
