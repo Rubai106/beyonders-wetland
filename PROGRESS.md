@@ -75,3 +75,11 @@
 - Added offline regression tests for inclusive date queries, pagination, host validation, deduplication, no-result states and fail-closed datetime parsing.
 - The source lead is EODC's published southern Mozambique GFM example, whose larger AOI contains the Chókwè box. Exact valid-pixel coverage over Chókwè is **not yet checked**.
 - **Decision pending:** inspect the workflow artifact, then inspect the GFM ensemble flood, reference-water and exclusion masks over the exact box. Until those steps succeed, keep the Chókwè case unverified and do not publish an overlap or accuracy score.
+
+
+## 2026-11-09 — Chókwè GFM close-date raster audit (in progress)
+
+- Exact-AOI GFM STAC preflight completed successfully: 33 catalogue items across 12 dates in 7–28 January 2026, including three 17 January items at 03:18 UTC (about 24 minutes before the 03:42 UTC NISAR event).
+- Added a bounded COG audit for the 17 January event-date items. It reads only the Chókwè AOI window from the ensemble flood, likelihood, observed-water, exclusion and reference-water assets, and reports source-valid coverage and raw value histograms.
+- This is a raster-support check only. It does not calculate NISAR/GFM overlap or accuracy scores, and no raster value is assigned a scientific class until the version-matched GFM documentation is checked.
+- **Pending:** inspect the raster audit artifact, check class/mask meanings and then decide whether any positive-support overlay is defensible.

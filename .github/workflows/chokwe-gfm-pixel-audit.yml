@@ -1,0 +1,46 @@
+name: Chokwe GFM exact-pixel audit
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/chokwe-gfm-pixel-audit.yml'
+      - 'pipeline/inspect_chokwe_gfm_pixels.py'
+      - 'pipeline/discover_chokwe_gfm.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chokwe-gfm-pixel-audit
+  cancel-in-progress: false
+
+jobs:
+  inspect-event-date:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+
+      - name: Install raster-window reader
+        run: python -m pip install 'numpy>=2.0,<3' 'rasterio>=1.4,<2'
+
+      - name: Inspect exact Chokwe AOI in 17 January GFM COG assets
+        run: |
+          python pipeline/inspect_chokwe_gfm_pixels.py \
+            --output /tmp/chokwe-gfm-pixel-audit.json
+
+      - name: Upload exact-AOI raster audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: chokwe-gfm-pixel-audit-${{ github.run_id }}
+          path: /tmp/chokwe-gfm-pixel-audit.json
+          if-no-files-found: error
+          retention-days: 30
