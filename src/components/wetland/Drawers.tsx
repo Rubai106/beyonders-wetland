@@ -119,7 +119,7 @@ export function InvestigationDrawer() {
     selectedDateIndex, viewMode, mapMode, showcaseId } = useWetlandStore();
   const [shareMessage, setShareMessage] = useState("");
   const [shareFallback, setShareFallback] = useState("");
-  const largest = useMemo(() => [...patches].sort((a, b) => b.area_km2 - a.area_km2).slice(0, 8), [patches]);
+  const largest = useMemo(() => [...patches].sort((a, b) => b.area_km2 - a.area_km2 || a.id.localeCompare(b.id)).slice(0, 8), [patches]);
   if (!p) return (
     <ToolFrame title="Why this region?" lede="Click a candidate region on the map to see what the radar measured there and which checks it passed."
       limitation="A candidate region is a possible change that needs interpretation. It is not a confirmed flood.">
@@ -679,7 +679,11 @@ function RegionRegister() {
   const rows = useMemo(() => patches
     .filter((p) => vegFilter === "ALL" || p.classification === vegFilter)
     .filter((p) => `${p.id} ${regionLabel(p.id)} ${p.classification} ${p.interpretation_label ?? ""}`.toLowerCase().includes(query.toLowerCase().trim()))
-    .sort((a, b) => sort === "area" ? b.area_km2 - a.area_km2 : sort === "delta" ? Math.abs(b.delta_hh) - Math.abs(a.delta_hh) : a.id.localeCompare(b.id)),
+    .sort((a, b) => {
+      if (sort === "area") return b.area_km2 - a.area_km2 || a.id.localeCompare(b.id);
+      if (sort === "delta") return Math.abs(b.delta_hh) - Math.abs(a.delta_hh) || a.id.localeCompare(b.id);
+      return a.id.localeCompare(b.id);
+    }),
   [patches, vegFilter, query, sort]);
   const visibleRows = rows.slice(0, visibleLimit);
   const hasActiveFilters = query.trim().length > 0 || vegFilter !== "ALL";
