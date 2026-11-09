@@ -363,6 +363,24 @@ def _set_study_area(config, boundary_geojson=None, bbox=None):
         config["site"]["boundary_source"] = "User-supplied rectangular AOI; not a wetland boundary"
 
 
+def _not_run_reference(mode):
+    """Explain why reference comparison was not requested without mislabelling real runs."""
+    if mode == "demo":
+        reason = (
+            "This is a simulated run; independent satellite comparison only runs "
+            "on real NISAR observations."
+        )
+    elif mode == "real":
+        reason = (
+            "Independent reference validation was disabled for this real-data run. "
+            "Any source-publication reference assessment remains separate and is "
+            "not inherited or upgraded by this run."
+        )
+    else:
+        raise ValueError("Mode must be demo or real.")
+    return {"status": "NOT_RUN", "reference_validated": False, "reason": reason}
+
+
 def run_pipeline(config_path=None, mode="demo", output_root=None, site_name=None,
                  boundary_geojson=None, bbox=None, start_date=None, end_date=None, scene_names=None,
                  progress=None, cached_run_id=None, reference_case_selection=None):
@@ -564,8 +582,7 @@ def run_pipeline(config_path=None, mode="demo", output_root=None, site_name=None
         selected = inputs["observations"][peak_index]["rasters"]
         ordered_paths = [run/selected[key] for key in ("before_hh", "after_hh", "before_hv", "after_hv")]
         sensitivity = run_sensitivity_sweep(*ordered_paths, config, out_json=run/"sensitivity_results.json", data_source=source)
-        reference = {"status": "NOT_RUN", "reference_validated": False,
-                     "reason": "This is a simulated run; independent satellite comparison only runs on real NISAR observations."}
+        reference = _not_run_reference(mode)
         if mode == "real" and config["validation"].get("use_reference"):
             if progress:
                 progress("Checking independent HLS reference pairs for cloud-free coverage")
