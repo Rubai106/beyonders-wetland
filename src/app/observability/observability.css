@@ -53,6 +53,8 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
+  /* Keep the wide maturity table's intrinsic width inside this scroll region. */
+  contain: layout;
   border: 1px solid #d8d3c4;
   border-radius: 12px;
   background: #fff;
