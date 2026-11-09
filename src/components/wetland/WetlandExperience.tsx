@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useWetlandStore, type PanelTab, type ViewMode } from "@/lib/store";
+import { useWetlandStore, type MapMode, type PanelTab, type ViewMode } from "@/lib/store";
 import { fmtDate, opticalState } from "@/lib/story";
 import { datesWithPatches, loadShowcaseRadar, nextAvailableIndex, type RadarPreview } from "@/lib/showcase";
 import TimeMachine from "./TimeMachine";
@@ -19,6 +19,13 @@ const MODES: { id: ViewMode; label: string; icon: React.ReactNode; purpose: stri
   { id: "MOTION", label: "Motion", icon: Icon.motion, purpose: "Watch candidate change evolve across the real observations." },
   { id: "RADAR", label: "Radar", icon: Icon.radar, purpose: "See the radar imagery NISAR recorded, before the rules were applied." },
   { id: "DETECTION", label: "Detection", icon: Icon.detection, purpose: "See where the rules flagged candidates, by class." },
+];
+
+const MAP_MODES: { id: MapMode; label: string; purpose: string }[] = [
+  { id: "BEFORE", label: "Before", purpose: "Show the per-pixel median baseline before this acquisition." },
+  { id: "AFTER", label: "After", purpose: "Show backscatter from the selected acquisition." },
+  { id: "DIFFERENCE", label: "Diff", purpose: "Show after-minus-before radar backscatter change." },
+  { id: "SPLIT", label: "Split", purpose: "Compare the baseline and selected acquisition side by side." },
 ];
 
 const TABS: { id: Exclude<PanelTab, "NONE">; n: string; label: string; hint: string }[] = [
@@ -82,6 +89,48 @@ export function ModeSwitch({ value, onChange }: { value?: ViewMode; onChange?: (
   );
 }
 
+export function MapModeSwitch() {
+  const { mapMode, setMapMode, setViewMode } = useWetlandStore();
+  return (
+    <div className="wx-mapmodebar">
+      <span className="wx-mapmodebar__label">Raster</span>
+      <div className="wx-mapmodes" role="radiogroup" aria-label="Radar raster comparison" aria-orientation="horizontal">
+        {MAP_MODES.map((mode, index) => (
+          <button
+            key={mode.id}
+            type="button"
+            role="radio"
+            aria-checked={mapMode === mode.id}
+            tabIndex={mapMode === mode.id ? 0 : -1}
+            data-map-mode={mode.id}
+            title={mode.purpose}
+            aria-label={`${mode.label}: ${mode.purpose}`}
+            onClick={() => {
+              setMapMode(mode.id);
+              setViewMode("RADAR");
+            }}
+            onKeyDown={(event) => {
+              let nextIndex: number;
+              switch (event.key) {
+                case "ArrowRight": nextIndex = (index + 1) % MAP_MODES.length; break;
+                case "ArrowLeft": nextIndex = (index - 1 + MAP_MODES.length) % MAP_MODES.length; break;
+                case "Home": nextIndex = 0; break;
+                case "End": nextIndex = MAP_MODES.length - 1; break;
+                default: return;
+              }
+              event.preventDefault();
+              const nextMode = MAP_MODES[nextIndex];
+              setMapMode(nextMode.id);
+              setViewMode("RADAR");
+              (event.currentTarget.parentElement?.querySelector(`[data-map-mode="${nextMode.id}"]`) as HTMLButtonElement | null)?.focus();
+            }}
+          >{mode.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ContextRail() {
   const { pulseData, selectedDateIndex, dataTier, showcase, selectedPatch, lock } = useWetlandStore();
   if (!pulseData) return null;
@@ -116,7 +165,7 @@ function ContextRail() {
 }
 
 function RadarControls() {
-  const { radarChannel, radarStage, setRadarLayer, setViewMode, dataTier, pulseData, selectedDateIndex, showcase, showcaseId } = useWetlandStore();
+  const { radarChannel, radarStage, setRadarLayer, dataTier, pulseData, selectedDateIndex, showcase, showcaseId, mapMode } = useWetlandStore();
   const [expanded, setExpanded] = useState(false);
   const date = pulseData?.dates[selectedDateIndex]?.date;
   const [loaded, setLoaded] = useState<{ date: string; preview: RadarPreview | null } | null>(null);
@@ -127,22 +176,34 @@ function RadarControls() {
   }, [date, dataTier, showcaseId, showcase?.manifest]);
   const preview = loaded && loaded.date === date ? loaded.preview : null;
   const noPreview = dataTier === "SHOWCASE" && !!date && !(showcase?.manifest.radar_dates ?? []).includes(date);
-  const scale = radarStage === "change" ? [-10, 10] : preview?.layers[radarChannel]?.scale_db;
-  const stageWord = radarStage === "change" ? "Change" : radarStage === "before" ? "Baseline" : "After";
+  const scale = mapMode === "DIFFERENCE" ? [-10, 10] : preview?.layers[radarChannel]?.scale_db;
+  const stageWord = mapMode === "BEFORE" ? "Baseline" : mapMode === "AFTER" ? "After" : mapMode === "SPLIT" ? "Split" : "Difference";
+  const stageDescription = mapMode === "BEFORE"
+    ? "Baseline is the per-pixel median of earlier observations."
+    : mapMode === "AFTER"
+      ? "After shows backscatter from the selected acquisition."
+      : mapMode === "SPLIT"
+        ? "Split compares the baseline median with the selected acquisition."
+        : "Difference is selected-acquisition backscatter minus the baseline.";
   return (
     <div className="wx-radar-picker">
       <button type="button" className="wx-radar-trigger" aria-expanded={expanded} aria-controls="wetland-radar-layer-options"
-        aria-label={`${expanded ? "Hide" : "Show"} HH and HV radar layer options; selected ${radarChannel.toUpperCase()} ${stageWord}`}
+        aria-label={`${expanded ? "Hide" : "Show"} HH and HV radar polarization options; selected ${radarChannel.toUpperCase()} ${stageWord}`}
         onClick={() => setExpanded((open) => !open)}>
-        {Icon.radar}<span>Radar layers</span><strong>{radarChannel.toUpperCase()} · {stageWord}</strong><span className="wx-radar-trigger__chevron" aria-hidden="true">{expanded ? "−" : "+"}</span>
+        {Icon.radar}<span>Polarization</span><strong>{radarChannel.toUpperCase()} · {stageWord}</strong><span className="wx-radar-trigger__chevron" aria-hidden="true">{expanded ? "−" : "+"}</span>
       </button>
-      {expanded && <div id="wetland-radar-layer-options" className="wx-radar" role="group" aria-label="Choose HH or HV radar layer and date stage">
-        <div className="wx-radar__head"><strong>Local GCOV raster</strong><span className="wx-mono">{date || "No observation date"}</span><button type="button" aria-label="Close radar layer options" onClick={() => setExpanded(false)}>{Icon.close}</button></div>
-        {(["hh", "hv"] as const).map((c) => <div key={c} className="wx-radar__row"><span className="wx-micro">{c.toUpperCase()}</span>{(["before", "after", "change"] as const).map((s) =>
-          <button key={s} aria-pressed={radarChannel === c && radarStage === s} aria-label={`Show ${c.toUpperCase()} ${s === "before" ? "baseline" : s} layer on map`} title={`Show ${c.toUpperCase()} ${s === "before" ? "baseline" : s} layer on map`} onClick={() => { setRadarLayer(c, s); setViewMode("RADAR"); setExpanded(false); }}>{s === "change" ? "Change" : s === "before" ? "Baseline" : "After"}</button>)}</div>)}
-        {scale && <div className="wx-ramp"><i className={radarStage === "change" ? "is-div" : "is-gray"} /><span className="wx-mono">{scale[0]} dB</span><span className="wx-mono">{scale[1]} dB</span></div>}
-        {noPreview && <p className="wx-radar__notice" role="status">No radar raster preview was exported for {date}. The layer choice is kept, but only candidate outlines can be shown for this date.</p>}
-        <small>{radarStage === "change" ? "Blue: weaker return. Red: stronger return. Transparent: no valid data." : "Grey: backscatter power. Transparent: no valid data."} {preview?.baseline_observation_dates && radarStage !== "after" ? `Baseline is the per-pixel median of ${preview.baseline_observation_dates.length} earlier observations.` : ""}</small>
+      {expanded && <div id="wetland-radar-layer-options" className="wx-radar" role="group" aria-label="Choose HH or HV radar polarization">
+        <div className="wx-radar__head"><strong>Local GCOV raster</strong><span className="wx-mono">{date || "No observation date"}</span><button type="button" aria-label="Close radar polarization options" onClick={() => setExpanded(false)}>{Icon.close}</button></div>
+        <div className="wx-radar__row" role="group" aria-label="Radar polarization">
+          <span className="wx-micro">POL</span>
+          {(["hh", "hv"] as const).map((channel) =>
+            <button key={channel} type="button" data-channel={channel.toUpperCase()} aria-pressed={radarChannel === channel}
+              aria-label={`Show ${channel.toUpperCase()} polarization`}
+              onClick={() => { setRadarLayer(channel, radarStage); setExpanded(false); }}>{channel.toUpperCase()}</button>)}
+        </div>
+        {scale && <div className="wx-ramp"><i className={mapMode === "DIFFERENCE" ? "is-div" : "is-gray"} /><span className="wx-mono">{scale[0]} dB</span><span className="wx-mono">{scale[1]} dB</span></div>}
+        {noPreview && <p className="wx-radar__notice" role="status">No radar raster preview was exported for {date}. The selected comparison mode is kept, but only candidate outlines can be shown for this date.</p>}
+        <small>{stageDescription} {preview?.baseline_observation_dates && mapMode !== "AFTER" ? `Baseline uses the per-pixel median of ${preview.baseline_observation_dates.length} earlier observations.` : ""} {mapMode === "DIFFERENCE" ? "Blue: weaker return. Red: stronger return. Transparent: no valid data." : "Grey: backscatter power. Transparent: no valid data."}</small>
       </div>}
     </div>
   );
@@ -245,7 +306,7 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   const emptyState = showcaseChecked && dataTier === "EMPTY";
 
   return (
-    <div className="wx-root wx-root--drawer-tabs" data-tier={dataTier} data-detective={probeActive ? "true" : "false"} data-drawer={activeTab !== "NONE" ? "open" : "closed"}>
+    <div className="wx-root wx-root--drawer-tabs" data-tier={dataTier} data-detective={probeActive ? "true" : "false"} data-drawer={activeTab !== "NONE" ? "open" : "closed"} data-map-mode={s.mapMode}
       <Hatch />
       <header className="wx-mast">
         <span className="wx-case"><span className="wx-micro">Case</span>
@@ -289,6 +350,7 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
         {booting && <div className="wx-boot" role="status" aria-label="Loading observations"><div className="wx-boot__sweep" /><p className="wx-micro">Acquiring signal</p><p>NISAR L-band · Tanguar Haor</p></div>}
         {!acquisitionsOnly && <div className="wx-map-controls" aria-label="Map view and radar layers">
           <ModeSwitch />
+          <MapModeSwitch />
           <RadarControls />
         </div>}
         {!acquisitionsOnly && <div className="wx-legend" aria-label="Map legend">
