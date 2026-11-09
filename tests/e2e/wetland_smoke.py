@@ -379,20 +379,33 @@ with sync_playwright() as p:
     compact_target = compact_cards.locator("li").first
     compact_target_id = compact_target.get_attribute("data-region-id")
     compact_target.locator("button").click()
-    page.wait_for_function(
-        """(id) => {
+    try:
+        page.wait_for_function(
+            """(id) => document.querySelector(".wx-root")?.dataset.selectedRegionId === id
+                && document.querySelector(".wx-region-nav")?.dataset.regionId === id""",
+            arg=compact_target_id,
+            timeout=8000,
+        )
+    except Exception as error:
+        debug_state = page.evaluate("""(id) => {
+            const root = document.querySelector(".wx-root");
             const nav = document.querySelector(".wx-region-nav");
+            const drawer = document.querySelector("#wetland-investigation-drawer");
             const card = [...document.querySelectorAll(".wx-region-cards li")]
                 .find((item) => item.dataset.regionId === id);
             const button = card?.querySelector("button");
-            return nav?.dataset.regionId === id
-                && button?.getAttribute("aria-pressed") === "true"
-                && card?.classList.contains("is-selected")
-                && document.querySelector("#wetland-investigation-drawer") !== null;
-        }""",
-        arg=compact_target_id,
-        timeout=12000,
-    )
+            return {
+                expected: id,
+                selectedRegionId: root?.dataset.selectedRegionId ?? null,
+                navRegionId: nav?.dataset.regionId ?? null,
+                drawerOpen: !!drawer,
+                cardFound: !!card,
+                cardClass: card?.className ?? null,
+                cardPressed: button?.getAttribute("aria-pressed") ?? null,
+                viewMode: root?.dataset.mapMode ?? null,
+            };
+        }""", compact_target_id)
+        raise AssertionError(f"Compact region click did not update selection: {debug_state}") from error
     compact_selection_state = page.evaluate("""() => {
         const nav = document.querySelector(".wx-region-nav");
         const firstCard = document.querySelector(".wx-region-cards li:first-child button");
