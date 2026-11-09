@@ -177,8 +177,13 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   const router = useRouter();
   const { dataTier, drawer, setDrawer, returnToOverview, isLoadingData, dataError, satelliteBasemap, setSatelliteBasemap, pulseData, showcaseChecked, probeActive } = s;
 
+  const [shareUrlInitialized, setShareUrlInitialized] = useState(false);
   useEffect(() => {
-    void useWetlandStore.getState().initExperience(preferLocalRun, initialCaseId).then(() => {
+    let active = true;
+    setShareUrlInitialized(false);
+    void (async () => {
+      await useWetlandStore.getState().initExperience(preferLocalRun, initialCaseId);
+      if (!active) return;
       const params = new URLSearchParams(window.location.search);
       const latest = useWetlandStore.getState();
       const dateIndex = params.get("date");
@@ -190,8 +195,12 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
       // Threshold values in share links are informational; this client never re-runs the detector.
       const mapMode = params.get("mapMode");
       if (["BEFORE", "AFTER", "DIFFERENCE", "SPLIT"].includes(mapMode || "")) latest.setMapMode(mapMode as "BEFORE" | "AFTER" | "DIFFERENCE" | "SPLIT");
-    });
+      // Region restoration must wait until the URL's date/filter choices have been applied.
+      // setSelectedDateIndex starts the corresponding asynchronous candidate load.
+      setShareUrlInitialized(true);
+    })();
     setSatelliteBasemap(true);
+    return () => { active = false; };
   }, [preferLocalRun, initialCaseId, setSatelliteBasemap]);
 
   // Candidate geometries may arrive after the share URL's date has been selected.
@@ -206,7 +215,7 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
   const regionRestoreHandled = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || isLoadingData || regionRestoreHandled.current) return;
+    if (typeof window === "undefined" || !shareUrlInitialized || isLoadingData || regionRestoreHandled.current) return;
     const region = new URLSearchParams(window.location.search).get("region");
     if (!region) return;
     const match = patches.find((patch) => patch.id === region && patch.date === pulseDates?.[selectedDateIndex]?.date);
@@ -214,7 +223,7 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
     regionRestoreHandled.current = true;
     if (selectedPatchId !== region) setSelectedPatch(match);
     setDrawer("EXPLORE");
-  }, [patches, selectedPatchId, selectedDateIndex, pulseDates, isLoadingData, setSelectedPatch, setDrawer]);
+  }, [patches, selectedPatchId, selectedDateIndex, pulseDates, isLoadingData, shareUrlInitialized, setSelectedPatch, setDrawer]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
