@@ -20,9 +20,15 @@
 .obs-state { margin: 0 0 14px; font-size: 13px; color: #6b7684; }
 .obs-state strong { color: #8a6d2b; }
 .obs-facts { display: grid; gap: 6px; margin: 0 0 16px; font-size: 14px; }
-.obs-facts div { display: grid; grid-template-columns: 110px 1fr; gap: 8px; }
+.obs-facts div {
+  display: grid;
+  grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+.obs-facts div > * { min-width: 0; }
 .obs-facts dt { color: #6b7684; }
-.obs-facts dd { margin: 0; }
+.obs-facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 .obs-facts code { font-size: 12px; word-break: break-all; }
 .obs-ladder { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .obs-ladder li { display: flex; gap: 8px; align-items: baseline; }
