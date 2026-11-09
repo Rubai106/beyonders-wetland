@@ -117,3 +117,15 @@
 - The intersection is **not** an accuracy score: it uses simplified display polygons rather than the private native NISAR classification raster, and GFM is an independent satellite algorithm product rather than field truth. No precision, recall or F1 is reported. The public Chókwè case remains unverified.
 - **Next gate:** recover the native NISAR classification raster from the saved Chókwè run and repeat the comparison on its original pixels. Preserve GFM valid, exclusion and reference-water masks separately; do not treat missing/excluded pixels as negatives.
 - The full offline Python/TypeScript suites, lint, public build, type check and production browser suite passed on [QA run #659](https://github.com/Rubai106/beyonders-wetland/actions/runs/42631758988), commit `81bcf9146af339c277eae014d746d6a281429776`.
+
+## 2026-11-09 — Chókwè native NISAR recovery implementation (not yet run)
+
+- Added `pipeline/recover_chokwe_native.py`, a guarded reprocessing entry point pinned to the exact published baseline/event granules for run `ec8fa5ee15ae41d1aa89f930f2b47e36`.
+- The request is assembled from the published run manifest, observation row, case-study method rules and exact operator-selected AOI polygon. It refuses to proceed if those source identities or bounds change.
+- The script reconstructs the published processing parameters, re-extracts HH/HV and GCOV quality layers, reapplies the AOI/quality masks, and requires the native `classification_00.tif` plus four aligned masked inputs before recording a recovery manifest and SHA-256 checksums.
+- Class code 0 is not interpreted as a negative reference label: the four masked HH/HV inputs are used to separate valid no-candidate pixels from invalid/no-data pixels.
+- Added offline tests in `pipeline/test_recover_chokwe_native.py` and added both recovery modules to the project QA compile list.
+- Added manual, credential-gated workflow `.github/workflows/chokwe-native-recovery.yml`. It defaults to `DO_NOT_RUN`, requires an explicit exact-pair confirmation, and stores output as a private 30-day Actions artifact. Local output defaults to `pipeline/output/chokwe-native-recovery/`.
+- Added `docs/chokwe-native-recovery.md` with source identity, commands, workflow credentials and output contract.
+- The recovery is **reprocessing, not restoration of the original TIFF bytes**. It does not publish to `public/`, does not change the production run pointer, does not rerun or upgrade the source HLS `INCONCLUSIVE` result, and does not calculate accuracy/precision/recall/F1.
+- **Status:** implementation committed to `master`; independent Muse QA and any credentialed Earthdata reprocessing have not yet been performed. Native NISAR–GFM comparison remains a separate next gate.
