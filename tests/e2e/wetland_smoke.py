@@ -287,7 +287,7 @@ with sync_playwright() as p:
     )
     page.locator(".wx-region-pagination button").click()
     page.wait_for_function("document.querySelectorAll('.wx-region-table tbody tr').length === 295", timeout=5000)
-    last_sorted_region = page.locator(".wx-region-cards li").last()
+    last_sorted_region = page.locator(".wx-region-cards li").last
     last_sorted_region_id = last_sorted_region.get_attribute("data-region-id")
     last_sorted_region.locator("button").click()
     page.wait_for_function(
