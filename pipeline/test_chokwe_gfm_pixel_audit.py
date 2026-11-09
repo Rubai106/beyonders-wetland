@@ -55,7 +55,7 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
         layers = {
             "list_flood_extent": layer([[1, 1], [1, 0]]),
             "dlr_flood_extent": layer([[1, 0], [0, 0]]),
-            "tuw_flood_extent": layer([[0, 1], [1, 0]]),
+            "tuw_flood_extent": layer([[0, 1], [0, 0]]),
         }
         advisory = np.array([[0, 1], [0, 0]], dtype=np.uint8)
         result = audit.summarize_algorithm_consistency(
@@ -64,12 +64,12 @@ class ChokweGfmPixelAuditTests(unittest.TestCase):
             advisory, np.ones((2, 2), dtype=bool),
         )
         self.assertEqual(result["source_algorithm_positive_pixel_counts"], {
-            "list_flood_extent": 3, "dlr_flood_extent": 1, "tuw_flood_extent": 2
+            "list_flood_extent": 3, "dlr_flood_extent": 1, "tuw_flood_extent": 1
         })
         self.assertEqual(result["ensemble_binary_vs_two_of_three_disagreement_count"], 1)
         self.assertEqual(result["ensemble_flood_pixels_with_likelihood_below_50"], 2)
         self.assertEqual(result["low_likelihood_flood_algorithm_vote_histogram"], {
-            "0": 0, "1": 0, "2": 1, "3": 1
+            "0": 0, "1": 1, "2": 1, "3": 0
         })
         self.assertEqual(result["low_likelihood_flood_pixels_with_advisory_flag"], 1)
 
