@@ -211,6 +211,11 @@ with sync_playwright() as p:
         arg={"region": expected_region, "date": expected_date},
         timeout=30000,
     )
+    page.wait_for_function("""() => {
+        const before = document.querySelector('.leaflet-wxRadarBefore-pane img');
+        const afterPane = document.querySelector('.leaflet-wxRadarAfter-pane');
+        return !!before && !!afterPane?.querySelector('img') && Boolean(afterPane.style.clipPath);
+    }""", timeout=12000)
     restored_state = page.locator(".wx-region-nav").evaluate("""el => ({
         region: el.dataset.regionId,
         date: el.dataset.acquisitionDate,
