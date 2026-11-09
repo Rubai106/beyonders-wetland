@@ -256,6 +256,11 @@ export default function WetlandExperience({ preferLocalRun, initialCaseId }: { p
       // Threshold values in share links are informational; this client never re-runs the detector.
       const mapMode = params.get("mapMode");
       if (["BEFORE", "AFTER", "DIFFERENCE", "SPLIT"].includes(mapMode || "")) latest.setMapMode(mapMode as "BEFORE" | "AFTER" | "DIFFERENCE" | "SPLIT");
+      // A shared URL represents a deliberate snapshot. Do not let the initial
+      // showcase autoplay immediately move away from its selected date/region.
+      if (params.has("date") || params.has("region") || params.has("mapMode") || params.has("mode") || params.has("filter")) {
+        latest.setIsPlaying(false);
+      }
       // Region restoration must wait until the URL's date/filter choices have been applied.
       // setSelectedDateIndex starts the corresponding asynchronous candidate load.
       setShareUrlInitialized(true);
