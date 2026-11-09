@@ -1,6 +1,6 @@
 # Chókwè: Copernicus GFM reference discovery
 
-**Status: preflight only. No GFM pixels have been downloaded or compared, and no validation score is supported.**
+**Status: exact-AOI, close-date GFM raster audit completed. The result is positive-only cross-sensor support; it is not field validation or an accuracy score.**
 
 ## Why this source is worth checking
 
@@ -12,7 +12,7 @@ GFM is based on Sentinel-1 C-band SAR and combines three independent flood algor
 
 ## Step 1 — run the exact-AOI metadata preflight
 
-In GitHub, open **Actions → Chokwe GFM reference preflight → Run workflow**. Keep the default dates (7–28 January 2026) for the first search. The workflow queries the public STAC API at https://stac.eodc.eu/api/v1 using the exact Chókwè box:
+The initial query completed automatically on the workflow-definition update. To repeat it for a different time window, open **Actions → Chokwe GFM reference preflight → Run workflow**. The workflow queries the public STAC API at https://stac.eodc.eu/api/v1 using the exact Chókwè box:
 
 - West, south, east, north: 32.93, -24.58, 33.03, -24.48
 - Inclusive dates: 2026-01-07 to 2026-01-28 UTC
@@ -63,13 +63,38 @@ A follow-up overlay rasterizes the published NISAR candidate GeoJSON to the GFM 
 The GFM manual describes the observed-flood layer as binary, with value 1 denoting flood, and the likelihood layer as 0–100 with 50 separating flooded from unflooded classes. Its reference-water classes distinguish no water (0), permanent water (1) and seasonal water (2); excluded pixels are not suitable as negative labels. The retrieved COGs themselves are tagged with GFM NRT version 4.1.0. See the [GFM output-layer manual](https://extwiki.eodc.eu/GFM/PUM/Products) and the [GFM recommendations](https://extwiki.eodc.eu/GFM/PUM/Recommendations).
 
 
-## GFM internal consistency check (pending)
+## Completed close-date comparison — 17 January 2026
 
-The GFM Product User Manual describes the final binary flood layer as a two-of-three consensus from LIST, DLR and TU Wien and says flooded pixels should have ensemble likelihood from 50 to 100. The exact AOI audit identified 33 pixels labelled flooded in the final binary layer with likelihood below 50. A follow-up audit now reads all three intermediate algorithm flood masks on the same grid, checks their majority vote against the final binary result, and cross-references the advisory flags. This is a data-quality audit; its result must be reviewed before the likelihood values are summarized as confidence.
+The exact AOI search returned 33 GFM catalogue items across 12 acquisition dates from 7–28 January. Three items were dated 17 January 2026. Their source-valid pixel-center coverage inside the Chókwè box was:
 
+| GFM acquisition (UTC) | Valid AOI coverage | Decision |
+|---|---:|---|
+| 03:18:22 | 10.57% | Too incomplete for the primary comparison |
+| **03:18:47** | **88.67%** | Selected for the close-date comparison |
+| 03:19:12 | 0% | No valid AOI pixels |
 
-## Individual algorithm likelihood/uncertainty sources
+The selected COG is tagged GFM NRT v4.1.0, uses a 20 m grid, and was acquired 23 minutes 45 seconds before the NISAR event timestamp (03:42:32 UTC). The selected item has 264,771 source-valid pixels inside the AOI. Of those, 25,130 are mapped as GFM observed flood and 239,641 are not. The exclusion mask flags 62,948 valid AOI pixels; the separate reference-water mask identifies 334 permanent-water and 827 seasonal-water pixels.
 
-The final GFM binary flood map is based on a majority decision across available LIST, DLR and TU Wien algorithms. Its likelihood layer is calculated separately by averaging the algorithms' likelihood inputs. TU Wien's intermediate layer is an uncertainty estimate and is flipped before it is used in the ensemble. The audit therefore records raw intermediate values separately and must not describe TUW's raw uncertainty values as flood probabilities. The next artifact reports these raw values for the low-ensemble-likelihood flood pixels and the NISAR candidate overlap subset before any further aggregation is interpreted.
+### Positive-only overlap with published NISAR candidates
 
-Sources: [GFM PDD v4.0, ensemble rule](https://extwiki.eodc.eu/gfm_assets/gfm_pdd_v4_0.pdf); [TUW uncertainty handling](https://extwiki.eodc.eu/GFM/PDD/GFM_algorithms/TUW_algorithm); [DLR likelihood semantics](https://extwiki.eodc.eu/en/GFM/PDD/GFM_algorithms/DLR_algo); [LIST likelihood semantics](https://extwiki.eodc.eu/GFM/PDD/GFM_algorithms/LIST_algorithm).
+The comparison rasterizes the public NISAR candidate GeoJSON to the GFM grid using pixel-center inclusion. It does **not** use the private native NISAR classification raster.
+
+| Measure | Result |
+|---|---:|
+| NISAR display-polygon pixels rasterized in the AOI | 81,843 |
+| Candidate pixels with common-valid GFM data | 62,779 (76.71%) |
+| Candidate pixels removed by GFM exclusion | 22,329 |
+| Candidate pixels in reference water | 1 |
+| Eligible candidate pixels after masks | 40,449 (16.1796 km²) |
+| Eligible candidate pixels also mapped as GFM flood | **15,931 (6.3724 km²)** |
+| Fraction of eligible candidate pixels with positive GFM support | **39.39%** |
+
+This is a **positive-support intersection only**. The remaining 24,518 eligible NISAR candidate pixels were not mapped as flood by this GFM scene, but they are not counted as false alarms: the products use different sensors, wavelengths, acquisition geometry and algorithms, and GFM is not field truth. Excluded, reference-water and unobserved cells are not negative reference labels.
+
+The GFM likelihood among the 15,931 overlapping pixels has a median of 76/100 and a mean of 78.30/100 (range 32–100). Thirty-three overlapping pixels have a binary GFM flood label while their final likelihood is below 50. This should be disclosed, not hidden. The GFM Product Definition Document defines the binary ensemble class by a two-of-three LIST/DLR/TUW vote and computes the final likelihood separately as the average of the available algorithm likelihood inputs. TUW's intermediate layer is an uncertainty measure and is inverted/harmonized for the ensemble. In this audit, the 77 AOI-wide low-likelihood pixels that were still classed as flood all had two algorithm flood votes; the final binary layer agreed with the two-of-three vote throughout the common-valid eligible AOI. None of those 77 pixels carried an advisory flag. This supports the internal binary-vote consistency of the scene; it does not establish that any particular NISAR candidate was floodwater.
+
+Sources: [GFM Product Definition Document v4.0 — LIST likelihood](https://extwiki.eodc.eu/gfm_assets/gfm_pdd_v4_0.pdf), [DLR likelihood method](https://extwiki.eodc.eu/en/GFM/PDD/GFM_algorithms/DLR_algo), [TUW uncertainty-to-likelihood handling](https://extwiki.eodc.eu/GFM/PDD/GFM_algorithms/TUW_algorithm), and [GFM output-layer manual](https://extwiki.eodc.eu/GFM/PUM/Products).
+
+### Limitations and next validation gate
+
+The percentage above is approximate at polygon edges because it uses the simplified display GeoJSON. Before this can be promoted into a stronger evidence result, repeat the overlay using the **native NISAR classification raster** for run `ec8fa5ee15ae41d1aa89f930f2b47e36`, preserve the exact common-valid mask, and compare cell counts on the same GFM grid. The project still has no field validation and no supported precision, recall, F1 or accuracy metric for Chókwè. Keep the public case labelled **unverified radar-change candidates** until an adequately documented independent reference or field evidence is available.

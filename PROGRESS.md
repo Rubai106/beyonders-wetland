@@ -106,3 +106,14 @@
 - Added all three individual likelihood/uncertainty COGs (LIST, DLR and TUW) to the exact-AOI comparison. TUW's source layer is explicitly an uncertainty estimate; it must be inverted/harmonized according to the PDD before any comparison with the final ensemble likelihood.
 - The audit now reports raw per-algorithm values on all low-ensemble-likelihood flooded cells and, separately, on the NISAR candidate overlap subset. It does not treat raw TUW uncertainty as flood likelihood.
 - **Pending:** inspect the next artifact, then verify whether the harmonized component values reproduce the final ensemble likelihood within expected integer rounding.
+
+
+## 2026-11-09 — Chókwè GFM close-date comparison completed
+
+- The exact Chókwè AOI STAC preflight returned 33 items across 12 dates from 7–28 January 2026. Three items fell on 17 January; the 03:18:47 UTC COG was selected because it had 88.67% valid AOI coverage (the 03:18:22 item had 10.57%; 03:19:12 had 0%). The selected GFM NRT v4.1.0 20 m Sentinel-1 scene is 23 minutes 45 seconds before the 03:42:32 UTC NISAR event timestamp.
+- On the selected scene's 264,771 valid AOI pixels, 25,130 were mapped as GFM flood and 239,641 as non-flood; 62,948 were flagged by the exclusion layer. Permanent and seasonal reference water were screened separately.
+- The published NISAR display polygons rasterized to 81,843 pixels. After common-valid support, exclusion and reference-water masks, 40,449 candidate pixels (16.1796 km²) were eligible. GFM flood overlapped 15,931 of them (6.3724 km²), a positive-support fraction of 39.39% among eligible candidate pixels.
+- The overlapping flood pixels have median GFM likelihood 76/100 (mean 78.30); 33 of 15,931 have likelihood below 50. Across the AOI, all 77 low-likelihood GFM flooded pixels still had two-of-three LIST/DLR/TUW flood votes; no binary-vote disagreement or advisory flag was recorded in the checked subset.
+- The intersection is **not** an accuracy score: it uses simplified display polygons rather than the private native NISAR classification raster, and GFM is an independent satellite algorithm product rather than field truth. No precision, recall or F1 is reported. The public Chókwè case remains unverified.
+- **Next gate:** recover the native NISAR classification raster from the saved Chókwè run and repeat the comparison on its original pixels. Preserve GFM valid, exclusion and reference-water masks separately; do not treat missing/excluded pixels as negatives.
+- The full offline Python/TypeScript suites, lint, public build, type check and production browser suite passed on [QA run #659](https://github.com/Rubai106/beyonders-wetland/actions/runs/42631758988), commit `81bcf9146af339c277eae014d746d6a281429776`.
