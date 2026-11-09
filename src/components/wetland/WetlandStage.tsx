@@ -137,11 +137,11 @@ function RadarOverlay({ onPreviewUnavailable, onImageFailure, split }: {
   if (mapMode === "SPLIT") {
     if (!beforeUrl || !afterUrl) return null;
     return <>
-      <Pane name="wxRadarBefore" style={{ zIndex: 380 }}>
+      <Pane key="wxRadarBefore" name="wxRadarBefore" style={{ zIndex: 380 }}>
         <ImageOverlay url={beforeUrl} bounds={layer.bounds as LatLngBoundsExpression} opacity={radarOpacity}
           eventHandlers={{ error: () => onImageFailure(true), load: () => onImageFailure(false) }} />
       </Pane>
-      <Pane name="wxRadarAfter" style={{ zIndex: 381 }}>
+      <Pane key="wxRadarAfter" name="wxRadarAfter" style={{ zIndex: 381 }}>
         <ImageOverlay url={afterUrl} bounds={layer.bounds as LatLngBoundsExpression} opacity={radarOpacity}
           eventHandlers={{ error: () => onImageFailure(true), load: () => onImageFailure(false) }} />
       </Pane>
@@ -149,7 +149,7 @@ function RadarOverlay({ onPreviewUnavailable, onImageFailure, split }: {
     </>;
   }
   if (!imageUrl) return null;
-  return <Pane name="wxRadar" style={{ zIndex: 380 }}>
+  return <Pane key="wxRadar" name="wxRadar" style={{ zIndex: 380 }}>
     <ImageOverlay
       url={imageUrl}
       bounds={layer.bounds as LatLngBoundsExpression}
