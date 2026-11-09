@@ -755,7 +755,7 @@ function RegionRegister() {
           </tr>)}</tbody></table></div>
         <ul className="wx-region-cards" aria-label="Candidate regions">
           {visibleRows.map((p) => (
-            <li key={p.id} className={selectedPatch?.id === p.id ? "wx-region-card is-selected" : "wx-region-card"}>
+            <li key={p.id} data-region-id={p.id} className={selectedPatch?.id === p.id ? "wx-region-card is-selected" : "wx-region-card"}>
               <button type="button" className="wx-region-card__select" onClick={() => { setSelectedPatch(p); setDrawer("EXPLORE"); }} aria-pressed={selectedPatch?.id === p.id}>
                 <span>{regionLabel(p.id)}</span><strong>{p.area_km2.toFixed(3)} km²</strong>
               </button>
