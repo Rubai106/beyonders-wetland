@@ -75,7 +75,7 @@ with sync_playwright() as p:
             split_before = split_slider.get_attribute("aria-valuenow")
             split_slider.focus()
             page.keyboard.press("ArrowRight")
-            page.wait_for_function("(before) => document.querySelector('.wx-stage .wx-split')?.getAttribute('aria-valuenow') !== before", arg=split_before, timeout=3000)
+            page.wait_for_function("(before) => document.querySelector('.wx-stage .wx-radar-split')?.getAttribute('aria-valuenow') !== before", arg=split_before, timeout=3000)
             check("split mode renders baseline and after images with an adjustable divider",
                   page.locator(".leaflet-wxRadarBefore-pane img").count() == 1
                   and page.locator(".leaflet-wxRadarAfter-pane img").count() == 1
