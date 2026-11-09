@@ -27,6 +27,7 @@ from typing import Any
 import numpy as np
 import rasterio
 import yaml
+from pyproj import CRS as PyprojCRS
 from shapely.geometry import shape
 from shapely.ops import unary_union
 
@@ -370,9 +371,12 @@ def inspect_native_run(
 
     transform = class_meta["profile"]["transform"]
     crs = class_meta["profile"]["crs"]
-    if not crs.is_projected or len(crs.axis_info) < 2:
+    pyproj_crs = PyprojCRS.from_user_input(crs)
+    if not pyproj_crs.is_projected or len(pyproj_crs.axis_info) < 2:
         raise ValueError("Native NISAR classification must use a projected horizontal CRS.")
-    unit_factors = [axis.unit_conversion_factor for axis in crs.axis_info[:2]]
+    unit_factors = [
+        axis.unit_conversion_factor for axis in pyproj_crs.axis_info[:2]
+    ]
     pixel_area_km2 = (
         abs(transform.a * transform.e - transform.b * transform.d)
         * unit_factors[0]
