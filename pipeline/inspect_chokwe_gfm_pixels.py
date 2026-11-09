@@ -225,9 +225,10 @@ def summarize_algorithm_consistency(
 ) -> dict:
     """Check final binary flood class against LIST/DLR/TUW majority votes."""
     required = ("list_flood_extent", "dlr_flood_extent", "tuw_flood_extent")
+    required_likelihood = ("list_likelihood", "dlr_likelihood", "tuw_likelihood")
     if set(algorithm_layers) != set(required):
         raise ValueError("Exactly the LIST, DLR and TUW flood layers are required.")
-    if set(algorithm_likelihood_layers) != set(required):
+    if set(algorithm_likelihood_layers) != set(required_likelihood):
         raise ValueError("Exactly the LIST, DLR and TUW likelihood/uncertainty layers are required.")
     arrays = [
         ensemble_flood, ensemble_likelihood, exclusion, exclusion_valid,
@@ -235,8 +236,8 @@ def summarize_algorithm_consistency(
     ]
     arrays.extend(algorithm_layers[name]["data"] for name in required)
     arrays.extend(algorithm_layers[name]["valid"] for name in required)
-    arrays.extend(algorithm_likelihood_layers[name]["data"] for name in required)
-    arrays.extend(algorithm_likelihood_layers[name]["valid"] for name in required)
+    arrays.extend(algorithm_likelihood_layers[name]["data"] for name in required_likelihood)
+    arrays.extend(algorithm_likelihood_layers[name]["valid"] for name in required_likelihood)
     if candidate_mask is not None:
         arrays.append(candidate_mask)
     if advisory_flags is not None:
@@ -282,7 +283,7 @@ def summarize_algorithm_consistency(
         if candidate_mask is not None
         else np.zeros(ensemble_flood.shape, dtype=bool)
     )
-    for name in required:
+    for name in required_likelihood:
         layer = algorithm_likelihood_layers[name]
         for target, mask in (
             (low_likelihood_algorithm_values, low_likelihood_positive),
