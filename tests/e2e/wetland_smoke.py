@@ -421,6 +421,7 @@ with sync_playwright() as p:
         compact_selection_state["navRegionId"] == compact_target_id
         and compact_selection_state["cardPressed"] == "true"
         and compact_selection_state["investigatorOpen"]
+        and compact_selection_state["investigatorOpen"]
         and compact_selection_state["titleCount"] == 1,
         str({"expected": compact_target_id, **compact_selection_state}),
     )
