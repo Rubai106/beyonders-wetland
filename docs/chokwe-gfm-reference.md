@@ -129,7 +129,7 @@ Results are reported separately for OPEN_WATER and VEGETATED candidate classes. 
 
 Exclusion and reference-water counts are reported independently and may overlap. Missing, excluded and permanent/seasonal water cells are never turned into negative labels. GFM non-flood cells among eligible candidates are reported descriptively, not as false alarms or verified non-flood labels.
 
-No precision, recall, F1 or accuracy metric is calculated. The output is positive-only independent cross-sensor algorithm support, not field truth. No result is written to `public/` or to the production run pointer.
+No precision, recall, F1 or accuracy metric is calculated. The output is positive-only independent cross-sensor algorithm support, not field truth. The comparison workflow itself writes no result to `public/` and does not change the production-run pointer. Following review, a compact public provenance/result summary was separately added at `public/evidence/chokwe-native-gfm-comparison-2026-11-10.json`; the full private Actions artifact remains the detailed machine-readable report.
 
 ### Mask reporting and class-zero reader caution
 
