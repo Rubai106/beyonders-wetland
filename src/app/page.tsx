@@ -147,7 +147,7 @@ function Hydrograph() {
   const cur = entries[Math.min(active, entries.length - 1)];
   return (
     <div className="hydro" ref={hydroRef}>
-      <div className="hydro-bars" role="img" aria-label={`Radar-derived radar-change candidate area across ${entries.length} 2026 observations of Tanguar Haor, peaking ${shortDate(entries[peakIdx].date)}`}>
+      <div className="hydro-bars" role="group" aria-label={`Choose one of ${entries.length} Tanguar Haor radar-change candidate observations; peak on ${shortDate(entries[peakIdx].date)}`}>
         {entries.map((d, i) => (
           <button key={d.date} type="button" className={`hydro-bar${i === active ? " is-active" : ""}${i === peakIdx ? " is-peak" : ""}`}
             style={{ height: `${(d.area_km2 / max) * 100}%` }}
