@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-10T17:17:04.973783+00:00",
+  "status": "NATIVE_GRID_POSITIVE_SUPPORT_AUDIT_COMPLETE",
+  "source_recovery": {
+    "source_published_run_id": "ec8fa5ee15ae41d1aa89f930f2b47e36",
+    "recovery_run_id": "6cbe03836ada44b09188b9aee2b94bc3",
+    "recovery_manifest_sha256": "68793ffb310ad8df09e72e093827414ffd579368c5347bd5bbe97cc6f4c23739",
+    "recovery_workflow_run_id": 42847205114,
+    "comparison_workflow_run_id": 42863187071,
+    "recovery_artifact_id": 13785806193,
+    "comparison_artifact_id": 13785762170
+  },
+  "reference": {
+    "product": "Copernicus Global Flood Monitoring NRT v4.1.0",
+    "item_id": "ENSEMBLE_FLOOD_20260117T031847_VV_AF020M_E066N021T3",
+    "acquired_at": "2026-01-17T03:18:47Z",
+    "minutes_from_nisar_event": -23.75,
+    "source_crs": "EPSG:27701",
+    "source_pixel_size_m": 20
+  },
+  "alignment": {
+    "grid_of_record": "Native NISAR classification grid",
+    "native_nisar_crs": "EPSG:32736",
+    "native_nisar_pixel_size_m": 10,
+    "native_nisar_dimensions": [
+      1014,
+      1108
+    ],
+    "resampling": "Nearest-neighbour sampling of each GFM value layer and validity mask onto the native NISAR grid; no NISAR raster is resampled.",
+    "common_valid_rule": "All four sampled GFM layers (flood extent, likelihood, exclusion, reference water) must be valid."
+  },
+  "native_aoi_support": {
+    "native_aoi_pixel_count": 1121391,
+    "native_aoi_pixels_with_common_valid_gfm_data": 993517,
+    "native_aoi_pixels_without_common_valid_gfm_data": 127874,
+    "gfm_common_valid_fraction": 0.8859684088779025
+  },
+  "open_water_candidates": {
+    "native_candidate_pixels": 298718,
+    "native_candidate_area_km2": 29.8718,
+    "candidates_without_common_valid_gfm_data": 69656,
+    "candidates_in_gfm_exclusion_mask": 81909,
+    "candidates_in_reference_water": 2,
+    "eligible_candidate_pixels_after_gfm_masks": 147151,
+    "eligible_candidate_area_km2": 14.7151,
+    "gfm_flood_positive_overlap_pixels": 57997,
+    "gfm_flood_positive_overlap_area_km2": 5.7997,
+    "fraction_of_eligible_candidates_with_gfm_flood_support": 0.3941325577128256,
+    "eligible_candidates_not_mapped_as_gfm_flood": 89154,
+    "positive_overlap_gfm_likelihood": {
+      "count": 57997,
+      "minimum": 32,
+      "median": 76,
+      "mean": 78.3054123489146,
+      "maximum": 100,
+      "below_50_count": 129
+    }
+  },
+  "vegetated_candidates": {
+    "native_candidate_pixels": 0,
+    "gfm_positive_overlap_pixels": 0,
+    "support_fraction": null
+  },
+  "accuracy_metrics": {
+    "precision": null,
+    "recall": null,
+    "f1": null,
+    "accuracy": null,
+    "reason": "GFM is an independent algorithmic satellite product, not field truth."
+  },
+  "interpretation_limits": [
+    "This is positive-only spatial support between native NISAR radar-change candidates and an independent Sentinel-1 GFM algorithm product.",
+    "It is not field validation, an accuracy assessment, precision, recall or F1.",
+    "GFM non-flood cells are not treated as ground-truth negatives; the sensors and algorithms differ.",
+    "NISAR/GFM no-data, GFM exclusion, and permanent/seasonal reference-water cells are not counted as negative labels.",
+    "The original public HLS optical reference remains INCONCLUSIVE; this comparison does not upgrade it.",
+    "The study box is the published operator-selected rectangle, not an authoritative flood or wetland boundary.",
+    "The comparison uses the reprocessed native NISAR grid; recovery is reprocessing, not restoration of the original TIFF bytes."
+  ]
+}
