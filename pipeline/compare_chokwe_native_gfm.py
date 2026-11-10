@@ -102,6 +102,27 @@ def _verify_hash_entries(run_dir: Path, entries: dict, label: str) -> None:
             raise ValueError(f"Recovered artifact checksum/size mismatch: {name}")
 
 
+def read_native_classification(path: Path) -> tuple[np.ndarray, dict]:
+    """Read class codes unmasked and return the original native grid metadata."""
+    with rasterio.open(path) as src:
+        if src.nodata != 0 or src.count != 1 or src.crs is None:
+            raise ValueError("Native classification GeoTIFF metadata is invalid.")
+        # Do not use masked=True here: code 0 is the valid no-candidate class
+        # inside the separately reconstructed native_valid support.
+        classification = src.read(1)
+        if not np.isin(classification, (0, 1, 2)).all():
+            raise ValueError("Native classification contains an undocumented class code.")
+        grid = {
+            "crs": src.crs,
+            "transform": src.transform,
+            "width": src.width,
+            "height": src.height,
+            "shape": classification.shape,
+            "nodata_metadata": src.nodata,
+        }
+    return classification, grid
+
+
 def load_native_run(run_dir: Path) -> dict:
     """Verify recovery provenance and load native classes/validity without treating 0 as NoData."""
     run_dir = run_dir.expanduser().resolve()
@@ -189,22 +210,7 @@ def load_native_run(run_dir: Path) -> dict:
             raise ValueError(f"Recovered native classification differs from manifest field: {key}")
 
     class_path = run_dir / "classification_00.tif"
-    with rasterio.open(class_path) as src:
-        if src.nodata != 0 or src.count != 1 or src.crs is None:
-            raise ValueError("Native classification GeoTIFF metadata is invalid.")
-        # Intentionally read the categorical class band unmasked: code 0 is a
-        # valid "no candidate" class inside the separately derived native_valid
-        # support, even though the source GeoTIFF also declares nodata=0.
-        classification = src.read(1)
-        if not np.isin(classification, (0, 1, 2)).all():
-            raise ValueError("Native classification contains an undocumented class code.")
-        native_grid = {
-            "crs": src.crs,
-            "transform": src.transform,
-            "width": src.width,
-            "height": src.height,
-            "shape": classification.shape,
-        }
+    classification, native_grid = read_native_classification(class_path)
 
     native_aoi = np.zeros(classification.shape, dtype=bool)
     native_valid = np.ones(classification.shape, dtype=bool)
