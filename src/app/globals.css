@@ -2949,3 +2949,118 @@ textarea {
 /* Operator guide: long commands must wrap on narrow screens instead of
    pushing the page sideways. */
 .operator-guide-page .operator-guide-command { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: auto; padding: 12px 14px; border: 1px solid #d8d3c4; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.6; }
+
+/* Chókwè follow-up: native-grid, positive-only GFM support audit. */
+.mozambique-case__native {
+  display: grid;
+  gap: 13px;
+  margin-top: 20px;
+  padding: clamp(15px, 2.2vw, 22px);
+  border: 1px solid #c7d5ce;
+  border-left: 4px solid #006a7c;
+  background: #f1f6f2;
+  color: #17231d;
+}
+.mozambique-case__native-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.mozambique-case__native-heading .global-eyebrow {
+  margin-bottom: 6px;
+  color: #006a7c;
+  font-size: .62rem;
+  font-weight: 750;
+  letter-spacing: .09em;
+}
+.mozambique-case__native-heading h3 {
+  margin: 0;
+  color: #17231d;
+  font-size: clamp(1rem, 1.6vw, 1.3rem);
+  line-height: 1.3;
+}
+.mozambique-case__native-heading > span {
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border: 1px solid #976f35;
+  background: #fff8e9;
+  color: #6b4816;
+  font-size: .64rem;
+  font-weight: 700;
+}
+.mozambique-case__native-intro,
+.mozambique-case__native-note,
+.mozambique-case__native-method p {
+  margin: 0;
+  color: #425149;
+  font-size: .76rem;
+  line-height: 1.65;
+}
+.mozambique-case__native-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.mozambique-case__native-grid > div {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d1dcd4;
+  background: #fffefa;
+}
+.mozambique-case__native-grid strong {
+  color: #075f65;
+  font: 700 clamp(1.25rem, 2.5vw, 1.8rem)/1.15 var(--font-mono, monospace);
+  font-variant-numeric: tabular-nums;
+}
+.mozambique-case__native-grid span {
+  color: #26372e;
+  font-size: .68rem;
+  line-height: 1.45;
+}
+.mozambique-case__native-grid small {
+  color: #67766d;
+  font-size: .61rem;
+  line-height: 1.4;
+}
+.mozambique-case__native-note {
+  padding: 10px 12px;
+  border-left: 2px solid #9a7947;
+  background: #fbf7ed;
+}
+.mozambique-case__native-method {
+  border-top: 1px solid #cbd6ce;
+}
+.mozambique-case__native-method summary {
+  min-height: 38px;
+  padding: 8px 0;
+  color: #075f65;
+  font-size: .72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.mozambique-case__native-method p + p { margin-top: 8px; }
+.mozambique-case__native-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.mozambique-case__native-links a {
+  color: #006a7c;
+  font-size: .69rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.mozambique-case__native :is(a, summary):focus-visible {
+  outline: 2px solid #006a7c;
+  outline-offset: 3px;
+}
+@media (max-width: 700px) {
+  .mozambique-case__native-heading { flex-direction: column; }
+  .mozambique-case__native-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
