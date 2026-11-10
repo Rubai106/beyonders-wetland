@@ -42,6 +42,14 @@ test("platform health reads the real published manifests", async () => {
   assert.equal(byDomain.forest.length, 1);
   assert.equal(byDomain.forest[0].name, "Rondônia");
   assert.equal(byDomain.forest[0].runId, "03111a500c5846af95e207984e1ebd0b");
+  // The published study exposes four processed frames; seven input acquisitions
+  // include scenes that do not have a display frame in the interactive study.
+  assert.deepEqual(byDomain.forest[0].observationDates, [
+    "2026-08-24",
+    "2026-09-05",
+    "2026-09-17",
+    "2026-09-29",
+  ]);
   assert.equal(byDomain.forest[0].checksumsPresent, true);
   assert.equal(byDomain.forest[0].integrity, "PUBLISHED_NOT_VERIFIED");
   assert.deepEqual(Object.keys(byDomain.forest[0].digests ?? {}).sort(), [
