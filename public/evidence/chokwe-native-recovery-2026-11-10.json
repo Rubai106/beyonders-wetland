@@ -3,6 +3,7 @@
   "status": "RECOVERED_NATIVE_RASTERS",
   "created_at": "2026-11-10T17:07:58.711219+00:00",
   "recovery_run_id": "6cbe03836ada44b09188b9aee2b94bc3",
+  "recovery_manifest_sha256": "68793ffb310ad8df09e72e093827414ffd579368c5347bd5bbe97cc6f4c23739",
   "recovery_is_reprocessing_not_original_binary_restoration": true,
   "source_published_run_id": "ec8fa5ee15ae41d1aa89f930f2b47e36",
   "source_publication_release": "2026.10.29-chokwe",
