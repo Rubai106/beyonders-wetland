@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 import numpy as np
+import rasterio
 from rasterio.transform import from_origin
 
 import compare_chokwe_native_gfm as comparison
@@ -51,12 +52,61 @@ class NativeChokweGfmComparisonTests(unittest.TestCase):
 
         self.assertEqual(vegetation["candidate_pixels_on_native_grid"], 3)
         self.assertEqual(vegetation["candidate_pixels_in_gfm_reference_water"], 1)
+        self.assertEqual(vegetation["candidate_pixels_in_gfm_permanent_reference_water"], 0)
+        self.assertEqual(vegetation["candidate_pixels_in_gfm_seasonal_reference_water"], 1)
         self.assertEqual(vegetation["eligible_candidate_pixels_after_gfm_masks"], 2)
         self.assertEqual(vegetation["eligible_candidates_not_mapped_as_gfm_flood"], 1)
         self.assertEqual(vegetation["gfm_flood_positive_overlap_pixels"], 1)
         self.assertEqual(vegetation["fraction_of_eligible_candidates_with_gfm_flood_support"], 0.5)
         self.assertEqual(vegetation["positive_overlap_gfm_likelihood"]["median"], 90.0)
         self.assertIn("not treated as negative", vegetation["denominator_note"])
+
+    def test_permanent_and_seasonal_reference_water_are_reported_separately(self):
+        classification = np.array([[1, 1]], dtype=np.uint8)
+        gfm_layers = {
+            "ensemble_flood_extent": layer([[1, 1]]),
+            "ensemble_likelihood": layer([[80, 75]]),
+            "exclusion_mask": layer([[0, 0]]),
+            "reference_water_mask": layer([[1, 2]]),
+        }
+        result = comparison.summarize_native_candidate_class(
+            classification,
+            np.ones((1, 2), dtype=bool),
+            np.ones((1, 2), dtype=bool),
+            gfm_layers,
+            1,
+            0.0004,
+        )
+        self.assertEqual(result["candidate_pixels_in_gfm_reference_water"], 2)
+        self.assertEqual(result["candidate_pixels_in_gfm_permanent_reference_water"], 1)
+        self.assertEqual(result["candidate_pixels_in_gfm_seasonal_reference_water"], 1)
+        self.assertEqual(result["eligible_candidate_pixels_after_gfm_masks"], 0)
+        self.assertEqual(result["gfm_flood_positive_overlap_pixels"], 0)
+
+    def test_native_classification_reader_preserves_valid_zero_class_despite_nodata_metadata(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "classification_00.tif"
+            values = np.array([[0, 1, 2], [0, 0, 1]], dtype=np.uint8)
+            profile = {
+                "driver": "GTiff",
+                "height": values.shape[0],
+                "width": values.shape[1],
+                "count": 1,
+                "dtype": "uint8",
+                "crs": "EPSG:32736",
+                "transform": from_origin(500000, 7300000, 10, 10),
+                "nodata": 0,
+            }
+            with rasterio.open(path, "w", **profile) as destination:
+                destination.write(values, 1)
+
+            loaded, grid = comparison.read_native_classification(path)
+
+        self.assertEqual(loaded.tolist(), values.tolist())
+        self.assertEqual(grid["nodata_metadata"], 0)
+        self.assertEqual(int(np.count_nonzero(loaded == 0)), 3)
+        self.assertEqual(int(np.count_nonzero(loaded == 1)), 2)
+        self.assertEqual(int(np.count_nonzero(loaded == 2)), 1)
 
     def test_nearest_neighbour_resamples_values_and_validity_mask_separately(self):
         source_data = np.arange(9, dtype=np.uint8).reshape((3, 3))
