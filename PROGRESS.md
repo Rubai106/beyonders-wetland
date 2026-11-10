@@ -140,11 +140,18 @@
 - GitHub Actions run `42682317233` completed successfully on application fix commit `6ba71324e6ef67d98bb07b505e0e7bd4301a0dcd`. The documentation-only HEAD `739d6a2` was not separately run by Actions at the time of Muse's audit.
 - **Status: PASS.** The 390 px matrix regression and the 360 px facts-grid overflow are both independently verified resolved.
 
-## 2026-11-10 — Desktop investigation drawer reflow fixes (independent verification pending)
+## 2026-11-10 — Desktop investigation drawer reflow fixes (Muse verified)
 
-- Muse's O-3 inspection reproduced the Wetland region-register class-filter select truncation at a 338.4 px desktop drawer inside a 1440 px viewport. Added a container query to give the class-filter label/select a full row when the register itself is at most 340 px wide. This uses the register's actual width rather than viewport breakpoints.
-- Muse separately reproduced the Chókwè Learn layout failure at a 345 px drawer body: the two-column case forced a 599 px intrinsic width, the verdict pill extended beyond the visible drawer, comparison figures collapsed to a sliver, and the pixel inspector also exceeded its column.
-- Added inline-size containment to the Wetland hazard drawer and a 380 px container-query reflow: the Chókwè story and image figures stack, headings/verdict wrap, evidence rows collapse to one column, and the pixel-inspection panel uses a single shrinkable column. No data, scientific logic, or detector behavior changed.
-- CSS commits: `ffebe9ef5e70530e0a3797037509480ceb506c74` (Wetland filter row) and `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b` (Chókwè Learn case).
-- **Pending:** Muse visual and geometry verification at 360, 390, 820, and 1440 px. At 1440, confirm the class filter displays “Vegetation-related” in full and the Chókwè verdict, text, figures, and pixel inspector fit without horizontal scrolling. Confirm the existing 360/390 mobile behavior and the Observability/Agriculture responsive fixes remain intact.
+- Muse independently verified the Wetland region-register class-filter fix at 360, 390, 820, 961, 1024, 1440 and 1920 px. “Vegetation-related” is fully visible at every width, including the 338.4 px and 360 px desktop drawer columns; no control overlap or page overflow was found.
+- Muse independently verified the Chókwè Learn case at the same widths. The content now reflows inside the drawer, the verdict and long scene IDs wrap, all comparison/CIMA figures render at usable sizes, and the case has no forced horizontal scrolling or content wider than the drawer.
+- Muse rechecked the existing 360/390 px Observability and Agriculture protections; both routes remain viewport-width with the Agriculture toolbar separated from map zoom controls.
+- Application CSS commits: `ffebe9ef5e70530e0a3797037509480ceb506c74` (class filter) and `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b` (Chókwè reflow). Muse tested exact HEAD `1e7f9d3b892b33cbefb2a2e4f673013ad70f069a`; production build passed. The two application commits each have successful CI runs.
+- **Status: PASS.** O-3 and the Chókwè Learn drawer issue are closed. The empty second grid column beside Sort at 1440/1920 px is cosmetic only.
+- **Still open:** O-4 clipboard-success toast needs an unmocked real-browser click-through; fallback behavior is already covered by the existing production-browser test.
 
+## 2026-11-10 — Step 2B hydrograph smoke retest (CI verified)
+
+- Rechecked commit `4cd149aba66a2fb139ba60c579c14297af9e0e12`, which changed the hydrograph smoke probe to read the current-value label and active-bar value in one browser evaluation so autoplay cannot advance between separate reads.
+- The production QA workflow ran on descendant `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b` in Actions run [`42696147131`](https://github.com/Rubai106/beyonders-wetland/actions/runs/42696147131). The updated `wetland_smoke.py` ran twice; each run passed 122/122 checks with no application errors. Both logs show the live hydrograph current value matching the active bar and staying non-negative through the observed date transition.
+- The run uploaded `wetland-step2b-browser-evidence-2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b`. The workflow also passed the landing hydrograph smoke and the remaining project browser checks.
+- **Status: PASS in production CI.** The Step 2B atomic-sampling regression is closed; this is separate from O-4's manual clipboard-success click-through.
