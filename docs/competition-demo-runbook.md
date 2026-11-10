@@ -47,6 +47,7 @@ Walk through the reference evidence in this order:
 1. **HLS optical comparison:** 7–22 January. Only **1.26%** of the study box had common-clear coverage, and **none of the local candidate area was assessed**. This check is inconclusive; it neither confirms nor disproves the candidates.
 2. **CIMA regional map:** Copernicus Sentinel-1/2 flood context updated 16 January, one day before the NISAR event observation. It supports the regional event but is not pixel-registered reference labels for the local study box.
 3. **UNOSAT follow-up:** preliminary Sentinel-1 water extents on 23 and 24 January overlap **88.2%** and **89.1%** of the NISAR candidate area, respectively. These dates are six and seven days after the NISAR event observation. They provide later positive spatial support, not same-date truth, negative labels, field validation, or an accuracy score.
+4. **Native-grid GFM follow-up (separate reprocessing):** a later reprocessing of the pinned NISAR pair was compared with a 17 January GFM NRT v4.1.0 scene on the native 10 m NISAR grid. **57,997 of 147,151 eligible OPEN_WATER candidate pixels (39.4%, 5.80 km²)** had positive GFM flood support. This is an algorithm-to-algorithm positive-only overlap, not field validation or accuracy; the original HLS reference remains inconclusive and the original release is unchanged.
 
 Close this section with the correct conclusion:
 
