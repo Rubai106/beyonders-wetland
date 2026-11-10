@@ -164,3 +164,20 @@
 - **Step 2B atomic hydrograph check: PASS.** The `4cd149a` single-browser-task read of current value and active-bar value remains in `tests/e2e/wetland_smoke.py`; equality and non-negative assertions remain intact. Against the production build, two consecutive smoke runs each passed 122/122 checks with no application errors. Each sampled `24.5/24.5` six times, then `21.0/21.0` twice, demonstrating the animation's date transition without a mismatch.
 - Evidence includes Muse's `o4-toast.png`, `o4-fresh-tab-restored.png`, native clipboard probe results, and both smoke logs. Muse did not modify source or tests.
 - **Status: O-4 and the Step 2B atomic-sampling confirmation are PASS and closed.** Scope note: this commission verified the atomic hydrograph sample and ran `wetland_smoke.py` twice; it did not repeat the broader historical Step 2B scope (offline pipeline suites, all six browser suites, four-viewport chart review, or Step 2A reconfirmation). Do not treat those broader checks as newly run here.
+
+
+## 2026-11-10 — Chókwè native-recovery credential gate verified
+
+- Muse independently tested exact commit `84cf0583e4a24468ce3ad3a2c2c77dffd7e72716`. The workflow credential preflight passed the synthetic matrix: token only and username+password accepted; no credentials, username only and password only rejected; when all are present the token path takes precedence.
+- `bash -n` passed. No synthetic values appeared in output. The native recovery workflow was not dispatched, the recovery script was not run, and no NASA/Earthdata endpoint or NISAR data was accessed.
+- The manual-only trigger, `DO_NOT_RUN` default, exact-pair condition, pre-processing dry-run step order and 30-day private artifact retention remain intact. CI run [`42798753324`](https://github.com/Rubai106/beyonders-wetland/actions/runs/42798753324) passed on the exact tested HEAD.
+- Credential preflight status: **PASS**. B-1 remains open until a credentialed exact-pair recovery package is produced, checksum/grid/class-count verified and compared with GFM on the native NISAR grid.
+
+## 2026-11-10 — Native-grid Chókwè NISAR/GFM comparison path (implementation pending QA)
+
+- Added `pipeline/compare_chokwe_native_gfm.py` to validate the private recovery manifest, pinned published-source hashes, native raster hashes, GCOV quality sidecar hashes, native class grid, four masked HH/HV inputs and AOI mask before comparison.
+- The comparison uses the native NISAR classification grid as the grid of record. It samples GFM ensemble flood, likelihood, exclusion and reference-water values **and their validity masks** onto that grid with nearest-neighbour resampling. Native NISAR pixels are not resampled.
+- OPEN_WATER and VEGETATED candidate classes are reported separately. GFM no-data, exclusion and permanent/seasonal reference-water intersections remain separate from the eligible denominator. The report is positive-support only; no precision, recall, F1 or accuracy metrics are generated.
+- Added synthetic offline tests for class-separated support, no-data/exclusion/reference-water denominator handling, nearest-neighbour sampling, valid-mask sampling, invalid class values, grid-shape mismatch, unambiguous recovery-artifact resolution and hash-tampering detection.
+- Added manual workflow `.github/workflows/chokwe-native-gfm-comparison.yml`, which downloads a private native-recovery artifact from a specified completed Actions run and uploads a private 30-day comparison report. It does not launch recovery or require Earthdata credentials. Updated the QA compile list and `docs/chokwe-gfm-reference.md`.
+- **Pending:** CI and Muse independent QA of this comparator and workflow. No recovered native raster package is available in this QA environment; no native-grid comparison or result has been produced. B-1 remains open.
