@@ -49,8 +49,12 @@ jobs:
       - name: Verify Earthdata credentials are configured
         shell: bash
         run: |
-          if [[ -z "${EARTHDATA_TOKEN}" && -z "${EARTHDATA_USERNAME}" ]]; then
-            echo "::error::Configure EARTHDATA_TOKEN or EARTHDATA_USERNAME (and EARTHDATA_PASSWORD) as repository Actions secrets."
+          if [[ -n "${EARTHDATA_TOKEN}" ]]; then
+            echo "Earthdata token credential is configured."
+          elif [[ -n "${EARTHDATA_USERNAME}" && -n "${EARTHDATA_PASSWORD}" ]]; then
+            echo "Earthdata username/password credentials are configured."
+          else
+            echo "::error::Configure EARTHDATA_TOKEN, or configure both EARTHDATA_USERNAME and EARTHDATA_PASSWORD, as repository Actions secrets."
             exit 1
           fi
 
