@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "status": "RECOVERED_NATIVE_RASTERS",
+  "created_at": "2026-11-10T17:07:58.711219+00:00",
+  "recovery_run_id": "6cbe03836ada44b09188b9aee2b94bc3",
+  "recovery_is_reprocessing_not_original_binary_restoration": true,
+  "source_published_run_id": "ec8fa5ee15ae41d1aa89f930f2b47e36",
+  "source_publication_release": "2026.10.29-chokwe",
+  "source_manifest_sha256": "75a607bba7379d6ce6192f78b9d0c60c7fabb60b3cf2848cce36cf5aff7b1bcf",
+  "source_observations_sha256": "c6da621fcaaebf10ee9b5411d21ea0fe6c19af932ba403091c1e026f65215dcf",
+  "source_case_study_sha256": "dc3fe033b0977f1bafa99d996a5f0e6942f8d4b805688a5ff6740b6d2eac0897",
+  "source_boundary_sha256": "c77e99916e4929a99f339db4edce975138f5348aaf47151b1da972eb10a86813",
+  "product": "NISAR_L2_GCOV_BETA_V1",
+  "frequency": "frequencyA",
+  "baseline_date": "2026-01-05",
+  "event_date": "2026-01-17",
+  "baseline_scene": "NISAR_L2_PR_GCOV_009_114_A_165_2005_DHDH_A_20260105T034232_20260105T034253_X05010_N_P_J_001",
+  "event_scene": "NISAR_L2_PR_GCOV_010_114_A_165_2005_DHDH_A_20260117T034232_20260117T034254_X05010_N_P_J_001",
+  "aoi": {
+    "bounds_wgs84": [
+      32.93,
+      -24.58,
+      33.03,
+      -24.48
+    ],
+    "geometry_source": "Published operator-selected rectangular analysis box; not an authoritative wetland/flood boundary"
+  },
+  "method_parameters": {
+    "minimum_region_pixels": 50,
+    "minimum_valid_fraction": 0.85,
+    "base_threshold_db": 2.5,
+    "open_water_delta_hh": -2.5,
+    "vegetated_delta_hh": 2.5,
+    "vegetated_delta_hv_max": 1.5
+  },
+  "reference_validation": {
+    "source_release_status": "INCONCLUSIVE",
+    "recomputed_during_recovery": false,
+    "reference_validated": false
+  },
+  "native_classification": {
+    "crs": "EPSG:32736",
+    "width": 1014,
+    "height": 1108,
+    "resolution_m": [
+      10,
+      10
+    ],
+    "class_codes": {
+      "0": "Valid no-candidate within reconstructed input support; not NoData",
+      "1": "OPEN_WATER change candidate",
+      "2": "VEGETATED change candidate"
+    },
+    "raw_class_value_counts": {
+      "0": 824794,
+      "1": 298718,
+      "2": 0
+    },
+    "common_valid_native_pixel_count": 1121391,
+    "valid_no_candidate_pixel_count": 822673,
+    "valid_open_water_candidate_pixel_count": 298718,
+    "valid_vegetated_candidate_pixel_count": 0,
+    "native_pixel_area_km2": 0.0001,
+    "valid_open_water_candidate_area_km2": 29.8718,
+    "valid_vegetated_candidate_area_km2": 0
+  },
+  "limitations": [
+    "This run reprocesses the pinned NISAR source scenes; it does not restore the original missing TIFF bytes.",
+    "The source publication records the HLS optical reference as INCONCLUSIVE; this recovery does not rerun or upgrade that assessment.",
+    "The analyst-selected rectangle is not an authoritative wetland or flood boundary.",
+    "NISAR classes remain algorithmic change candidates, not confirmed flooding or field truth.",
+    "No accuracy, precision, recall or F1 metric is computed by the recovery.",
+    "The native-grid GFM comparison is published separately."
+  ]
+}
