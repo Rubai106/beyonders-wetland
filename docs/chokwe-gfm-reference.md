@@ -98,3 +98,43 @@ Sources: [GFM Product Definition Document v4.0 — LIST likelihood](https://extw
 ### Limitations and next validation gate
 
 The percentage above is approximate at polygon edges because it uses the simplified display GeoJSON. Before this can be promoted into a stronger evidence result, repeat the overlay using the **native NISAR classification raster** for run `ec8fa5ee15ae41d1aa89f930f2b47e36`, preserve the exact common-valid mask, and compare cell counts on the same GFM grid. The project still has no field validation and no supported precision, recall, F1 or accuracy metric for Chókwè. Keep the public case labelled **unverified radar-change candidates** until an adequately documented independent reference or field evidence is available.
+
+
+## Native NISAR-grid comparison — implementation added, execution pending
+
+The public-polygon comparison above is an exploratory edge-approximation only. A separate native-grid comparison entry point is now available in `pipeline/compare_chokwe_native_gfm.py`. It is deliberately separate from the existing polygon audit and does not change the public Chókwè case.
+
+### Input and provenance gates
+
+The comparator consumes the private recovery artifact from the manual **Chokwe native NISAR raster recovery** workflow. Before reading candidate classes, it verifies:
+
+- The recovery manifest is for the pinned published run `ec8fa5ee15ae41d1aa89f930f2b47e36`, exact 5 January / 17 January 2026 scene pair, NISAR L2 GCOV BETA v1 / frequency A.
+- The source manifest, observation, case-study and AOI boundary SHA-256 values match the checked-in published source package.
+- All required native-run files and GCOV quality sidecars match their recovery-manifest byte counts and SHA-256 hashes.
+- The native classification, four masked HH/HV inputs, AOI mask, CRS and affine grid align; candidate class codes remain 1 (OPEN_WATER) and 2 (VEGETATED), while valid class 0 remains “no candidate” rather than NoData.
+- The inherited HLS reference status remains INCONCLUSIVE and the recovery is reprocessing, not restoration of the original TIFF bytes.
+
+### Alignment and denominator rules
+
+The comparator selects the 17 January GFM item with the largest source-valid ensemble-flood coverage within the exact study box, using the same coverage-selection rule as the existing GFM audit. It reads the ensemble flood, ensemble likelihood, exclusion and reference-water COG windows.
+
+Each GFM value layer **and its validity mask** is sampled independently onto the native NISAR classification grid with nearest-neighbour resampling. The native NISAR grid is the grid of record; the NISAR rasters are not resampled. The four sampled GFM layers must all be valid for a native cell to count as common-valid support.
+
+Results are reported separately for OPEN_WATER and VEGETATED candidate classes. For each class, the comparator retains separate counts for:
+- candidate pixels without common-valid GFM data;
+- candidate pixels intersecting the GFM exclusion mask;
+- candidate pixels intersecting permanent or seasonal reference water;
+- eligible candidate pixels after all GFM masks;
+- eligible candidate pixels also mapped as GFM flood.
+
+Exclusion and reference-water counts are reported independently and may overlap. Missing, excluded and permanent/seasonal water cells are never turned into negative labels. GFM non-flood cells among eligible candidates are reported descriptively, not as false alarms or verified non-flood labels.
+
+No precision, recall, F1 or accuracy metric is calculated. The output is positive-only independent cross-sensor algorithm support, not field truth. No result is written to `public/` or to the production run pointer.
+
+### Manual execution after native recovery
+
+The manual workflow **Chokwe native NISAR–GFM comparison** accepts the GitHub Actions run ID of a completed native-recovery workflow. It downloads the private `chokwe-native-nisar-recovery-<run-id>` artifact from that run, validates the package, queries the public GFM catalogue and writes a private 30-day comparison-report artifact. It does not require Earthdata credentials and it does not launch native NISAR processing.
+
+The workflow is manual-only; it must not be dispatched until an exact-pair native recovery has completed and its artifact has been independently checked. A missing, expired, ambiguous, modified or mismatched recovery package fails closed.
+
+**Current status:** the comparator and its synthetic offline tests have been implemented. Independent QA of the comparison code/workflow and an actual recovered native NISAR package are still pending. No native-grid overlap result has been calculated yet.
