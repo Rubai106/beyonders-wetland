@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The public Chókwè release refers to a native `classification_00.tif` and its HH/HV masked inputs, but those GeoTIFFs were not included in the public release or found in the previously checked worktrees. This procedure reprocesses the exact published NISAR scene pair and retains a private native-raster package for the next same-grid GFM comparison.
+The public Chókwè release refers to a native `classification_00.tif` and its HH/HV masked inputs, but those GeoTIFFs were not included in the public release or found in the previously checked worktrees. This procedure reprocesses the exact published NISAR scene pair and retains a private native-raster package for a separate same-grid GFM comparison. That comparison completed on 10 November 2026; compact provenance and result summaries are published under `public/evidence/`.
 
 This is **reprocessing, not restoration of the original TIFF bytes**. It does not publish new study evidence and does not alter the public release.
 
@@ -63,6 +63,6 @@ The validator checks that the four masked HH/HV inputs and classification have t
 - The source release records HLS reference status as **INCONCLUSIVE**. Recovery does not repeat that analysis or upgrade its status.
 - NISAR classes remain algorithmic radar-change candidates, not confirmed floods or field truth.
 - No accuracy, precision, recall or F1 metric is calculated.
-- The native NISAR–GFM comparison is a separate subsequent step. It must preserve the NISAR native grid, resample/sample GFM layers with an explicitly documented rule, and keep GFM no-data, exclusion and reference-water masks separate.
-- No output from this procedure is copied into `public/` or the current production-run pointer.
+- The native-grid GFM comparison completed in workflow run `42863187071`, using GFM NRT v4.1.0 acquired 23 minutes 45 seconds before the NISAR event scene. It reports positive-only support over 57,997 of 147,151 eligible OPEN_WATER candidate pixels (39.4133%; 5.7997 km²). It does not produce accuracy, precision, recall or F1.
+- The recovery rasters remain in the private Actions artifact. Only reviewable metadata summaries are published: `public/evidence/chokwe-native-recovery-2026-11-10.json` and `public/evidence/chokwe-native-gfm-comparison-2026-11-10.json`. The original publication directory and production-run pointer are unchanged.
 
