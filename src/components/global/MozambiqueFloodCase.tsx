@@ -180,6 +180,7 @@ export default function MozambiqueFloodCase({ onLocate, onOpenRun }: { onLocate:
         </p>
         <details className="mozambique-case__native-method">
           <summary>Method, provenance, and limits</summary>
+          <p>Published source run: <code>ec8fa5ee15ae41d1aa89f930f2b47e36</code>. Separate reprocessing run: <code>6cbe03836ada44b09188b9aee2b94bc3</code>. The follow-up does not replace or rewrite the original published candidate layer.</p>
           <p>The GFM flood-extent, likelihood, exclusion and reference-water layers were each sampled with nearest-neighbour alignment onto the 10 m NISAR grid. A pixel counted as common-valid only when all four sampled GFM layers were valid. Permanent/seasonal reference water and excluded pixels were kept out of the eligible denominator.</p>
           <p>This is positive-only spatial support between two satellite algorithms. It is not field validation and does not provide precision, recall, F1 or accuracy. The original HLS optical comparison remains inconclusive. This follow-up is reprocessing, not restoration of the original missing TIFF bytes, and it does not upgrade the original published Chókwè result.</p>
         </details>
