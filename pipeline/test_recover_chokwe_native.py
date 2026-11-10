@@ -52,7 +52,7 @@ class ChokweNativeRecoveryChecks(unittest.TestCase):
                 request["selected_scene_names"],
                 [SOURCE_BASELINE_SCENE, SOURCE_EVENT_SCENE],
             )
-            self.assertEqual(request["aoi_bounds_wgs84"], EXPECTED_BOUNDS)
+            self.assertEqual(request["aoi_bounds_wgs84"], list(EXPECTED_BOUNDS))
             self.assertFalse(request["reference_recomputed"])
             self.assertFalse(request["network_access_required"])
             self.assertEqual(request["output_root"], str(output_root.resolve()))
