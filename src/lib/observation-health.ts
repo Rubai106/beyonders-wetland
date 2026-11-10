@@ -222,9 +222,12 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
   const forest: StudyHealth[] = [];
   const rondoniaIndex = await readJson<Record<string, unknown>>(publicPath("forests", "rondonia", "index.json"));
   if (rondoniaIndex) {
-    const study = await readJson<{ observation_dates?: string[]; evidence_status?: string; run_id?: string }>(
-      publicPath("forests", "rondonia", "2026.10.08-v1", "study.json"),
-    );
+    const study = await readJson<{
+      observation_dates?: string[];
+      frames?: { date: string }[];
+      evidence_status?: string;
+      run_id?: string;
+    }>(publicPath("forests", "rondonia", "2026.10.08-v1", "study.json"));
     const archiveDigest = typeof rondoniaIndex.archive_sha256 === "string" ? rondoniaIndex.archive_sha256 : null;
     const nativeDigest = typeof rondoniaIndex.native_archive_sha256 === "string" ? rondoniaIndex.native_archive_sha256 : null;
     forest.push({
@@ -236,7 +239,9 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference", "reproducible"],
       product: "NISAR_L2_GCOV_PROVISIONAL_V1",
       productMaturity: "PROVISIONAL",
-      observationDates: study?.observation_dates ?? [],
+      // The publication's interactive timeline is driven by processed frames,
+      // not every raw input scene. Keep input-only acquisitions out of the UI count.
+      observationDates: study?.frames?.map((frame) => frame.date) ?? study?.observation_dates ?? [],
       evidenceStatus: "EXPLORATORY",
       validationNote: "One 0.0128 km² radar candidate; an exploratory HLS index signal overlaps 71.1%. No labelled forest-loss reference or accuracy score exists.",
       nextStep: "A labelled forest-loss reference is needed before validation can complete.",
