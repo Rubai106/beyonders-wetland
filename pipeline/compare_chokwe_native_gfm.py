@@ -485,7 +485,7 @@ def compare_native_candidates(native: dict, item: dict, asset_urls: dict) -> dic
             "candidate_class_counts": native["native_summary"]["raw_class_value_counts"],
             "common_valid_native_pixel_count": native["native_summary"]["common_valid_native_pixel_count"],
             "class_zero_handling": {
-                "geo_tiff_nodata_metadata": 0,
+                "geo_tiff_nodata_metadata": native["grid"]["nodata_metadata"],
                 "meaning_within_native_valid_support": "Valid no-candidate class; not NoData.",
                 "valid_no_candidate_pixel_count": native["native_summary"]["valid_no_candidate_pixel_count"],
                 "consumer_rule": (
