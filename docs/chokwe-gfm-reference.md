@@ -131,6 +131,12 @@ Exclusion and reference-water counts are reported independently and may overlap.
 
 No precision, recall, F1 or accuracy metric is calculated. The output is positive-only independent cross-sensor algorithm support, not field truth. No result is written to `public/` or to the production run pointer.
 
+### Mask reporting and class-zero reader caution
+
+Per-class candidate reporting keeps the combined reference-water total for continuity and additionally reports permanent reference water (GFM value 1) and seasonal reference water (GFM value 2) as separate counts. These are disjoint classes in the source mask; both remain outside the eligible denominator. GFM exclusion may overlap reference water and is still reported independently, including a separate count for candidates in both categories.
+
+The native classification GeoTIFF declares `nodata=0`, while the processing convention also uses class value 0 for a valid "no candidate" result inside the common-valid support. The comparator intentionally reads `classification_00.tif` unmasked and reconstructs `native_valid` separately from all four masked HH/HV inputs and the wetland/AOI mask. Any downstream consumer must follow the same rule: **do not rely on the GeoTIFF NoData metadata alone to identify valid class-zero pixels**. The comparison report includes the metadata value, the valid no-candidate count and this reader warning.
+
 ### Manual execution after native recovery
 
 The manual workflow **Chokwe native NISAR–GFM comparison** accepts the GitHub Actions run ID of a completed native-recovery workflow. It downloads the private `chokwe-native-nisar-recovery-<run-id>` artifact from that run, validates the package, queries the public GFM catalogue and writes a private 30-day comparison-report artifact. It does not require Earthdata credentials and it does not launch native NISAR processing.
