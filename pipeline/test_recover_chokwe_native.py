@@ -1,13 +1,18 @@
 """Offline tests for the guarded Chókwè native-raster recovery entry point."""
+import io
+import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import rasterio
 from rasterio.transform import from_origin
 
 from main import _not_run_reference
+import recover_chokwe_native as recovery
 from recover_chokwe_native import (
     EXPECTED_BOUNDS,
     SOURCE_BASELINE_SCENE,
@@ -19,6 +24,41 @@ from recover_chokwe_native import (
 
 
 class ChokweNativeRecoveryChecks(unittest.TestCase):
+    def test_cli_dry_run_emits_exact_request_without_invoking_recovery(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output_root = Path(temporary) / "must-not-be-created"
+            stdout = io.StringIO()
+            with patch.object(
+                recovery,
+                "recover",
+                side_effect=AssertionError("dry-run must never invoke reprocessing"),
+            ) as recover_mock:
+                with redirect_stdout(stdout):
+                    exit_code = recovery.main([
+                        "--dry-run",
+                        "--output-root",
+                        str(output_root),
+                    ])
+
+            request = json.loads(stdout.getvalue())
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(request["status"], "DRY_RUN_VALIDATED")
+            self.assertEqual(request["source_published_run_id"], "ec8fa5ee15ae41d1aa89f930f2b47e36")
+            self.assertEqual(request["product"], "NISAR_L2_GCOV_BETA_V1")
+            self.assertEqual(request["frequency"], "frequencyA")
+            self.assertEqual(request["temporal"], ["2026-01-05", "2026-01-17"])
+            self.assertEqual(
+                request["selected_scene_names"],
+                [SOURCE_BASELINE_SCENE, SOURCE_EVENT_SCENE],
+            )
+            self.assertEqual(request["aoi_bounds_wgs84"], EXPECTED_BOUNDS)
+            self.assertFalse(request["reference_recomputed"])
+            self.assertFalse(request["network_access_required"])
+            self.assertEqual(request["output_root"], str(output_root.resolve()))
+            recover_mock.assert_not_called()
+            self.assertFalse(output_root.exists())
+
     def test_published_source_package_is_pinned_and_consistent(self):
         source = load_source_package()
         self.assertEqual(source["manifest"]["run_id"], "ec8fa5ee15ae41d1aa89f930f2b47e36")
