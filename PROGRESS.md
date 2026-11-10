@@ -173,7 +173,7 @@
 - The manual-only trigger, `DO_NOT_RUN` default, exact-pair condition, pre-processing dry-run step order and 30-day private artifact retention remain intact. CI run [`42798753324`](https://github.com/Rubai106/beyonders-wetland/actions/runs/42798753324) passed on the exact tested HEAD.
 - Credential preflight status: **PASS**. B-1 remains open until a credentialed exact-pair recovery package is produced, checksum/grid/class-count verified and compared with GFM on the native NISAR grid.
 
-## 2026-11-10 — Native-grid Chókwè NISAR/GFM comparison path (implementation and review refinement; QA pending)
+## 2026-11-10 — Native-grid Chókwè NISAR/GFM comparison path (implementation and independent QA passed; real-data recovery pending)
 
 - Added `pipeline/compare_chokwe_native_gfm.py` to validate the private recovery manifest, pinned published-source hashes, native raster hashes, GCOV quality sidecar hashes, native class grid, four masked HH/HV inputs and AOI mask before comparison.
 - The comparison uses the native NISAR classification grid as the grid of record. It samples GFM ensemble flood, likelihood, exclusion and reference-water values **and their validity masks** onto that grid with nearest-neighbour resampling. Native NISAR pixels are not resampled.
@@ -182,4 +182,6 @@
 - Added regression tests for permanent/seasonal count separation and for preserving all class-0 pixels when reading a nodata=0 categorical TIFF.
 - Added synthetic offline tests for class-separated support, no-data/exclusion/reference-water denominator handling, nearest-neighbour sampling, valid-mask sampling, invalid class values, grid-shape mismatch, unambiguous recovery-artifact resolution and hash-tampering detection.
 - Added manual workflow `.github/workflows/chokwe-native-gfm-comparison.yml`, which downloads a private native-recovery artifact from a specified completed Actions run and uploads a private 30-day comparison report. It does not launch recovery or require Earthdata credentials. Updated the QA compile list and `docs/chokwe-gfm-reference.md`.
-- **Pending:** CI and Muse independent QA of this comparator and workflow. No recovered native raster package is available in this QA environment; no native-grid comparison or result has been produced. B-1 remains open.
+- Muse independently verified the comparator refinements at exact HEAD `5de5d51745e18a60bf00b701e99905c187c710ba`: comparator tests 8/8, full offline Python suite 218/218, synthetic recovery probes 46/46 and item selection 5/5. CI run [#42823001801](https://github.com/Rubai106/beyonders-wetland/actions/runs/42823001801) passed all 20 steps on `f78039a`; the comparator and test files were byte-identical to the audited HEAD. No defects were found. The live STAC/COG path and artifact download remain unverified because no recovery package exists.
+- Follow-up to Muse observation OBS-R1: normalize GeoTIFF nodata metadata to an integer and assert its exact type in the class-zero regression test. Commits `02e1a0bc22fb98acdf246c2bf5e291f5db18510f` and `15f2325dada783e19ab4daf8089e28990d93d81c`; independent QA/CI for this tiny follow-up is pending.
+- **B-1 remains open:** no recovered native raster package is available, so no native-grid comparison or real Chókwè result has been produced.
