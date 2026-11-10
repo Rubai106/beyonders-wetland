@@ -192,7 +192,12 @@ def load_native_run(run_dir: Path) -> dict:
     with rasterio.open(class_path) as src:
         if src.nodata != 0 or src.count != 1 or src.crs is None:
             raise ValueError("Native classification GeoTIFF metadata is invalid.")
+        # Intentionally read the categorical class band unmasked: code 0 is a
+        # valid "no candidate" class inside the separately derived native_valid
+        # support, even though the source GeoTIFF also declares nodata=0.
         classification = src.read(1)
+        if not np.isin(classification, (0, 1, 2)).all():
+            raise ValueError("Native classification contains an undocumented class code.")
         native_grid = {
             "crs": src.crs,
             "transform": src.transform,
@@ -334,7 +339,9 @@ def summarize_native_candidate_class(
     has_gfm = candidate & common_gfm_valid
     no_gfm = candidate & ~common_gfm_valid
     excluded = has_gfm & (exclusion == 1)
-    reference = has_gfm & (reference_water > 0)
+    permanent_reference = has_gfm & (reference_water == 1)
+    seasonal_reference = has_gfm & (reference_water == 2)
+    reference = permanent_reference | seasonal_reference
     eligible = has_gfm & (exclusion == 0) & (reference_water == 0)
     positive = eligible & (flood == 1)
     not_mapped_flood = eligible & (flood == 0)
@@ -366,6 +373,8 @@ def summarize_native_candidate_class(
         "candidate_pixels_with_common_valid_gfm_data": count(has_gfm),
         "candidate_pixels_in_gfm_exclusion_mask": count(excluded),
         "candidate_pixels_in_gfm_reference_water": count(reference),
+        "candidate_pixels_in_gfm_permanent_reference_water": count(permanent_reference),
+        "candidate_pixels_in_gfm_seasonal_reference_water": count(seasonal_reference),
         "candidate_pixels_in_both_exclusion_and_reference_water": count(excluded & reference),
         "eligible_candidate_pixels_after_gfm_masks": eligible_count,
         "eligible_candidate_area_km2": eligible_count * pixel_area_km2,
@@ -469,6 +478,16 @@ def compare_native_candidates(native: dict, item: dict, asset_urls: dict) -> dic
             "pixel_area_km2": pixel_area,
             "candidate_class_counts": native["native_summary"]["raw_class_value_counts"],
             "common_valid_native_pixel_count": native["native_summary"]["common_valid_native_pixel_count"],
+            "class_zero_handling": {
+                "geo_tiff_nodata_metadata": 0,
+                "meaning_within_native_valid_support": "Valid no-candidate class; not NoData.",
+                "valid_no_candidate_pixel_count": native["native_summary"]["valid_no_candidate_pixel_count"],
+                "consumer_rule": (
+                    "Read classification_00.tif unmasked and apply native_valid derived from "
+                    "the four masked HH/HV inputs and the wetland/AOI mask. Do not use the "
+                    "GeoTIFF nodata metadata alone to determine class-zero validity."
+                ),
+            },
         },
         "alignment": {
             "method": "Nearest-neighbour sampling of each GFM layer and its validity mask onto the native NISAR grid.",
