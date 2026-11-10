@@ -147,7 +147,7 @@
 - Muse rechecked the existing 360/390 px Observability and Agriculture protections; both routes remain viewport-width with the Agriculture toolbar separated from map zoom controls.
 - Application CSS commits: `ffebe9ef5e70530e0a3797037509480ceb506c74` (class filter) and `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b` (Chókwè reflow). Muse tested exact HEAD `1e7f9d3b892b33cbefb2a2e4f673013ad70f069a`; production build passed. The two application commits each have successful CI runs.
 - **Status: PASS.** O-3 and the Chókwè Learn drawer issue are closed. The empty second grid column beside Sort at 1440/1920 px is cosmetic only.
-- **Still open:** O-4 clipboard-success toast needs an unmocked real-browser click-through; fallback behavior is already covered by the existing production-browser test.
+- **O-4 status: PASS.** Muse completed an unmocked real-browser Clipboard API success click-through: native write/read-back, exact URL-state preservation, expected success status, absent fallback UI, and fresh-tab restoration all verified. See the 2026-11-10 O-4 QA report.
 
 ## 2026-11-10 — Step 2B hydrograph smoke retest (CI verified)
 
@@ -155,3 +155,12 @@
 - The production QA workflow ran on descendant `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b` in Actions run [`42696147131`](https://github.com/Rubai106/beyonders-wetland/actions/runs/42696147131). The updated `wetland_smoke.py` ran twice; each run passed 122/122 checks with no application errors. Both logs show the live hydrograph current value matching the active bar and staying non-negative through the observed date transition.
 - The run uploaded `wetland-step2b-browser-evidence-2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b`. The workflow also passed the landing hydrograph smoke and the remaining project browser checks.
 - **Status: PASS in production CI.** The Step 2B atomic-sampling regression is closed; this is separate from O-4's manual clipboard-success click-through.
+
+
+## 2026-11-10 — O-4 clipboard success and Step 2B final confirmation (Muse verified)
+
+- Muse tested exact `master` HEAD `e6e641c2536977335ff1954e23b08d77309b873c`; the application tree was unchanged from the successful production CI tree at `2d1e1ab76d46125cd6375ec3e5a174ec14e2c80b`. A fresh public production build completed successfully.
+- **O-4: PASS.** In Chromium on a trustworthy localhost origin, Muse granted ordinary clipboard-read/write permissions and used the native Clipboard API without stubbing or monkey-patching. Clicking the visible **Copy direct region link** control wrote a URL that was read back from the native clipboard. The URL preserved the selected date, `VEGETATED_INUNDATION` filter, `RADAR` view, `SPLIT` map mode, candidate ID and `featured` case ID. The exact success status appeared; fallback UI remained absent. Opening the copied URL in a fresh tab restored the selected candidate, date, filter, modes and investigation drawer.
+- **Step 2B atomic hydrograph check: PASS.** The `4cd149a` single-browser-task read of current value and active-bar value remains in `tests/e2e/wetland_smoke.py`; equality and non-negative assertions remain intact. Against the production build, two consecutive smoke runs each passed 122/122 checks with no application errors. Each sampled `24.5/24.5` six times, then `21.0/21.0` twice, demonstrating the animation's date transition without a mismatch.
+- Evidence includes Muse's `o4-toast.png`, `o4-fresh-tab-restored.png`, native clipboard probe results, and both smoke logs. Muse did not modify source or tests.
+- **Status: O-4 and the Step 2B atomic-sampling confirmation are PASS and closed.** Scope note: this commission verified the atomic hydrograph sample and ran `wetland_smoke.py` twice; it did not repeat the broader historical Step 2B scope (offline pipeline suites, all six browser suites, four-viewport chart review, or Step 2A reconfirmation). Do not treat those broader checks as newly run here.
