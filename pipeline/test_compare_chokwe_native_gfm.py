@@ -104,6 +104,7 @@ class NativeChokweGfmComparisonTests(unittest.TestCase):
 
         self.assertEqual(loaded.tolist(), values.tolist())
         self.assertEqual(grid["nodata_metadata"], 0)
+        self.assertIs(type(grid["nodata_metadata"]), int)
         self.assertEqual(int(np.count_nonzero(loaded == 0)), 3)
         self.assertEqual(int(np.count_nonzero(loaded == 1)), 2)
         self.assertEqual(int(np.count_nonzero(loaded == 2)), 1)
