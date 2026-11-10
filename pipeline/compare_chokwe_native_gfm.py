@@ -118,7 +118,7 @@ def read_native_classification(path: Path) -> tuple[np.ndarray, dict]:
             "width": src.width,
             "height": src.height,
             "shape": classification.shape,
-            "nodata_metadata": src.nodata,
+            "nodata_metadata": int(src.nodata),
         }
     return classification, grid
 
