@@ -100,7 +100,7 @@ Sources: [GFM Product Definition Document v4.0 — LIST likelihood](https://extw
 The percentage above is approximate at polygon edges because it uses the simplified display GeoJSON. Before this can be promoted into a stronger evidence result, repeat the overlay using the **native NISAR classification raster** for run `ec8fa5ee15ae41d1aa89f930f2b47e36`, preserve the exact common-valid mask, and compare cell counts on the same GFM grid. The project still has no field validation and no supported precision, recall, F1 or accuracy metric for Chókwè. Keep the public case labelled **unverified radar-change candidates** until an adequately documented independent reference or field evidence is available.
 
 
-## Native NISAR-grid comparison — implementation added, execution pending
+## Native NISAR-grid comparison — completed 2026-11-10
 
 The public-polygon comparison above is an exploratory edge-approximation only. A separate native-grid comparison entry point is now available in `pipeline/compare_chokwe_native_gfm.py`. It is deliberately separate from the existing polygon audit and does not change the public Chókwè case.
 
@@ -143,4 +143,46 @@ The manual workflow **Chokwe native NISAR–GFM comparison** accepts the GitHub 
 
 The workflow is manual-only; it must not be dispatched until an exact-pair native recovery has completed and its artifact has been independently checked. A missing, expired, ambiguous, modified or mismatched recovery package fails closed.
 
-**Current status (2026-11-10):** the native-grid comparator and manual comparison workflow have passed independent code/workflow review and offline verification. Muse verified the comparator tests (8/8), the full offline Python suite (218/218 at the comparator-refinement checkpoint), synthetic recovery/comparison probes (46/46) and item-selection probes (5/5). The recovery and comparator workflows, source pins, manifest/hash checks, native-grid sampling, mask semantics and private artifact handling were reviewed. The recovery CLI dry-run is also independently verified offline (10/10 recovery tests, 219/219 full Python suite, comparator 8/8); this verifies the exact request only and does not download data. **Still pending:** credentialed native NISAR reprocessing, a real native recovery package, execution of this comparator against live GFM COGs, and inspection of the resulting native-grid report. No native-grid overlap result has been calculated. The public case remains unverified radar-change candidates; the 39.39% result above is the separate polygon-to-raster audit, not native-grid validation.
+**Execution status (2026-11-10): COMPLETE.** The credentialed recovery and the live native-grid comparison both completed successfully and their private Actions artifacts were retrieved and inspected.
+
+### Run provenance
+
+- Native recovery workflow: [run 42847205114](https://github.com/Rubai106/beyonders-wetland/actions/runs/42847205114), latest attempt 3, conclusion SUCCESS. Recovery artifact: `chokwe-native-nisar-recovery-42847205114`, artifact ID `13785806193`, 104,750,777 bytes, archive SHA-256 `b344ab9fb2c3b460010b647de9a12ee36f7df979dc14a629ad2ad42bdeaedec0`.
+- Native-grid comparison workflow: [run 42863187071](https://github.com/Rubai106/beyonders-wetland/actions/runs/42863187071), attempt 1, conclusion SUCCESS. Comparison artifact: `chokwe-native-gfm-comparison-42863187071`, artifact ID `13785762170`, 2,756 bytes, archive SHA-256 `a82eda0108e83aede34ef101621a5b2a00915e569d413b85420c792e754be751`.
+- The comparison report records recovery manifest SHA-256 `68793ffb310ad8df09e72e093827414ffd579368c5347bd5bbe97cc6f4c23739` and internal native processing run `6cbe03836ada44b09188b9aee2b94bc3`, sourced from published run `ec8fa5ee15ae41d1aa89f930f2b47e36`.
+
+### Observed GFM source and native grid
+
+- Selected item: `ENSEMBLE_FLOOD_20260117T031847_VV_AF020M_E066N021T3`, acquired `2026-01-17T03:18:47Z`; 23 minutes 45 seconds before the NISAR event timestamp.
+- GFM product: NRT v4.1.0, 20 m source grid, EPSG:27701.
+- Native NISAR grid: EPSG:32736, 10 m pixels, 1,014 × 1,108. Nearest-neighbour sampling was applied to each of the four GFM layers and each layer's validity mask; the native NISAR raster was not resampled.
+- The AOI contains 1,121,391 reconstructed native-valid pixels. 993,517 have common-valid GFM data across all four layers (88.5968%); 127,874 do not.
+
+### Native candidate result
+
+| Measure | OPEN_WATER | VEGETATED |
+|---|---:|---:|
+| Native candidate pixels | 298,718 | 0 |
+| Candidate area | 29.8718 km² | 0 km² |
+| Without common-valid GFM data | 69,656 | 0 |
+| With common-valid GFM data | 229,062 | 0 |
+| In GFM exclusion mask | 81,909 | 0 |
+| In permanent reference water | 2 | 0 |
+| In seasonal reference water | 0 | 0 |
+| Eligible after masks | 147,151 | 0 |
+| Eligible area | 14.7151 km² | 0 km² |
+| GFM flood-positive overlap | **57,997** | 0 |
+| Positive overlap area | **5.7997 km²** | 0 |
+| Positive support / eligible candidates | **39.4133%** | Not applicable |
+
+Among the 147,151 eligible OPEN_WATER candidates, 89,154 were not mapped as flood by this GFM scene. These are descriptive non-overlaps, not false alarms or ground-truth negatives. The overlap pixels' GFM likelihood has median 76/100, mean 78.3054/100, range 32–100; 129 overlap pixels are below 50.
+
+The 39.41% native-grid result is close to the earlier 39.39% display-polygon audit, but the two percentages use different rasterization/grid paths and the same GFM observation. Treat that similarity as an implementation-consistency check, not as a second independent validation.
+
+### Class-zero count interpretation
+
+The JSON field `native_nisar_grid.candidate_class_counts` is copied from the recovery's **raw whole-raster class-value counts**: class 0 = 824,794; class 1 = 298,718; class 2 = 0. It must not be interpreted as counts within native-valid AOI support. After reconstructing the four-input and wetland/AOI masks, valid counts are class 0 = 822,673, class 1 = 298,718, class 2 = 0; these sum to the 1,121,391 valid AOI pixels. The 2,121 extra raw class-zero cells lie outside reconstructed valid support. The comparator uses the reconstructed mask for all candidate denominators.
+
+### Interpretation boundary and next validation gate
+
+This is positive-only spatial support between native NISAR radar-change candidates and an independent Sentinel-1 GFM algorithm product. It is **not field validation, accuracy, precision, recall or F1**. The GFM no-data, exclusion and permanent/seasonal reference-water cells are not negative labels. The original HLS optical reference remains `INCONCLUSIVE`; this comparison does not upgrade it. The published case remains **unverified radar-change candidates** until adequately documented independent reference or field evidence is available. Recovery was reprocessing, not restoration of the original TIFF bytes.
