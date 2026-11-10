@@ -45,6 +45,37 @@ def verify_case(page) -> None:
     require("1.26%" in text and "88.2%" in text and "89.1%" in text,
             "the HLS coverage limit and later UNOSAT overlaps are visible")
 
+    native = page.locator(".mozambique-case__native")
+    native.wait_for(state="visible", timeout=20_000)
+    native_text = native.inner_text()
+    require("39.4%" in native_text and "57,997 of 147,151" in native_text,
+            "the native-grid GFM positive-support fraction and eligible denominator are visible")
+    require("5.80 km²" in native_text and "not field validation" in native_text.lower(),
+            "the positive-overlap area and validation limit are visible")
+
+    recovery_response = page.request.get(
+        BASE + "/evidence/chokwe-native-recovery-2026-11-10.json"
+    )
+    require(recovery_response.ok, "the public native-recovery provenance JSON is reachable")
+    recovery_record = recovery_response.json()
+    require(
+        recovery_record["recovery_run_id"] == "6cbe03836ada44b09188b9aee2b94bc3"
+        and recovery_record["recovery_is_reprocessing_not_original_binary_restoration"] is True,
+        "the public recovery record identifies reprocessing and the exact run",
+    )
+
+    comparison_response = page.request.get(
+        BASE + "/evidence/chokwe-native-gfm-comparison-2026-11-10.json"
+    )
+    require(comparison_response.ok, "the public native-grid GFM comparison JSON is reachable")
+    comparison_record = comparison_response.json()
+    open_water = comparison_record["open_water_candidates"]
+    require(
+        open_water["gfm_flood_positive_overlap_pixels"] == 57997
+        and open_water["eligible_candidate_pixels_after_gfm_masks"] == 147151,
+        "the published comparison JSON preserves its overlap and denominator counts",
+    )
+
     # The target should be brought into view by the workspace's deep-link handler.
     page.wait_for_function(
         """() => {
