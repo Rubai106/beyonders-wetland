@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://server.arcgisonline.com https://tile.openstreetmap.org https://gibs.earthdata.nasa.gov https://tiles.globalforestwatch.org https://*.basemaps.cartocdn.com https://wmts.terrascope.be https://assets.science.nasa.gov",
+              "img-src 'self' data: blob: https://server.arcgisonline.com https://tile.openstreetmap.org https://gibs.earthdata.nasa.gov https://tiles.globalforestwatch.org https://*.basemaps.cartocdn.com https://wmts.terrascope.be https://assets.science.nasa.gov https://nisar.asf.earthdatacloud.nasa.gov",
               "connect-src 'self' https://cmr.earthdata.nasa.gov https://nominatim.openstreetmap.org",
               "font-src 'self' https://fonts.gstatic.com",
               "object-src 'none'",
