@@ -6,7 +6,7 @@ import { peakEntry, type TemporalStudy } from "@/lib/temporal-studio";
 import "./compare.css";
 
 export const metadata: Metadata = {
-  title: "Compare studies · GeoNexSAR",
+  title: "Compare studies · GEONEXSER",
   description:
     "Two published studies, side by side — evidence tables first, imagery second. Every value comes from the published files.",
 };
