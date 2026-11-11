@@ -298,7 +298,7 @@ export default function GlobalNisarDetectionMap({
           }}
         />
       )}
-      <ZoomControl position="bottomleft" />
+      <ZoomControl position="topright" />
       <MapScope detections={detections} boundary={boundary} focusStudyArea={focusStudyArea} focusSelectedCandidate={focusSelectedCandidate && showCandidates} coordinateTarget={coordinateTarget} selectedCandidateId={selectedCandidateId} />
       {coordinateTarget && <CircleMarker
         center={[coordinateTarget.latitude, coordinateTarget.longitude]}
