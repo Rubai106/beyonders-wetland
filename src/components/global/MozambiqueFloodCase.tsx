@@ -6,6 +6,7 @@ import { useState } from "react";
 import RadarPixelPhysicsInspector from "@/components/shared/RadarPixelPhysicsInspector";
 import TriageBriefButton from "@/components/shared/TriageBriefButton";
 import OpticalCoverageComparison from "@/components/shared/OpticalCoverageComparison";
+import { CHOKWE_RUN_ID } from "@/lib/chokwe-study";
 
 const ChokwePixelMap = dynamic(() => import("./ChokwePixelMap"), { ssr: false, loading: () => <div className="chokwe-pixel-map">Loading the sampled NISAR map…</div> });
 
@@ -13,7 +14,6 @@ const NASA_CASE_URL = "https://svs.gsfc.nasa.gov/5661";
 const UNOSAT_REFERENCE_URL = "https://unosat.org/products/4232";
 const UNOSAT_SHP_URL = "https://unosat.org/static/unosat_filesystem/4232/FL20251231MOZ_SHP.zip";
 const CIMA_REFERENCE_URL = "https://www.cimafoundation.org/en/news/mozambique-heavy-rainfall-in-the-south-cooperation-and-monitoring-to-manage-flood-risk/";
-const CHOKWE_RUN_ID = "ec8fa5ee15ae41d1aa89f930f2b47e36";
 const CHOKWE_RELEASE = `/studies/releases/2026.10.29-chokwe/runs/${CHOKWE_RUN_ID}`;
 
 const images = [
