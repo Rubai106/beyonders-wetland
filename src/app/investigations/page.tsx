@@ -6,9 +6,9 @@ import type { StudyQuality } from "@/lib/evidence-quality";
 import "./investigations.css";
 
 export const metadata: Metadata = {
-  title: "Investigations · GeoNexSAR",
+  title: "Investigations · GEONEXSER",
   description:
-    "Every published GeoNexSAR investigation in one directory — domain, product, acquisition window, and evidence status, with nothing validated that is not.",
+    "Every published GEONEXSER investigation in one directory — domain, product, acquisition window, and evidence status, with nothing validated that is not.",
 };
 
 export const dynamic = "force-dynamic";
