@@ -420,7 +420,7 @@ def main() -> int:
             "the landing page switches to a compact mobile navigation instead of squeezing desktop links",
         )
         mobile_menu.locator("summary").click()
-        mobile_nav = page.get_by_role("navigation", name="Mobile primary")
+        mobile_nav = page.get_by_role("navigation", name="Compact navigation")
         require(
             mobile_nav.get_by_role("link", name="Agriculture").get_attribute("href") == "/agriculture"
             and all(mobile_nav.get_by_role("link", name=name).count() == 1 for name in ("Wetlands", "Forests", "Volcanoes", "Agriculture")),
