@@ -1412,6 +1412,7 @@ button:disabled { cursor: default; opacity: 0.45; }
 .nisar-case-step p strong { color: var(--text-primary); }
 .nisar-case-step .nisar-case-step__detail { color: var(--text-muted); font-size: 0.71rem; }
 .nisar-case-step code { display: block; max-height: 4.4em; overflow: auto; margin-top: 8px; color: #9daec2; font-size: 0.62rem; line-height: 1.55; overflow-wrap: anywhere; }
+.nisar-case-step code:focus-visible { outline: 2px solid #92cde2; outline-offset: 3px; }
 .nisar-case-story__impact { display: flex; gap: 12px; align-items: baseline; margin-top: 14px; padding: 12px 14px; border-left: 2px solid #83e36f; border-radius: 0 7px 7px 0; background: rgba(131,227,111,0.06); }
 .nisar-case-story__impact strong { flex: 0 0 auto; color: #bdf3ae; font-size: 0.77rem; }
 .nisar-case-story__impact p, .nisar-case-story__scope { margin: 0; color: var(--text-secondary); font-size: 0.76rem; line-height: 1.6; }

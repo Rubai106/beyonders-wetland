@@ -20,7 +20,7 @@ Publish only reviewed, checksum-verified study packages. See [deployment and rec
 
 ## Scientific evidence and limitations
 
-See the [evidence report](docs/evidence-report.md), [scientific method](docs/scientific-method.md), [data specification](docs/data-specification.md), and [project plan](docs/project-plan.md). The Chókwè evidence is particularly important: the HLS comparison is inconclusive; temporally close and later independent radar products provide positive-only algorithm agreement/spatial support, not field validation or an accuracy score. The original published candidate package remains unchanged.
+See the [evidence report](docs/evidence-report.md), [scientific method](docs/scientific-method.md), [data specification](docs/data-specification.md), and [project plan](docs/project-plan.md). The Chókwè evidence is particularly important: the HLS comparison is inconclusive; temporally close and later independent radar products provide positive-only algorithm agreement/spatial support, not field validation or an accuracy score. A separate native-grid GFM follow-up found positive support in 57,997 of 147,151 eligible OPEN_WATER candidate pixels (39.4133%; 5.7997 km²). This is positive-only agreement between satellite algorithms, not field validation, precision, recall, F1, accuracy, or candidate-level confirmation. The original published candidate package remains unchanged.
 
 ## Regression checks
 
