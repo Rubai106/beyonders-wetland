@@ -2,8 +2,6 @@
 
 /* GEONEXSER landing: a 3D mission briefing focused on inspectable NISAR evidence. */
 
-"use client";
-
 /* GEONEXSER landing: a 3D mission briefing. The globe is the hero —
    drag it, drop a pin anywhere on Earth, open the real Tanguar case. */
 
@@ -332,7 +330,7 @@ export default function Home() {
               </div>
             </details>
           )}
-          <p className="g3-map-filter__note">Use the location list to center a case. Rotate the globe by dragging or with the arrow keys. Markers show study sites, not detections.</p>
+          <p className="g3-map-filter__note">Markers show published study locations, not global detections.</p>
           <Link href="/agriculture" className="g3-map-filter__agriculture-link">Agriculture has its own soil-moisture workspace →</Link>
         </section>
 
@@ -472,7 +470,7 @@ export default function Home() {
       </section>
 
       <footer className="g3-foot">
-        <p><strong>GEONEXSER · built by BEYONDERS</strong></p>
+        <p><strong>GEONEXSER</strong></p>
         <p>Observed data, derived measurements and uncertainty remain distinct. Every candidate is open to challenge.</p>
         <nav aria-label="Footer">
           <Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link>
