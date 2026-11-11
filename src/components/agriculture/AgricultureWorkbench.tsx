@@ -1449,7 +1449,7 @@ export default function AgricultureWorkbench() {
       hazard="agriculture"
       className="agriculture-workspace"
       caseName="SME2 soil-moisture feasibility"
-      title="Agriculture · soil moisture"
+      title="Naogaon, Bangladesh · soil moisture"
       subtitle="Explore dated NISAR SME2 PROVISIONAL estimates, quality flags and uncertainty without inferring crop health."
       questContent={<span className={"agri-status-pill " + (loadState === "ready" ? "is-ready" : loadState === "error" ? "is-error" : "")}><i aria-hidden="true" />{statusText}</span>}
       rail={<div className="agri-rail">
