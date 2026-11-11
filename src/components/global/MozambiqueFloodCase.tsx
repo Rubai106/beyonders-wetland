@@ -156,7 +156,7 @@ export default function MozambiqueFloodCase({ onLocate, onOpenRun }: { onLocate:
           <span>Not field validation</span>
         </div>
         <p className="mozambique-case__native-intro">
-          A separate recovery reprocessed the pinned 5 and 17 January NISAR L2 GCOV BETA scenes, then compared the new 10 m native NISAR grid with Copernicus Global Flood Monitoring (GFM) NRT v4.1.0. The selected GFM scene was acquired 23 minutes 45 seconds before the NISAR event scene. GFM layers and their validity masks were sampled onto the NISAR grid; the NISAR rasters were not resampled.
+          A separate recovery reprocessed the pinned 5 and 17 January NISAR L2 GCOV BETA scenes, then compared the new 10 m native NISAR grid with Copernicus Global Flood Monitoring (GFM) NRT v4.1.0. The selected GFM scene, ENSEMBLE_FLOOD_20260117T031847_VV_AF020M_E066N021T3, was acquired at 03:18:47 UTC on 17 January — 23 minutes 45 seconds before the NISAR event scene. GFM layers and their validity masks were sampled onto the NISAR grid; the NISAR rasters were not resampled.
         </p>
         <div className="mozambique-case__native-grid">
           <div>
@@ -176,12 +176,12 @@ export default function MozambiqueFloodCase({ onLocate, onOpenRun }: { onLocate:
           </div>
         </div>
         <p className="mozambique-case__native-note">
-          The recovery produced 29.8718 km² of open-water radar-change candidates. GFM exclusion, reference-water and no-common-data masks reduce the comparison denominator to 14.7151 km². The remaining 89,154 eligible candidate pixels were not mapped as flood by this GFM scene; they are not treated as false alarms or ground-truth negatives.
+          The recovery produced 29.8718 km² of open-water radar-change candidates. The comparison reports 14.7151 km² of eligible candidates after applying GFM exclusion, reference-water and common-validity masks. Exclusion and reference-water masks are reported independently and may overlap, so their counts must not be subtracted as a simple sequence. The remaining 89,154 eligible candidate pixels were not mapped as flood by this GFM scene; they are not treated as false alarms or ground-truth negatives.
         </p>
         <details className="mozambique-case__native-method">
           <summary>Method, provenance, and limits</summary>
           <p>Published source run: <code>ec8fa5ee15ae41d1aa89f930f2b47e36</code>. Separate reprocessing run: <code>6cbe03836ada44b09188b9aee2b94bc3</code>. The follow-up does not replace or rewrite the original published candidate layer.</p>
-          <p>The GFM flood-extent, likelihood, exclusion and reference-water layers were each sampled with nearest-neighbour alignment onto the 10 m NISAR grid. A pixel counted as common-valid only when all four sampled GFM layers were valid. Permanent/seasonal reference water and excluded pixels were kept out of the eligible denominator.</p>
+          <p>The GFM flood-extent, likelihood, exclusion and reference-water layers were each sampled with nearest-neighbour alignment onto the 10 m NISAR grid. A pixel counted as common-valid only when all four sampled GFM layers were valid. Permanent/seasonal reference water and excluded pixels were kept out of the eligible denominator. Common-valid coverage was 993,517 of 1,121,391 native AOI pixels (88.5968%). On the 57,997-pixel positive overlap, GFM likelihood had a median of 76 and mean of 78.3054 (range 32–100); 129 overlap pixels had likelihood below 50. These are descriptive product values, not confidence-calibrated validation scores.</p>
           <p>This is positive-only spatial support between two satellite algorithms. It is not field validation and does not provide precision, recall, F1 or accuracy. The original HLS optical comparison remains inconclusive. This follow-up is reprocessing, not restoration of the original missing TIFF bytes, and it does not upgrade the original published Chókwè result.</p>
         </details>
         <nav className="mozambique-case__native-links" aria-label="Native Chókwè follow-up evidence files">
