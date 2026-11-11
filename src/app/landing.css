@@ -113,7 +113,10 @@
 .g3-map-filter__note { margin: 5px 0 0; color: var(--faint); font-size: 10px; line-height: 1.45; }
 .g3-map-filter__agriculture-link {
   display: inline-flex;
-  margin-top: 10px;
+  min-height: 44px;
+  align-items: center;
+  margin-top: 7px;
+  padding-block: 8px;
   color: var(--cyan);
   font: 9px/1.45 var(--mono);
   text-decoration: none;
@@ -397,9 +400,9 @@
 }
 .g3-foot nav a {
   display: inline-flex;
-  min-height: 28px;
+  min-height: 44px;
   align-items: center;
-  padding-block: 4px;
+  padding: 8px 6px;
 }
 .hydro-bars .hydro-bar {
   position: relative;
