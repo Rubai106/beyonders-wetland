@@ -1,6 +1,10 @@
 "use client";
 
-/* GeoNexSAR landing: a 3D mission briefing. The globe is the hero —
+/* GEONEXSER landing: a 3D mission briefing focused on inspectable NISAR evidence. */
+
+"use client";
+
+/* GEONEXSER landing: a 3D mission briefing. The globe is the hero —
    drag it, drop a pin anywhere on Earth, open the real Tanguar case. */
 
 import dynamic from "next/dynamic";
@@ -333,7 +337,7 @@ export default function Home() {
         </section>
 
         <div className="g3-title">
-          <p className="g3-eyebrow">BEYONDERS · EARTH OBSERVATION INVESTIGATIONS</p>
+          <p className="g3-eyebrow">NISAR EARTH-OBSERVATION INVESTIGATIONS</p>
           <h1>Earth change,<br /><span>under scrutiny.</span></h1>
           <p className="g3-lede">Explore real NISAR observations across wetlands, forests, volcanoes and soil moisture. Inspect what the satellite recorded, challenge candidate changes, and trace every claim to its source.</p>
           <div className="g3-ctas">
@@ -468,7 +472,7 @@ export default function Home() {
       </section>
 
       <footer className="g3-foot">
-        <p><strong>GeoNexSAR · built by BEYONDERS</strong></p>
+        <p><strong>GEONEXSER · built by BEYONDERS</strong></p>
         <p>Observed data, derived measurements and uncertainty remain distinct. Every candidate is open to challenge.</p>
         <nav aria-label="Footer">
           <Link href="/wetland">Wetlands</Link><Link href="/forest/rondonia">Forests</Link>
