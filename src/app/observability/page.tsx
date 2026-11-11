@@ -11,9 +11,9 @@ import { loadStudyQuality } from "@/lib/evidence-quality-server";
 import "./observability.css";
 
 export const metadata: Metadata = {
-  title: "Observation health & evidence maturity | Beyonders",
+  title: "Observation health & evidence maturity | GEONEXSER",
   description:
-    "A source-backed view of what each Beyonders study has observed, processed, published, and independently assessed.",
+    "A source-backed view of what each GEONEXSER study has observed, processed, published, and independently assessed.",
 };
 
 export const dynamic = "force-dynamic";
@@ -205,10 +205,10 @@ export default async function ObservabilityPage() {
   return (
     <main className="obs-page">
       <header className="obs-hero">
-        <p className="obs-eyebrow">BEYONDERS · PLATFORM HEALTH</p>
+        <p className="obs-eyebrow">GEONEXSER · PLATFORM HEALTH</p>
         <h1>Observation health</h1>
         <p className="obs-lede">
-          What Beyonders has actually observed, processed, and published — and what it has not.
+          What GEONEXSER has actually observed, processed, and published — and what it has not.
           Every entry below is read from the published manifests on this site. A missing study is
           reported as missing, never as zero. Availability and evidence maturity are separate things:
           a dataset can exist without being validated, and a validation can be inconclusive without
@@ -244,7 +244,7 @@ export default async function ObservabilityPage() {
 
       <section className="obs-states" aria-label="What each state means">
         <h2>What each state means</h2>
-        <p>These are different conditions. Beyonders never equates them.</p>
+        <p>These are different conditions. GEONEXSER never equates them.</p>
         <dl>
           {OBSERVATION_STATES.map((s) => (
             <div key={s.id}><dt>{s.label}</dt><dd>{s.meaning}</dd></div>
