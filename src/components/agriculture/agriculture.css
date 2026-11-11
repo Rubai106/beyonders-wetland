@@ -2165,3 +2165,25 @@
 .agriculture-workspace .agri-unknown-flags__list li { font-size: .62rem; }
 .agriculture-workspace .agri-unknown-flags__list code,
 .agriculture-workspace .agri-unknown-flags__list span { font-size: .6rem; }
+
+
+/* Keep the SME2 map usable at the desktop demo viewport: the long evidence timeline scrolls independently. */
+.agriculture-workspace.wx-root .wx-hazard-footer {
+  min-height: 0;
+  max-height: 205px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.agriculture-workspace .agri-map-readout {
+  width: min(300px, calc(100% - 32px));
+  padding: 10px 11px;
+  gap: 8px;
+}
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch {
+  width: 100%;
+  min-width: 0;
+}
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
