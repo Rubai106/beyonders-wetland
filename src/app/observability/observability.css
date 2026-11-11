@@ -85,8 +85,9 @@
   vertical-align: bottom;
   min-width: 0;
   white-space: normal;
-  overflow-wrap: anywhere;
-  hyphens: auto;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 .obs-matrix thead th:first-child { width: 142px; text-align: left; }
 .obs-matrix thead th:nth-last-child(2) { width: 130px; }
