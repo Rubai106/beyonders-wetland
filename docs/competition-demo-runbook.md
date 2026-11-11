@@ -1,11 +1,11 @@
-# Beyonders — Earth in Motion
+# GEONEXSER — Earth in Motion
 ## Competition demo runbook
 
 **Purpose:** Give the team a repeatable, evidence-first demonstration of the NISAR workflow. This is an internal rehearsal plan, not an official NASA submission format or time limit. Re-check the current Space Apps participant and judging guides before the event.
 
 ## Core message
 
-**Beyonders turns NISAR observations into inspectable Earth-change investigations—not automatic declarations that a hazard occurred.**
+**GEONEXSER turns NISAR observations into inspectable Earth-change investigations—not automatic declarations that a hazard occurred.**
 
 NISAR radar can observe through cloud and darkness, but a change in radar return can have more than one physical cause. The product therefore keeps the observation, screening rule, candidate map, independent comparisons, coverage and uncertainty visible together.
 
@@ -19,7 +19,7 @@ Open the homepage at `/`.
 
 Say:
 
-> NISAR gives us a new way to observe Earth's surface, day and night and through cloud. But radar is not a label: a changed signal can have several causes. Beyonders helps people inspect what the satellite measured, what our rules flagged, what other evidence supports or challenges, and what is still unknown.
+> NISAR gives us a new way to observe Earth's surface, day and night and through cloud. But radar is not a label: a changed signal can have several causes. GEONEXSER helps people inspect what the satellite measured, what our rules flagged, what other evidence supports or challenges, and what is still unknown.
 
 Show the four workspaces briefly. Point out that each has its own measurement type and evidence maturity.
 
@@ -98,7 +98,7 @@ End with the product proposition:
 
 - “NISAR achieved 88.2% or 89.1% flood-detection accuracy.” Those figures are later positive spatial overlap, not accuracy.
 - “39.4% accuracy,” “39.4% of candidates confirmed as flood,” or any use of the GFM positive-support fraction as precision, recall, F1, accuracy, or candidate-level confirmation. It is positive-only algorithm-to-algorithm spatial support over an eligible subset.
-- “All 127 candidates are flooded” or “Beyonders produced a validated flood map.”
+- “All 127 candidates are flooded” or “GEONEXSER produced a validated flood map.”
 - “The CIMA regional map is a pixel-level reference for the Chókwè analysis box.”
 - “The HLS check confirms the Chókwè candidates.”
 - “The globe is a worldwide map of detected floods, forest loss or volcanic activity.”
