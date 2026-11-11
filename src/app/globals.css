@@ -3131,3 +3131,20 @@ textarea {
 .mozambique-case__facts > div:nth-child(2) > dt {
   color: #e2bd82;
 }
+
+
+/* Keep every compact-menu destination a real, comfortable touch target.
+   Explicit height and flex sizing prevent inherited link rules from shrinking it. */
+@media (max-width: 860px) {
+  .hazard-nav__mobile[open] > nav a {
+    box-sizing: border-box;
+    display: flex;
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 44px;
+    height: 44px;
+    align-items: center;
+    padding: 0 12px;
+    line-height: 1.25;
+  }
+}
