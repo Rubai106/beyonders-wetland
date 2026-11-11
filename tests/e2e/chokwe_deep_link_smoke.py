@@ -109,7 +109,7 @@ def main() -> int:
         response = page.goto(BASE + "/", wait_until="domcontentloaded", timeout=30_000)
         require(response is not None and response.ok, "the production homepage responds successfully")
 
-        primary = page.get_by_role("link", name="Chókwè, Mozambique — inspect the evidence")
+        primary = page.get_by_role("link", name="Open the Chókwè investigation")
         primary.wait_for(state="visible", timeout=20_000)
         require(
             primary.get_attribute("href") == "/wetland/global?story=chokwe",
