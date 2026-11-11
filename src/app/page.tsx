@@ -82,93 +82,6 @@ function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: num
   return <span ref={ref}>{val.toFixed(decimals)}{suffix}</span>;
 }
 
-/* — Mini hydrograph: the shape of the real monsoon pulse.
-   Values come from the exported showcase pulse (public/showcase/featured/pulse.json),
-   never from hardcoded numbers. */
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function shortDate(iso: string) {
-  const [, m, d] = iso.split("-").map(Number);
-  return `${MONTHS[m - 1]} ${d}`;
-}
-function Hydrograph() {
-  const [pulse, setPulse] = useState<WetlandPulseData | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [active, setActive] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const hydroRef = useRef<HTMLDivElement | null>(null);
-  // Auto-play the pulse while the chart is on screen (paused otherwise), so
-  // every value cycles into view — previously only the peak value ever showed
-  // because playback started paused. Reduced-motion users keep the peak value.
-  useEffect(() => {
-    const el = hydroRef.current;
-    if (!el || !pulse) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) setPlaying(entry.isIntersecting);
-    }, { threshold: 0.4 });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [pulse]);
-  useEffect(() => {
-    let live = true;
-    fetch("/showcase/featured/pulse.json", { cache: "no-store" })
-      .then((r) => { if (!r.ok) throw new Error(`pulse.json: ${r.status}`); return r.json(); })
-      .then((data: WetlandPulseData) => {
-        if (!live) return;
-        if (!Array.isArray(data.dates) || !data.dates.length) throw new Error("pulse.json has no dates");
-        setPulse(data);
-        const peakIdx = Math.max(0, data.dates.findIndex((d) => d.date === data.peak?.date));
-        setActive(peakIdx);
-      })
-      .catch(() => { if (live) setFailed(true); });
-    return () => { live = false; };
-  }, []);
-  const entries = pulse?.dates ?? [];
-  useEffect(() => {
-    if (!playing || !entries.length) return;
-    const id = setInterval(() => setActive((a) => (a + 1) % entries.length), 1400);
-    return () => clearInterval(id);
-  }, [playing, entries.length]);
-  if (failed || (pulse && !entries.length)) {
-    return (
-      <div className="hydro">
-        <p className="hydro-note">The showcase pulse could not be loaded, so no chart is shown rather than invented values.</p>
-      </div>
-    );
-  }
-  if (!pulse) {
-    return (
-      <div className="hydro" aria-label="Loading showcase pulse">
-        <div className="hydro-bars" aria-hidden="true" />
-        <p className="hydro-note">Loading the real Tanguar Haor pulse…</p>
-      </div>
-    );
-  }
-  const max = Math.max(...entries.map((d) => d.area_km2));
-  const peakIdx = Math.max(0, entries.findIndex((d) => d.date === pulse.peak?.date));
-  const cur = entries[Math.min(active, entries.length - 1)];
-  return (
-    <div className="hydro" ref={hydroRef}>
-      <div className="hydro-bars" role="group" aria-label={`Choose one of ${entries.length} Tanguar Haor radar-change candidate observations; peak on ${shortDate(entries[peakIdx].date)}`}>
-        {entries.map((d, i) => (
-          <button key={d.date} type="button" className={`hydro-bar${i === active ? " is-active" : ""}${i === peakIdx ? " is-peak" : ""}`}
-            style={{ height: `${(d.area_km2 / max) * 100}%` }}
-            onClick={() => { setActive(i); setPlaying(false); }}
-            aria-label={`${shortDate(d.date)}: ${d.area_km2.toFixed(1)} square kilometres`}>
-            <span className="hydro-val">{d.area_km2.toFixed(1)}</span>
-          </button>
-        ))}
-      </div>
-      <div className="hydro-meta">
-        <div><strong>{shortDate(cur.date)} 2026</strong><span>radar-change candidate area</span></div>
-        <div className="hydro-num"><span data-testid="hydro-current-value">{cur.area_km2.toFixed(1)}</span><em> km²</em></div>
-        <button type="button" className="g3-btn g3-btn--ghost" onClick={() => setPlaying((p) => !p)}>{playing ? "Pause the pulse" : "Play the pulse"}</button>
-      </div>
-      <p className="hydro-note">Real NISAR-derived values from the Tanguar Haor showcase. A candidate region is not a confirmed flood — <Link href="/wetland">challenge it</Link>.</p>
-    </div>
-  );
-}
-
 function centerOfStudyLocations(markers: GlobeCaseMarker[]): GlobePin | null {
   if (!markers.length) return null;
   const latitudes = markers.map((marker) => marker.lat);
@@ -336,11 +249,11 @@ export default function Home() {
 
         <div className="g3-title">
           <p className="g3-eyebrow">NISAR EARTH-OBSERVATION INVESTIGATIONS</p>
-          <h1>Earth change,<br /><span>under scrutiny.</span></h1>
-          <p className="g3-lede">Explore real NISAR observations across wetlands, forests, volcanoes and soil moisture. Inspect what the satellite recorded, challenge candidate changes, and trace every claim to its source.</p>
+          <h1>See what radar sees.<br /><span>Challenge what it means.</span></h1>
+          <p className="g3-lede">GEONEXSER turns NASA–ISRO NISAR observations into inspectable Earth-change investigations. Follow the signal, test competing explanations, and see exactly where the evidence stops.</p>
           <div className="g3-ctas">
-            <Link href="/wetland/global" className="g3-btn g3-btn--primary">Explore observations</Link>
-            <Link href="/investigations" className="g3-btn g3-btn--ghost">Published investigations</Link>
+            <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Open the Chókwè investigation <span aria-hidden="true">↗</span></Link>
+            <Link href="/wetland/global" className="g3-btn g3-btn--ghost">Explore NISAR coverage</Link>
             {!pinMode && (
               <button
                 type="button"
@@ -358,7 +271,7 @@ export default function Home() {
             )}
           </div>
           <p className="g3-featured-case">
-            START WITH A REAL CASE · <Link href="/wetland/global?story=chokwe">Chókwè, Mozambique — inspect the evidence</Link>
+            FEATURED CASE · CHÓKWÈ, MOZAMBIQUE · NISAR L2 GCOV BETA · 5–17 JAN 2026
           </p>
         </div>
 
@@ -426,29 +339,42 @@ export default function Home() {
         </div>
       </section>
 
-      {/* One real temporal example, followed by the four actual workspaces. */}
-      <section className="g3-featured" aria-labelledby="g3-featured-title">
-        <Reveal className="g3-featured__copy g3-chapter">
-          <p className="g3-eyebrow">A REAL RADAR SERIES · BANGLADESH</p>
-          <h2 id="g3-featured-title">Follow one signal through time.</h2>
-          <p>
-            Tanguar Haor has a seven-date NISAR L2 GCOV comparison series. Explore how the
-            radar-change candidate area varies between observations, then open the case to inspect
-            the map, thresholds, optical coverage and limitations.
-          </p>
-          <Link href="/wetland" className="g3-btn g3-btn--primary">Open the Tanguar investigation</Link>
-          <p className="g3-featured__caveat">Candidate area is a screening measurement, not a confirmed flood extent.</p>
-        </Reveal>
-        <div className="g3-featured__chart" aria-label="Tanguar Haor radar candidate-area time series">
-          <Hydrograph />
+      <section className="g3-case-spotlight" aria-labelledby="g3-case-title">
+        <div className="g3-case-spotlight__intro">
+          <p className="g3-eyebrow">FEATURED INVESTIGATION <span aria-hidden="true">/</span> MOZAMBIQUE</p>
+          <div className="g3-case-spotlight__status"><span aria-hidden="true" /> EXPLORATORY · CANDIDATES UNVERIFIED</div>
+          <h2 id="g3-case-title">A flood event, examined from more than one orbit.</h2>
+          <p>In Chókwè, GEONEXSER compares a real NISAR before/after pair with independent satellite evidence. The goal is not to force a verdict — it is to show what aligns, what disagrees, and what remains unknown.</p>
+          <div className="g3-case-spotlight__meta">5 → 17 JAN 2026 <span>·</span> L2 GCOV BETA <span>·</span> 112.14 KM² STUDY AREA</div>
+          <Link href="/wetland/global?story=chokwe" className="g3-btn g3-btn--primary">Explore the evidence <span aria-hidden="true">↗</span></Link>
+        </div>
+        <div className="g3-case-spotlight__evidence">
+          <div className="g3-case-spotlight__metrics" aria-label="Chókwè investigation measurements">
+            <article className="g3-case-spotlight__metric">
+              <strong>127</strong>
+              <span>radar-darkening candidate regions</span>
+            </article>
+            <article className="g3-case-spotlight__metric">
+              <strong>29.87 <small>km²</small></strong>
+              <span>candidate area inside the analyst-defined study box</span>
+            </article>
+            <article className="g3-case-spotlight__metric g3-case-spotlight__metric--support">
+              <strong>39.4<small>%</small></strong>
+              <span>eligible OPEN_WATER pixels with positive GFM support</span>
+            </article>
+          </div>
+          <div className="g3-case-spotlight__limit">
+            <span className="g3-case-spotlight__limit-mark" aria-hidden="true">!</span>
+            <p><strong>Evidence boundary.</strong> The HLS comparison had only 1.26% common-clear coverage and assessed none of the candidate area. The 39.4% figure is positive-only agreement between satellite algorithms — <strong>not accuracy or field validation.</strong></p>
+          </div>
         </div>
       </section>
 
       <section id="g3-domains" className="g3-domains" aria-labelledby="g3-domains-title">
         <div className="g3-domains__heading">
           <div>
-            <p className="g3-eyebrow">FOUR SCIENTIFIC WORKSPACES</p>
-            <h2 id="g3-domains-title">Different signals. One evidence-first approach.</h2>
+            <p className="g3-eyebrow">FOUR MEASUREMENT WORKSPACES</p>
+            <h2 id="g3-domains-title">Different radar products. One evidence-first approach.</h2>
           </div>
           <Link href="/investigations" className="g3-domains__all">All published investigations →</Link>
         </div>
