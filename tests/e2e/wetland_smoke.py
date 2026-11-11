@@ -649,51 +649,17 @@ with sync_playwright() as p:
         page.locator(".field-volume-disclosure__panel").count() == 0,
     )
 
-    # ── 3D landing ──
+    # ── GEONEXSER landing: focused Chókwè evidence experience ──
     norm = lambda s: " ".join(s.split()).lower()
     page.goto(BASE + "/"); page.wait_for_selector(".globe-mount canvas", timeout=25000); page.wait_for_timeout(4500)
     check("landing globe renders", page.locator(".globe-mount canvas").count() == 1)
-    check("landing title states the evidence-first proposition", "earth change" in norm(page.inner_text(".g3-title")) and "under scrutiny" in norm(page.inner_text(".g3-title")))
-    check("telemetry ticker reports the real Tanguar series", "tanguar comparison dates" in norm(page.inner_text(".g3-ticker")) and norm(page.inner_text(".g3-ticker"))[0] != "0")
-    page.wait_for_selector(".hydro-val", timeout=15000)
-    pulse_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "public", "showcase", "featured", "pulse.json")
-    saved = json.load(open(pulse_path))
-    expected_vals = [f"{d['area_km2']:.1f}" for d in saved["dates"]]
-    rendered_vals = page.eval_on_selector_all(".hydro-val", "els => els.map(e => e.textContent.trim())")
-    check("hydrograph matches saved pulse", rendered_vals == expected_vals, f"rendered={rendered_vals} saved={expected_vals}")
-    check("hydrograph label is honest", "radar-change candidate area" in page.inner_text(".hydro-meta"))
-    page.locator(".hydro").scroll_into_view_if_needed()
-    live_values_match = True
-    live_samples = []
-    for _ in range(8):
-        page.wait_for_timeout(220)
-        # Read both values in one browser task so autoplay cannot advance
-        # between separate Playwright round-trips and create a false mismatch.
-        sample = page.evaluate("""() => {
-            const current = document.querySelector("[data-testid='hydro-current-value']");
-            const active = document.querySelector(".hydro-bar.is-active .hydro-val");
-            return {
-                current: current?.textContent?.trim() ?? "",
-                active: active?.textContent?.trim() ?? "",
-            };
-        }""")
-        current_text = sample["current"]
-        active_text = sample["active"]
-        live_samples.append(f"{current_text}/{active_text}")
-        try:
-            numeric_value = float(current_text)
-            live_values_match = (
-                live_values_match
-                and current_text == active_text
-                and numeric_value >= 0
-            )
-        except ValueError:
-            live_values_match = False
-    check(
-        "hydrograph live value matches the active published date and is non-negative",
-        live_values_match,
-        f"samples={live_samples}",
-    )
+    title_text = norm(page.inner_text(".g3-title"))
+    check("landing title states the evidence-first proposition", "see what radar sees" in title_text and "challenge what it means" in title_text, title_text)
+    case_text = norm(page.inner_text(".g3-case-spotlight"))
+    check("featured Chókwè case shows measured candidate values", "127" in case_text and "29.87" in case_text and "39.4" in case_text, case_text[:500])
+    check("featured evidence limits accompany the metrics", "1.26%" in case_text and "not accuracy" in case_text and "field validation" in case_text)
+    check("featured investigation CTA opens the Chókwè story", page.locator(".g3-case-spotlight a[href='/wetland/global?story=chokwe']").count() == 1)
+    check("removed Tanguar homepage ticker and hydrograph stay absent", page.locator(".g3-ticker, .hydro").count() == 0)
     page.get_by_role("button", name="Drop a pin anywhere").click(); page.wait_for_timeout(400)
     check("pin mode arms", "Choose a study location" in page.inner_text(".g3-pinbar"))
     page.mouse.click(900, 420); page.wait_for_timeout(800)  # click the globe, right of the title block
@@ -726,7 +692,7 @@ with sync_playwright() as p:
     check("global header is the field assignment explorer", "FIELD ASSIGNMENT" in body_text and "Explore NISAR across the world" in body_text)
     check("global page is honest about no selected study", "No processed study selected" in body_text)
     check("global page shows real scene footprints", "scene footprints" in body_text)
-    check("global header shows the BEYONDERS brand", "BEYONDERS" in brand_text or "Beyonders" in brand_text or "GeoNexSAR" in brand_text)
+    check("global header shows the GEONEXSER product brand", brand_text == "GEONEXSER")
     page.screenshot(path="/tmp/e2e_global.png")
 
     # ── multi-case showcase plumbing ──
@@ -743,7 +709,7 @@ with sync_playwright() as p:
     check("marker names Tanguar Haor", "Tanguar Haor" in " | ".join(page.locator(".globe-tag--case").all_inner_texts()))
     # The landing header (.g3-top) was removed by the overhaul redesign; the
     # brand now lives in the shared primary nav on every page.
-    check("home brand present", "geonexsar" in page.inner_text(".hazard-nav__brand").lower() or "beyonders" in page.inner_text("body").lower())
+    check("home brand present", page.inner_text(".hazard-nav__brand") == "GEONEXSER")
     page.screenshot(path="/tmp/e2e_landing_marker.png")
 
     # ── forest + volcano workspaces (real pages, not retired briefing screens) ──
