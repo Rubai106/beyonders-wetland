@@ -149,8 +149,8 @@ def main() -> int:
             "the 3D globe exposes keyboard rotation and zoom instructions",
         )
         require(
-            page.locator(".g3-chapter").first.evaluate("(element) => getComputedStyle(element).opacity") == "1",
-            "reduced-motion preference keeps landing content visible without scroll-reveal animation",
+            page.locator(".rv").first.evaluate("(element) => getComputedStyle(element).opacity") == "1",
+            "reduced-motion preference keeps revealed workspace cards visible without scroll-reveal animation",
         )
         globe_canvas.focus()
         globe_canvas.press("ArrowLeft")
