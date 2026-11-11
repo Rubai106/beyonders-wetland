@@ -140,7 +140,7 @@ export default function MozambiqueFloodCase({ onLocate, onOpenRun }: { onLocate:
                 <Image src={image.imagePath} alt={image.alt} width={image.width} height={image.height} sizes="(max-width: 700px) 100vw, 50vw" unoptimized={image.imagePath.endsWith(".avif")} />
               </a>
               {image.note && <p className="mozambique-case__image-note">{image.note}</p>}
-              <a className="mozambique-case__attribution" href={image.sourcePage} target={image.local ? undefined : "_blank"} rel={image.local ? undefined : "noopener noreferrer"}>{image.local ? "Beyonders processed output · see run details ↗" : image.sourceName === "CIMA" ? "CIMA Sentinel-1/2 map ↗" : "NASA NISAR source image ↗"}</a>
+              <a className="mozambique-case__attribution" href={image.sourcePage} target={image.local ? undefined : "_blank"} rel={image.local ? undefined : "noopener noreferrer"}>{image.local ? `Beyonders processed output · see run details · ${image.date} ↗` : image.sourceName === "CIMA" ? `CIMA Sentinel-1/2 map · ${image.date} ↗` : `NASA NISAR source image · ${image.date} ↗`}</a>
             </figure>
           ))}
         </div>
