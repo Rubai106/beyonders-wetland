@@ -5,7 +5,7 @@ import TemporalStudio from "@/components/temporal/TemporalStudio";
 import "./temporal.css";
 
 export const metadata: Metadata = {
-  title: "Temporal Studio · GeoNexSAR",
+  title: "Temporal Studio · GEONEXSER",
   description:
     "One evidence-synced timeline per published study: the real metric for every observation date, the screening rule, and what the independent reference said.",
 };
