@@ -1889,6 +1889,13 @@
     padding: 5px;
   }
 
+  /* The selected date is already shown in the map readout and footer timeline.
+     Hide the redundant context label on phones so it cannot be clipped behind
+     Leaflet's top-right zoom controls; keep all layer buttons visible. */
+  .agriculture-workspace .agri-map-toolbar > span {
+    display: none;
+  }
+
   .agriculture-workspace .agri-map-toolbar button {
     min-height: 38px;
     padding: 7px 9px;
@@ -2185,5 +2192,22 @@
 }
 .agriculture-workspace .agri-rail .hazard-walkthrough-launch > * {
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The rail is intentionally narrow on desktop too. Stack the guide heading
+   and launch action so the complete button label remains visible. */
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.agriculture-workspace .agri-rail .hazard-walkthrough-launch button {
+  width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
