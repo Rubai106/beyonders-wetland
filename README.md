@@ -36,7 +36,7 @@ Do not commit raw satellite files, virtual environments, credentials, private op
 - [Forest method](docs/forest-method.md) · [operator workflow](docs/forest-operator-guide.md)
 - [Volcano method and evidence](docs/volcano-method.md) · [release report](docs/volcano-release.md)
 
-Catalog availability can change, so verify NASA CMR before each new study. Chókwè is processed separately from the PROVISIONAL time series using its matching January 5–17 NISAR BETA pair. Its HLS optical check is inconclusive; a later UNOSAT Sentinel-1 overlay provides positive spatial support only, not an accuracy assessment.
+Catalog availability can change, so verify NASA CMR before each new study. Chókwè is processed separately from the PROVISIONAL time series using its matching January 5–17 NISAR BETA pair. Its HLS optical check is inconclusive. A separate native-grid follow-up compared reprocessed 10 m NISAR candidates with GFM NRT v4.1.0: 57,997 of 147,151 eligible OPEN_WATER candidate pixels (39.4133%, 5.7997 km²) had positive GFM spatial support. This is positive-only algorithm-to-algorithm overlap, not field validation or accuracy; the original published run remains unchanged. A later UNOSAT Sentinel-1 overlay also provides positive follow-up spatial support only, not an accuracy assessment.
 
 
 ## Regression checks
