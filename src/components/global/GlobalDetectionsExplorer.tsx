@@ -819,7 +819,7 @@ export default function GlobalDetectionsExplorer({ initialLocation, initialRunId
         </button>
       </div>} rail={<>
           <p className="wx-micro">WORLDWIDE OBSERVATIONS · NASA NISAR L2 GCOV</p>
-          <h1 id="global-detections-title">{isNisar ? railCaseName : "Global NISAR coverage"}</h1>
+          <h2 id="global-detections-title">{isNisar ? railCaseName : "Global NISAR coverage"}</h2>
           <p className="wx-sub">Browse global radar observations and local change candidates. A blank map area has no processed result.</p>
           <p className="wx-mono wx-meta">{data?.product ?? "NASA NISAR L2 GCOV"} · {coverageData?.loadedFeatures.toLocaleString() ?? "—"} scene footprints · {coverageDate}</p>
           <div className={`wx-obsbox${isNisar ? " is-peak" : ""}`} aria-live="polite">
