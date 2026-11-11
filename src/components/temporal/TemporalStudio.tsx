@@ -30,8 +30,16 @@ function peakIndex(entries: readonly TemporalEntry[]): number {
   return i >= 0 ? i : 0;
 }
 
-/** SVG area chart of the metric over the dates. Null metrics leave a gap. */
-function MetricChart({ entries, selected }: { entries: readonly TemporalEntry[]; selected: number }) {
+function temporalUnit(study: TemporalStudy): { singular: string; plural: string } {
+  // Volcano entries represent independently processed before/after pairs,
+  // not unique acquisition dates. Keep the displayed denominator explicit.
+  return study.domain === "volcano"
+    ? { singular: "comparison interval", plural: "comparison intervals" }
+    : { singular: "observation date", plural: "observation dates" };
+}
+
+/** SVG area chart of the metric over its published dates or intervals. */
+function MetricChart({ entries, selected, unitLabel }: { entries: readonly TemporalEntry[]; selected: number; unitLabel: string }) {
   const W = 720;
   const H = 220;
   const PAD_X = 44;
@@ -80,7 +88,7 @@ function MetricChart({ entries, selected }: { entries: readonly TemporalEntry[];
       className="temporal-chart"
       viewBox={`0 0 ${W} ${H}`}
       role="img"
-      aria-label={`Metric over time for ${entries.length} observation dates, peaking at ${peakEntry(entries)?.metricLabel ?? "no published value"}`}
+      aria-label={`Metric over time for ${entries.length} ${unitLabel}, peaking at ${peakEntry(entries)?.metricLabel ?? "no published value"}`}
     >
       <line x1={PAD_X} y1={BASE_Y} x2={W - 16} y2={BASE_Y} className="temporal-chart__axis" />
       <text x={8} y={BASE_Y + 4} className="temporal-chart__tick">0</text>
@@ -137,6 +145,8 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
     return <p className="temporal-empty" role="status">No published study timeline is available.</p>;
   }
 
+  const unit = temporalUnit(study);
+  const activeUnitLabel = activeEntries.length === 1 ? unit.singular : unit.plural;
   const spanStart = activeEntries[0]?.date;
   const spanEnd = activeEntries[activeEntries.length - 1]?.date;
   const spanMs =
@@ -160,7 +170,9 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
               <span className="temporal-picker__domain">{s.domain}</span>
               <strong>{s.name}</strong>
               <span>
-                {s.entries.length} date{s.entries.length === 1 ? "" : "s"}
+                {s.entries.length} {temporalUnit(s).singular === "comparison interval"
+  ? (s.entries.length === 1 ? "comparison interval" : "comparison intervals")
+  : (s.entries.length === 1 ? "observation date" : "observation dates")}
                 {sPeak ? ` · peak ${sPeak.metricLabel}` : ""}
               </span>
             </button>
@@ -172,7 +184,7 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
         <div className="temporal-panel__head">
           <div>
             <p className="temporal-micro">
-              {study.domain} · {activeEntries.length} observation date{activeEntries.length === 1 ? "" : "s"}
+              {study.domain} · {activeEntries.length} {activeUnitLabel}
               {spanStart && spanEnd ? ` · ${fmtShort(spanStart)} – ${fmtShort(spanEnd)}` : ""}
             </p>
             <h2>{study.name}</h2>
@@ -201,9 +213,9 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
           </div>
         ) : null}
 
-        <MetricChart entries={activeEntries} selected={safeIndex} />
+        <MetricChart entries={activeEntries} selected={safeIndex} unitLabel={unit.plural} />
 
-        <div className="temporal-track" role="group" aria-label="Observation dates">
+        <div className="temporal-track" role="group" aria-label={unit.plural}>
           {activeEntries.map((e, i) => (
             <button
               key={e.date}
@@ -222,7 +234,7 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
         </div>
 
         <div className="temporal-scrub">
-          <button type="button" onClick={() => setIndex((v) => Math.max(0, v - 1))} disabled={safeIndex === 0} aria-label="Previous date">
+          <button type="button" onClick={() => setIndex((v) => Math.max(0, v - 1))} disabled={safeIndex === 0} aria-label={`Previous ${unit.singular}`}>
             ← Earlier
           </button>
           <input
@@ -232,13 +244,13 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
             step={1}
             value={safeIndex}
             onChange={(e) => setIndex(Number(e.target.value))}
-            aria-label={`Date ${safeIndex + 1} of ${activeEntries.length}: ${fmtDate(entry.date)}`}
+            aria-label={`${unit.singular[0].toUpperCase() + unit.singular.slice(1)} ${safeIndex + 1} of ${activeEntries.length}: ${fmtDate(entry.date)}`}
           />
           <button
             type="button"
             onClick={() => setIndex((v) => Math.min(activeEntries.length - 1, v + 1))}
             disabled={safeIndex === activeEntries.length - 1}
-            aria-label="Next date"
+            aria-label={`Next ${unit.singular}`}
           >
             Later →
           </button>
