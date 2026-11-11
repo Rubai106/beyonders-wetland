@@ -3,7 +3,7 @@ import HypothesisWorkspace from "@/components/hypotheses/HypothesisWorkspace";
 import "./hypotheses.css";
 
 export const metadata: Metadata = {
-  title: "Hypothesis & Falsification Lab · GeoNexSAR",
+  title: "Hypothesis & Falsification Lab · GEONEXSER",
   description:
     "Competing explanations for each published study, weighed against the same evidence — with the single observation that would kill each one.",
 };
