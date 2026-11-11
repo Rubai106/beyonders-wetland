@@ -80,22 +80,47 @@ jobs:
       - name: Install Playwright browser-test dependency
         run: python -m pip install -r tests/e2e/requirements.txt
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('tests/e2e/requirements.txt') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
       - name: Install Chromium for production browser test
         shell: bash
+        timeout-minutes: 12
         run: |
           set -u
+          # The browser binary and its OS libraries fail independently.
+          # `install --with-deps` bundles both, so one flaky apt mirror
+          # used to re-download Chromium on every retry and burn the
+          # 30-minute job budget (run 43040775627: ~20 min, exit 1;
+          # run 43051379022: retries hit the job timeout). Split them:
+          # download the browser first (fast to retry), then install
+          # the OS libraries on their own, each with its own retries.
           for attempt in 1 2 3; do
-            echo "Installing Chromium and OS dependencies (attempt ${attempt}/3)"
-            if python -m playwright install --with-deps chromium; then
+            echo "Installing Chromium browser (attempt ${attempt}/3)"
+            if python -m playwright install chromium; then
+              break
+            fi
+            if [ "${attempt}" -eq 3 ]; then
+              echo "Chromium browser install failed after 3 attempts." >&2
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
+          for attempt in 1 2 3; do
+            echo "Installing Chromium OS dependencies (attempt ${attempt}/3)"
+            if python -m playwright install-deps chromium; then
               exit 0
             fi
             if [ "${attempt}" -lt 3 ]; then
-              delay=$((attempt * 15))
-              echo "Install failed; retrying in ${delay}s. The job will remain failed if all attempts fail." >&2
-              sleep "${delay}"
+              sleep $((attempt * 20))
             fi
           done
-          echo "Chromium dependency installation failed after 3 attempts." >&2
+          echo "Chromium OS dependency install failed after 3 attempts." >&2
           exit 1
 
       - name: Run global mission-control and multi-workspace production browser tests
