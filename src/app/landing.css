@@ -390,3 +390,23 @@
   outline: 2px solid var(--cyan);
   outline-offset: 3px;
 }
+
+/* Accessibility and tap-target refinements from the final audit. */
+.g3-foot p:nth-child(2) {
+  color: #9aa7b7;
+}
+.g3-foot nav a {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding-block: 4px;
+}
+.hydro-bars .hydro-bar {
+  position: relative;
+}
+.hydro-bars .hydro-bar::before {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
+  pointer-events: auto;
+}
