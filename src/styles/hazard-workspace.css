@@ -279,6 +279,24 @@
   backdrop-filter: blur(8px);
 }
 
+/* The map toolbar occupies the upper-left edge on tablet widths. Keep the
+   collapsed-drawer action on a separate line so it never covers the radar
+   polarization selector. This legacy root is the Wetland experience. */
+@media (max-width: 960px) {
+  .wx-root.wx-root--drawer-tabs:not(.wx-hazard-shell) .wx-drawer-reopen {
+    top: 66px;
+    right: 12px;
+  }
+}
+
+@media (max-width: 700px) {
+  .wx-root.wx-root--drawer-tabs:not(.wx-hazard-shell) .wx-drawer-reopen {
+    top: auto;
+    right: 12px;
+    bottom: 12px;
+  }
+}
+
 .wx-root.wx-hazard-shell.wx-root--drawer-tabs .wx-drawer__body > .forest-tab-panel,
 .wx-root.wx-hazard-shell.wx-root--drawer-tabs .wx-drawer__body > .volcano-tab-panel {
   display: flex;
