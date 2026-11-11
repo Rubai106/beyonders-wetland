@@ -38,6 +38,11 @@ function temporalUnit(study: TemporalStudy): { singular: string; plural: string 
     : { singular: "observation date", plural: "observation dates" };
 }
 
+function temporalCountLabel(study: TemporalStudy, count: number): string {
+  const unit = temporalUnit(study);
+  return `${count} ${count === 1 ? unit.singular : unit.plural}`;
+}
+
 /** SVG area chart of the metric over its published dates or intervals. */
 function MetricChart({ entries, selected, unitLabel }: { entries: readonly TemporalEntry[]; selected: number; unitLabel: string }) {
   const W = 720;
@@ -170,9 +175,7 @@ export default function TemporalStudio({ studies }: { studies: TemporalStudy[] }
               <span className="temporal-picker__domain">{s.domain}</span>
               <strong>{s.name}</strong>
               <span>
-                {s.entries.length} {temporalUnit(s).singular === "comparison interval"
-  ? (s.entries.length === 1 ? "comparison interval" : "comparison intervals")
-  : (s.entries.length === 1 ? "observation date" : "observation dates")}
+                {temporalCountLabel(s, s.entries.length)}
                 {sPeak ? ` · peak ${sPeak.metricLabel}` : ""}
               </span>
             </button>
