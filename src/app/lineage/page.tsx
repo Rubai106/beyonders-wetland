@@ -13,7 +13,7 @@ export default async function LineagePage() {
   return (
     <main className="lineage-page">
       <header className="lineage-hero">
-        <p className="lineage-eyebrow">BEYONDERS · EVIDENCE LINEAGE</p>
+        <p className="lineage-eyebrow">GEONEXSER · EVIDENCE LINEAGE</p>
         <h1>Trace a result back to its source</h1>
         <p className="lineage-lede">
           Pick a study, pick a measurement, and follow it backward: the method
