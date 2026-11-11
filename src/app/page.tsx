@@ -12,7 +12,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { PHENOMENA } from "@/phenomena/registry";
 import type { GlobeCaseMarker, GlobeHazard, GlobePin } from "@/components/landing/Globe3D";
 import { listGlobeStudies } from "@/lib/globe-studies";
-import type { WetlandPulseData } from "@/lib/types";
 import "./landing.css";
 
 function isGlobeHazard(id: (typeof PHENOMENA)[number]["id"]): id is GlobeHazard {
@@ -48,38 +47,6 @@ function useReveal<T extends HTMLElement>() {
 function Reveal({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useReveal<HTMLDivElement>();
   return <div ref={ref} className={`rv ${className}`} style={{ transitionDelay: `${delay}ms` }}>{children}</div>;
-}
-
-/* — Animated counter — */
-function CountUp({ to, decimals = 0, suffix = "" }: { to: number; decimals?: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let raf = 0; let started = false;
-    const io = new IntersectionObserver((entries) => {
-      if (!entries[0].isIntersecting || started) return;
-      started = true;
-      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        raf = requestAnimationFrame(() => setVal(to));
-        io.disconnect();
-        return;
-      }
-      const t0 = performance.now(); const dur = 1400;
-      const tick = (t: number) => {
-        const k = Math.min(1, (t - t0) / dur);
-        const e = 1 - Math.pow(1 - k, 3);
-        setVal(to * e);
-        if (k < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-      io.disconnect();
-    }, { threshold: 0.4 });
-    io.observe(el);
-    return () => { io.disconnect(); cancelAnimationFrame(raf); };
-  }, [to]);
-  return <span ref={ref}>{val.toFixed(decimals)}{suffix}</span>;
 }
 
 function centerOfStudyLocations(markers: GlobeCaseMarker[]): GlobePin | null {
@@ -126,8 +93,6 @@ export default function Home() {
   const [selectedHazard, setSelectedHazard] = useState<GlobeHazard>("wetland");
   const [focusedCaseId, setFocusedCaseId] = useState<string | null>(null);
   const [caseMarkersLoaded, setCaseMarkersLoaded] = useState(false);
-  const [observationCount, setObservationCount] = useState<number | null>(null);
-  const [peakCandidateArea, setPeakCandidateArea] = useState<number | null>(null);
   useEffect(() => {
     let live = true;
     void listGlobeStudies().then((studies) => {
@@ -135,14 +100,6 @@ export default function Home() {
     }).finally(() => {
       if (live) setCaseMarkersLoaded(true);
     });
-    fetch("/showcase/featured/pulse.json", { cache: "no-store" })
-      .then((response) => { if (!response.ok) throw new Error("Featured pulse unavailable"); return response.json(); })
-      .then((pulse: WetlandPulseData) => {
-        const peak = pulse.dates?.find((point) => point.date === pulse.peak?.date);
-        if (live && Array.isArray(pulse.dates) && pulse.dates.length) setObservationCount(pulse.dates.length);
-        if (live && peak && Number.isFinite(peak.area_km2)) setPeakCandidateArea(peak.area_km2);
-      })
-      .catch(() => { if (live) setPeakCandidateArea(null); });
     return () => { live = false; };
   }, []);
 
@@ -332,11 +289,6 @@ export default function Home() {
 
         <div className="g3-coord" aria-hidden="true"><span>CURSOR</span><strong>{fmt(hover)}</strong></div>
 
-        <div className="g3-ticker" aria-label="Tanguar Haor observation summary">
-          <div><strong>{observationCount == null ? "—" : <CountUp to={observationCount} />}</strong><span>Tanguar comparison dates</span></div>
-          <div><strong>{peakCandidateArea == null ? "—" : <CountUp to={peakCandidateArea} decimals={1} />}</strong><span>km² peak radar-change candidate area</span></div>
-          <div className="g3-scrollcue"><span />Explore the evidence</div>
-        </div>
       </section>
 
       <section className="g3-case-spotlight" aria-labelledby="g3-case-title">
