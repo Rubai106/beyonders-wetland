@@ -2884,7 +2884,10 @@ textarea {
   color: #006a7c;
 }
 
-.mozambique-case__facts > div + div dt,
+.mozambique-case__facts > div + div dt {
+  color: #e2bd82 !important;
+}
+
 .mozambique-case__limits > strong {
   color: #854d0e !important;
 }
