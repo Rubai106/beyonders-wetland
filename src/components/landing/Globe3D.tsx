@@ -336,9 +336,17 @@ export default function Globe3D({ pinMode, pin, caseMarkers, focusLocation, onPi
     };
 
     let raf = 0;
+    // Pause the render loop whenever the globe is off-screen or the tab is
+    // hidden: no frames are scheduled at all in that state, so the WebGL
+    // cost drops to zero. resume() restarts it when the globe returns.
+    // (VP-1: the loop previously rendered a full frame every animation
+    // frame forever, even scrolled out of view or in a hidden tab.)
+    let inView = true;
+    let pageVisible = !document.hidden;
     const timer = new THREE.Timer();
     timer.connect(document);
     const animate = () => {
+      if (!inView || !pageVisible) { raf = 0; return; }
       raf = requestAnimationFrame(animate);
       const now = performance.now();
       if (reduceMotion && now - lastFrameAt < 1000 / 24) return;
@@ -409,10 +417,25 @@ export default function Globe3D({ pinMode, pin, caseMarkers, focusLocation, onPi
 
       renderer.render(scene, camera);
     };
+    const resume = () => {
+      if (inView && pageVisible && !raf) raf = requestAnimationFrame(animate);
+    };
+    const io = new IntersectionObserver((entries) => {
+      inView = entries[0]?.isIntersecting ?? true;
+      if (inView) resume();
+    });
+    io.observe(mount);
+    const onVisibilityChange = () => {
+      pageVisible = !document.hidden;
+      if (pageVisible) resume();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
     animate();
 
     return () => {
       cancelAnimationFrame(raf);
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       el.removeEventListener("keydown", handleKeyDown);
       viewControlsRef.current = null;
       timer.dispose();
