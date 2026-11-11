@@ -2002,8 +2002,20 @@
     min-height: 260px;
   }
 
+  /* On phones the map hint can wrap to two lines. Reserve a distinct row
+     above the first interval card so its date header never sits underneath
+     the hint. Keep both independently scrollable maps at their full width. */
+  .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map > .deformation-map-hint {
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    line-height: 1.4;
+  }
+
   .wx-root.wx-hazard-shell[data-hazard="volcano"] .wx-hazard-map .deformation-maps {
-    inset: 52px 8px 8px;
+    inset: 76px 8px 8px;
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: repeat(2, minmax(360px, 1fr)) !important;
     gap: 8px;
