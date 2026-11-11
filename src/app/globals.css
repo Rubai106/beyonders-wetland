@@ -3122,3 +3122,9 @@ textarea {
     transition: none;
   }
 }
+
+
+/* Keep the Chókwè facts labels readable against the dark case panel. */
+.mozambique-case__facts > div:nth-child(2) > dt {
+  color: #e2bd82;
+}
