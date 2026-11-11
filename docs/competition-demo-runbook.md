@@ -47,7 +47,7 @@ Walk through the reference evidence in this order:
 1. **HLS optical comparison:** 7–22 January. Only **1.26%** of the study box had common-clear coverage, and **none of the local candidate area was assessed**. This check is inconclusive; it neither confirms nor disproves the candidates.
 2. **CIMA regional map:** Copernicus Sentinel-1/2 flood context updated 16 January, one day before the NISAR event observation. It supports the regional event but is not pixel-registered reference labels for the local study box.
 3. **UNOSAT follow-up:** preliminary Sentinel-1 water extents on 23 and 24 January overlap **88.2%** and **89.1%** of the NISAR candidate area, respectively. These dates are six and seven days after the NISAR event observation. They provide later positive spatial support, not same-date truth, negative labels, field validation, or an accuracy score.
-4. **Native-grid GFM follow-up (separate reprocessing):** a later reprocessing of the pinned NISAR pair was compared with a 17 January GFM NRT v4.1.0 scene on the native 10 m NISAR grid. **57,997 of 147,151 eligible OPEN_WATER candidate pixels (39.4%, 5.80 km²)** had positive GFM flood support. This is an algorithm-to-algorithm positive-only overlap, not field validation or accuracy; the original HLS reference remains inconclusive and the original release is unchanged.
+4. **Native-grid GFM follow-up (separate reprocessing):** a later reprocessing of the pinned NISAR pair was compared with Copernicus GFM NRT v4.1.0 item `ENSEMBLE_FLOOD_20260117T031847_VV_AF020M_E066N021T3`, acquired **17 January at 03:18:47 UTC**, 23 minutes 45 seconds before the NISAR event scene. On the native 10 m NISAR grid, **57,997 of 147,151 eligible OPEN_WATER candidate pixels (39.4133%, 5.7997 km²)** had positive GFM flood support. The reprocessing produced 298,718 open-water candidate pixels (29.8718 km²); the comparison's eligible denominator is 147,151 pixels (14.7151 km²) after GFM exclusion, reference-water and common-validity masks. These mask counts can overlap and must not be treated as a simple subtractive chain. GFM data were common-valid for 993,517 of 1,121,391 native AOI pixels (88.5968%). On the positive overlap, GFM likelihood median was 76, mean 78.3054, range 32–100; 129 overlap pixels were below 50. These are descriptive product values, not calibrated confidence or validation metrics. This is algorithm-to-algorithm positive-only spatial support, not field validation, precision, recall, F1 or accuracy; the original HLS comparison remains inconclusive and the original published release is unchanged.
 
 Close this section with the correct conclusion:
 
@@ -70,7 +70,7 @@ Open one supporting example:
 
 End with the product proposition:
 
-> One investigation workflow; different radar measurements; explicit evidence limits. The next step is more temporally matched independent references and field-reviewed labels—not stronger claims from the same data.
+> One investigation workflow; different radar measurements; explicit evidence limits. A temporally close independent algorithm product now provides positive-only spatial support; the next step is spatially matched, field-reviewed positive and negative reference labels, independent adjudication, and repeated evaluation—not stronger claims from the same satellite algorithms.
 
 ## Navigation quick reference
 
@@ -90,13 +90,14 @@ End with the product proposition:
 - “The NISAR screen flagged 127 radar-darkening candidate regions over the stated Chókwè study box.”
 - “The Chókwè local result is based on a NISAR L2 GCOV BETA pair and an exploratory HH threshold.”
 - “The HLS comparison assessed none of the candidate area and is inconclusive.”
-- “CIMA supplies near-date regional event context; UNOSAT supplies later preliminary positive spatial support.”
+- “CIMA supplies near-date regional event context; UNOSAT supplies later preliminary positive spatial support; a separate native-grid comparison found positive GFM support for 39.4133% of eligible NISAR OPEN_WATER candidate pixels.”
 - “The local Chókwè candidates remain unverified; no accuracy score is claimed.”
 - “Worldwide scene footprints show where observations were acquired, not where environmental change was detected.”
 
 ## Claims to avoid
 
 - “NISAR achieved 88.2% or 89.1% flood-detection accuracy.” Those figures are later positive spatial overlap, not accuracy.
+- “39.4% accuracy,” “39.4% of candidates confirmed as flood,” or any use of the GFM positive-support fraction as precision, recall, F1, accuracy, or candidate-level confirmation. It is positive-only algorithm-to-algorithm spatial support over an eligible subset.
 - “All 127 candidates are flooded” or “Beyonders produced a validated flood map.”
 - “The CIMA regional map is a pixel-level reference for the Chókwè analysis box.”
 - “The HLS check confirms the Chókwè candidates.”
