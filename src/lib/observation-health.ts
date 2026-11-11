@@ -259,7 +259,7 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
 
   // ── Volcanoes ──
   const volcano: StudyHealth[] = [];
-  const volcanoCatalog = await readJson<{ case_studies?: { id: string; name: string; evidence_status?: string }[] }>(publicPath("volcanoes", "catalog.json"));
+  const volcanoCatalog = await readJson<{ case_studies?: { id: string; name: string; evidence_status?: string; publication?: { available_dates?: string[] } }[] }>(publicPath("volcanoes", "catalog.json"));
   const hayli = volcanoCatalog?.case_studies?.find((c) => c.id === "hayli-gubbi-2025");
   if (hayli) {
     volcano.push({
@@ -275,7 +275,7 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference"],
       product: "NISAR_L2_GUNW_BETA",
       productMaturity: "BETA",
-      observationDates: [],
+      observationDates: hayli.publication?.available_dates ?? [],
       evidenceStatus: "EXPLORATORY",
       validationNote: "Screened apparent line-of-sight phase candidates. Sentinel-1 is a separate comparison; signals are not causally attributed to the eruption.",
       nextStep: "Independent geodetic observations and atmospheric corrections are needed before validation can complete.",
@@ -299,7 +299,7 @@ export async function buildPlatformHealth(): Promise<PlatformHealth> {
       stages: ["catalogue", "observations", "processing", "exploratory", "quality_screened", "reference"],
       product: "NISAR_L2_GUNW_BETA",
       productMaturity: "BETA",
-      observationDates: [],
+      observationDates: kilauea.publication?.available_dates ?? [],
       evidenceStatus: "EXPLORATORY",
       validationNote: "Reference patch stability is assumed and must be inspected; it is not surveyed ground truth. Context only.",
       nextStep: "A surveyed reference and independent geodetic comparison are needed before validation can complete.",
