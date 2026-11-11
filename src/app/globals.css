@@ -2164,19 +2164,19 @@ button:disabled { cursor: default; opacity: 0.45; }
   color: #f6f3e9;
   font-family: var(--font-sans);
 }
-.hazard-nav__brand { color: #fff9eb; font-family: var(--font-display); font-size: 1rem; font-weight: 700; letter-spacing: 0.025em; text-decoration: none; }
+.hazard-nav__brand { display: inline-flex; min-height: 44px; align-items: center; color: #fff9eb; font-family: var(--font-display); font-size: 1rem; font-weight: 700; letter-spacing: 0.025em; text-decoration: none; }
 .hazard-nav__links { display: flex; height: 52px; align-items: stretch; gap: 4px; }
-.hazard-nav__links a { display: inline-flex; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; color: #d1d6d1; font-size: 0.82rem; text-decoration: none; transition: color 140ms ease, border-color 140ms ease; }
+.hazard-nav__links a { display: inline-flex; min-height: 44px; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; color: #d1d6d1; font-size: 0.82rem; text-decoration: none; transition: color 140ms ease, border-color 140ms ease; }
 .hazard-nav__links a:hover { color: #ffffff; }
 .hazard-nav__links a[aria-current="page"] { border-color: #f1a24b; color: #ffd39a; }
 /* "More" menu: the advanced analysis tools, kept out of the primary row. */
 .hazard-nav__more { position: relative; display: inline-flex; align-items: stretch; }
-.hazard-nav__more > summary { display: inline-flex; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; color: #d1d6d1; font-size: 0.82rem; cursor: pointer; list-style: none; }
+.hazard-nav__more > summary { display: inline-flex; min-height: 44px; align-items: center; padding: 0 16px; border-bottom: 2px solid transparent; color: #d1d6d1; font-size: 0.82rem; cursor: pointer; list-style: none; }
 .hazard-nav__more > summary::-webkit-details-marker { display: none; }
 .hazard-nav__more > summary:hover { color: #ffffff; }
 .hazard-nav__more > summary[aria-current="page"] { border-color: #f1a24b; color: #ffd39a; }
 .hazard-nav__more-panel { position: absolute; top: 52px; left: 0; z-index: 1501; display: flex; flex-direction: column; min-width: 250px; padding: 6px 0; border: 1px solid #2c3334; border-top: none; background: #192020; }
-.hazard-nav__more-panel a { padding: 10px 16px; color: #d1d6d1; font-size: 0.82rem; text-decoration: none; }
+.hazard-nav__more-panel a { display: flex; min-height: 44px; align-items: center; padding: 10px 16px; color: #d1d6d1; font-size: 0.82rem; text-decoration: none; }
 .hazard-nav__more-panel a:hover { color: #ffffff; background: #222a2a; }
 .hazard-nav__more-panel a[aria-current="page"] { color: #ffd39a; }
 /* Compact mobile navigation — hidden on desktop, takes over at phone width. */
