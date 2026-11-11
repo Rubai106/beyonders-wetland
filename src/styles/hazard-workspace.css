@@ -2159,3 +2159,22 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* Volcano interval cards need their full date and coverage text visible in the drawer. */
+.wx-root.wx-hazard-shell.volcano-page.wx-root--drawer-tabs .wx-drawer__persistent {
+  max-height: none;
+  overflow: visible;
+}
+.wx-root.wx-hazard-shell.volcano-page.wx-root--drawer-tabs .wx-drawer__persistent .deformation-timeline {
+  grid-template-columns: minmax(0, 1fr);
+}
+.wx-root.wx-hazard-shell.volcano-page.wx-root--drawer-tabs .wx-drawer__persistent .deformation-timeline button {
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  align-content: start;
+}
