@@ -2196,3 +2196,32 @@
   overflow-wrap: anywhere;
   align-content: start;
 }
+
+
+/* Chókwè candidate evidence is intentionally a light card inside the dark
+   investigation drawer. The shared drawer typography rules otherwise force
+   pale text onto its light surfaces; keep this panel's contrast self-contained. */
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence {
+  background: #fffefa;
+  color: #202020;
+  color-scheme: light;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence :is(h1, h2, h3, h4, strong, dt, th) {
+  color: #202020;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence :is(p, small, label, dd, td, li, span) {
+  color: #404040;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence .global-eyebrow,
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence__identity strong {
+  color: #006a7c;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence__assessment > strong {
+  color: #854d0e;
+}
+.wx-root.wx-hazard-shell .wx-drawer__body .candidate-evidence select {
+  background: #fff;
+  color: #111;
+  color-scheme: light;
+  border-color: #777;
+}
