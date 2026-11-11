@@ -3089,3 +3089,36 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+
+/* Landing-page readability fixes from the final visual audit. */
+.hydro-bars .hydro-bar .hydro-val {
+  opacity: 0;
+  transition: opacity 140ms ease;
+}
+.hydro-bars .hydro-bar.is-active .hydro-val {
+  opacity: 1;
+}
+.hydro-meta > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 2px;
+}
+.hydro-meta > div:first-child strong,
+.hydro-meta > div:first-child span {
+  display: inline;
+}
+@media (max-width: 480px) {
+  /* Marker names remain available in the adjacent study-location list.
+     Hiding floating labels prevents them colliding with the hero copy. */
+  .globe-tag--case {
+    display: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hydro-bars .hydro-bar .hydro-val {
+    transition: none;
+  }
+}
