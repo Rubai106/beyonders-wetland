@@ -17,6 +17,17 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+const MATURITY_MATRIX_LABELS: Record<(typeof MATURITY_STAGES)[number]["id"], string> = {
+  catalogue: "Catalogue",
+  observations: "Acquired",
+  processing: "Processed",
+  exploratory: "Exploratory",
+  quality_screened: "Quality-screened",
+  reference: "Reference",
+  validation: "Validated",
+  reproducible: "Reproducible",
+};
+
 
 /** Honest checksum wording: a published declaration is not proof that the
     files were re-hashed and matched in this session. */
@@ -64,8 +75,8 @@ function MaturityMatrix({ domains }: { domains: { domain: string; label: string;
             <tr>
               <th scope="col">Study</th>
               {MATURITY_STAGES.map((stage) => (
-                <th key={stage.id} scope="col" title={stage.meaning}>
-                  {stage.label}
+                <th key={stage.id} scope="col" title={stage.meaning} aria-label={stage.label}>
+                  {MATURITY_MATRIX_LABELS[stage.id]}
                 </th>
               ))}
               <th scope="col">Observations</th>
