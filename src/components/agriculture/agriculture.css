@@ -2211,3 +2211,25 @@
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
+
+
+/* N-12: keep the mobile layer toolbar visually opaque and reserve a clear
+   vertical lane below it for the evidence readout. This prevents text from
+   showing through the active controls without hiding the readout. */
+@media (max-width: 700px) {
+  .agriculture-workspace .agri-map-toolbar {
+    isolation: isolate;
+    background: #081116;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .agriculture-workspace .agri-map-readout {
+    top: 62px;
+    bottom: 52px;
+    max-height: calc(100% - 122px);
+    background: #081116;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
