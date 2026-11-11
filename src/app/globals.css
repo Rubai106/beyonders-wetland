@@ -3064,3 +3064,28 @@ textarea {
   .mozambique-case__native-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+
+
+/* Chókwè native-grid evidence: the Learn drawer is dark, but this evidence card is intentionally light. */
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native :is(h3, strong) {
+  color: #17231d;
+}
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native :is(p, span, small) {
+  color: #425149;
+}
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native .global-eyebrow,
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native-method summary,
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native-links a {
+  color: #006a7c;
+}
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native-grid strong {
+  color: #075f65;
+}
+.wx-root.wx-hazard-shell .wx-drawer .mozambique-case__native-grid small {
+  color: #526158;
+}
+@container (max-width: 500px) {
+  .mozambique-case__native-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
