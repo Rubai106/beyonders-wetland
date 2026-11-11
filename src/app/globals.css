@@ -938,6 +938,16 @@ body::before {
   background: var(--bg-elevated) !important;
 }
 
+/* Override leaflet scale control styles (VP-2): the default is a white
+   bar with dark text, which reads as unthemed on the dark maps. Match the
+   zoom buttons above so all Leaflet chrome shares one treatment. */
+.leaflet-control-scale-line,
+.leaflet-control-scale-line:not(:first-child) {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+
 /* ══════════════════════════════════════════════════════
    LANDING PAGE
    ══════════════════════════════════════════════════════ */
@@ -2954,6 +2964,18 @@ textarea {
    pushing the page sideways. */
 .operator-guide-page .operator-guide-command { white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: auto; padding: 12px 14px; border: 1px solid #d8d3c4; border-radius: 8px; background: #fff; font-size: 13px; line-height: 1.6; }
 
+/* Operator guide links (VP-3): without a rule these render as unstyled
+   browser-default blue. Use the site's link treatment on light pages
+   (dark teal, bold, underlined — same as .mozambique-case__native-links a). */
+.operator-guide-page a {
+  color: #006a7c;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.operator-guide-page a:hover {
+  color: #075f65;
+}
 /* Chókwè follow-up: native-grid, positive-only GFM support audit. */
 .mozambique-case__native {
   display: grid;
