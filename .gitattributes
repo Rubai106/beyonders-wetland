@@ -1,0 +1,5 @@
+# Keep checkouts byte-identical on every platform. The in-browser
+# integrity checks compare publication files byte-for-byte (size and
+# SHA-256) against their manifests; CRLF conversion on Windows checkouts
+# changes file sizes and withholds verified publications.
+* text=auto eol=lf
