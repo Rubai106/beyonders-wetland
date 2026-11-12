@@ -7,6 +7,7 @@ import "@/styles/hazard-workspace.css";
 import "@/components/agriculture/agriculture.css";
 import "@/components/shared/field-volume-scene.css";
 import "@/styles/platform-visual-refresh.css";
+import "@/styles/case-dossier-dark.css";
 import HazardNavigation from "@/components/layout/HazardNavigation";
 
 export const metadata: Metadata = {
