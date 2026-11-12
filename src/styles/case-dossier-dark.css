@@ -1,0 +1,265 @@
+/* ══════════════════════════════════════════════════════════════
+   Beyonders — dark case dossiers.
+   The published case pages (Hayli Gubbi, Kīlauea, Rondônia) render on
+   the dark workspace palette instead of the light editorial surfaces.
+   Loaded last (see layout.tsx) so these rules win ties.
+   Scoped to the case pages only: every other route is untouched.
+   Colors, borders, and text colors only — layout, type, spacing,
+   copy, data, links, and behavior are exactly unchanged.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Hayli Gubbi dossier: re-point the dossier tokens to workspace tones. ── */
+.volcano-case-page {
+  --volcano-ink: #f0f3f2;
+  --volcano-muted: #a7b5be;
+  --volcano-line: #31414b;
+  --volcano-paper: #0b1117;
+  --volcano-card: #121d25;
+  --volcano-ember: #edaa78;
+}
+
+.volcano-case-page .volcano-case-panel {
+  border-color: var(--ws-border);
+  background: var(--ws-panel);
+}
+
+.volcano-case-page .volcano-case-panel__heading {
+  border-bottom-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-case-panel__heading h2,
+.volcano-case-page .volcano-section-heading h2 {
+  color: var(--ws-text);
+}
+
+.volcano-case-page .volcano-section-heading {
+  border-top-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-section-heading p {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-map-caption {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-event-date > span {
+  color: #edaa78;
+}
+
+.volcano-case-page .volcano-event-date p,
+.volcano-case-page .volcano-case-panel > p {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-case-metadata > div {
+  border-bottom-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-case-metadata dt {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-case-metadata dd {
+  color: var(--ws-text);
+}
+
+.volcano-case-page .volcano-date-warning {
+  border-left-color: #edaa78;
+  background: rgb(237 170 120 / 8%);
+}
+
+.volcano-case-page .volcano-date-warning strong {
+  color: #f0c09a;
+}
+
+.volcano-case-page .volcano-date-warning p {
+  color: var(--ws-text);
+}
+
+.volcano-case-page .volcano-method-copy {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-maturity-note {
+  border-top-color: var(--ws-border);
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-real-observations {
+  border-color: var(--ws-border);
+  background: var(--ws-panel);
+}
+
+.volcano-case-page .volcano-image-grid figure {
+  border-color: var(--ws-border);
+  background: var(--ws-panel-2);
+}
+
+.volcano-case-page .volcano-image-grid figure a {
+  background: var(--ws-bg);
+}
+
+.volcano-case-page .volcano-image-grid figcaption {
+  border-top-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-image-grid figcaption strong {
+  color: var(--ws-text);
+}
+
+.volcano-case-page .volcano-image-grid figcaption span {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-image-credit {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-published-results {
+  background: var(--ws-panel-2);
+}
+
+.volcano-case-page .volcano-published-results > p {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-result-row {
+  border-top-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-result-row strong {
+  color: var(--ws-text);
+}
+
+.volcano-case-page .volcano-result-row span {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-result-track {
+  background: #2a3640;
+}
+
+.volcano-case-page .volcano-result-track i {
+  background: #d68035;
+}
+
+.volcano-case-page .volcano-result-row b {
+  color: #f0c09a;
+}
+
+.volcano-case-page .volcano-result-caveat {
+  border-top-color: var(--ws-border);
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-evidence-status {
+  border-top-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-evidence-status strong {
+  color: #edaa78;
+}
+
+.volcano-case-page .volcano-evidence-status span {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-page .volcano-download-link {
+  border-color: #edaa78;
+}
+
+.volcano-case-page .volcano-reproduction-state {
+  border-left-color: #a67c52;
+  background: rgb(255 255 255 / 3%);
+}
+
+.volcano-case-page .volcano-case-sources {
+  border-top-color: var(--ws-border);
+}
+
+.volcano-case-page .volcano-case-sources span {
+  color: var(--ws-text);
+}
+
+.volcano-case-page a:not(.volcano-case-link) {
+  color: #f0a04b;
+}
+
+/* ── Volcano drawers: the comparison table header and the light "earth"
+   sensor curtain (Hayli Learn tab) stay light without these. The curtain
+   reuses the component's own dark default tones. ── */
+.volcano-case-workspace .deformation-table-scroll thead {
+  background: var(--ws-panel-2);
+}
+
+.volcano-case-workspace .deformation-table-scroll th,
+.volcano-case-workspace .deformation-table-scroll td {
+  border-bottom-color: var(--ws-border);
+}
+
+.volcano-case-workspace .deformation-table-scroll caption {
+  color: var(--ws-text-2);
+}
+
+/* Map-footer scale legend: the legend labels keep the light-theme grey
+   (#59645d) on the dark footer, failing contrast. Workspace scope only. */
+.volcano-case-workspace .deformation-legend b {
+  color: var(--ws-text-2);
+}
+
+.volcano-case-workspace .sensor-curtain--earth {
+  border-color: #42505c;
+  background: #0d1822;
+  color: #edf2f3;
+}
+
+.volcano-case-workspace .sensor-curtain--earth .sensor-curtain__heading p {
+  color: #b9c8d2;
+}
+
+.volcano-case-workspace .sensor-curtain--earth .sensor-curtain__controls output {
+  color: #8ed8d5;
+}
+
+.volcano-case-workspace .sensor-curtain--earth .sensor-curtain__note {
+  color: #b9c8d2;
+}
+
+.volcano-case-workspace .sensor-curtain--earth .sensor-curtain__alignment--context {
+  border-color: #a6652c;
+  background: rgb(166 101 44 / 20%);
+  color: #f2c893;
+}
+
+/* ── Forest case: the wavelength badge and the illustration caption leak
+   the light editorial tones into the dark drawer. Scoped to .forest-case
+   so /forest/global and the shared components it uses stay identical. ── */
+.forest-case.forest-page {
+  background: var(--ws-bg);
+  color: var(--ws-text);
+}
+
+.forest-case.forest-page .band-xray__wavelength {
+  border-color: #58c8c1;
+  background: #1a3036;
+  color: #f4fffb;
+}
+
+.forest-case.forest-page .band-xray__figure figcaption {
+  background: #17272c;
+  color: #b4c4c0;
+}
+
+/* Recharts paints its hover tooltip white via inline styles; the scoped
+   !important declarations below are the only way to re-skin it. */
+.forest-case .recharts-default-tooltip {
+  background: var(--ws-panel) !important;
+  border-color: var(--ws-border) !important;
+  color: var(--ws-text) !important;
+}
+
+.forest-case .recharts-tooltip-label {
+  color: var(--ws-text) !important;
+}
